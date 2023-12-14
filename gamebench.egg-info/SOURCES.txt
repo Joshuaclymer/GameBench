@@ -1,0 +1,12 @@
+README.md
+setup.py
+agents/random_agent.py
+api/classes.py
+api/play_game.py
+api/util.py
+gamebench.egg-info/PKG-INFO
+gamebench.egg-info/SOURCES.txt
+gamebench.egg-info/dependency_links.txt
+gamebench.egg-info/requires.txt
+gamebench.egg-info/top_level.txt
+games/tic_tac_toe.py
