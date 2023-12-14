@@ -2,13 +2,17 @@ from dataclasses import dataclass, field
 import random
 from abc import abstractmethod
 from typing import List, Dict, Optional, Tuple
-from api.classes import Observation, Action, Agent, AvailableActions, Game
+from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
+import ast
 
 @dataclass
 class TicTacToe(Game):
+    rules : Rules = Rules(
+        title="Tic Tac Toe",
+        summary="Get 3 in a row of your own marker to win (and avoid letting the other player get 3 in a row of their marker)",
+        additional_details = None
+    )
     id : str = "tic_tac_toe"
-    title : str = "Tic Tac Toe"
-    rules : str = "Get 3 in a row"
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
         self.states = [{
@@ -25,6 +29,8 @@ class TicTacToe(Game):
             1: {"marker": "O"}
         }
         self.winning_team = None
+        if self.show_state:
+            print(f"Agent {self.agents[0].agent_type_id} is X and agent {self.agents[1].agent_type_id} is O")
 
     def get_board_string(self):
         board = self.states[-1]["board"]
@@ -38,10 +44,12 @@ class TicTacToe(Game):
 
         marker = self.agent_data[agent.agent_id]["marker"]
         available_actions = AvailableActions(
+            instructions = f"Return your actions as tuples with zero-indexed (x, y) coordinates of where you'd like to place your marker. The origin is the top left. Your marker is {marker}.",
             predefined = {
-                f"{i},{j}" : f"Place an {marker} at these coordinates (zero-indexed)" for i in range(3) for j in range(3)
+                f"({i},{j})" : None for i in range(3) for j in range(3)
                     if self.states[-1]["board"][i][j] == '-'
-                }
+                },
+            openended = {}
         )
         return observation, available_actions
 
@@ -52,7 +60,7 @@ class TicTacToe(Game):
         if action not in available_actions.predefined:
             action = random.choice(list(available_actions.keys()))
         
-        x, y = [int(item) for item in action.split(',')]
+        x, y = ast.literal_eval(action)
 
         marker = self.agent_data[agent.agent_id]["marker"]
         board = self.states[-1]["board"]
@@ -104,14 +112,14 @@ class TicTacToe(Game):
         while True:
             # Player 1 moves
             observation, available_actions = self.get_observation(player_1)
-            action = player_1.take_action(observation, available_actions, show_state=self.show_state)
+            action = player_1.take_action(self.rules, observation, available_actions, show_state=self.show_state)
             self.update(action, available_actions, player_1)
             if self.game_is_over:
                 break
 
             # Player 2 moves
             observation, available_actions = self.get_observation(player_2)
-            action = player_2.take_action(observation, available_actions, show_state=self.show_state)
+            action = player_2.take_action(self.rules, observation, available_actions, show_state=self.show_state)
             self.update(action, available_actions, player_2)
             if self.game_is_over:
                 break

@@ -11,8 +11,9 @@ class Observation:
 
 @dataclass
 class AvailableActions:
+    instructions : str
     predefined : Dict[str, str]
-    openended : Optional[Dict[str, str]] = None
+    openended : Dict[str, str]
 
 @dataclass
 class Action:
@@ -26,15 +27,20 @@ class Agent:
     agent_type_id : str 
 
     @abstractmethod
-    def take_action(self, observation: Observation, available_actions : AvailableActions):
+    def take_action(self, rules : dict, observation: Observation, available_actions : AvailableActions):
         pass
+
+@dataclass
+class Rules:
+    title: str
+    summary : str
+    additional_details : Optional[dict] # Includes additional details by topic that can be 'expanded' by the language model.
 
 # Each game involves two teams. A team involves includes 1 or more agents.
 @dataclass
 class Game:
     id : str # Unique identifier in snake_case
-    title : str # Displayable title of the game
-    rules : str # document that agents can reference at any point
+    rules : Rules # document that agents can reference at any point. 
     agents : List[Agent] = None # agents in the game. Should be initialized in init_game. Can be more than 2 agents because there can be copies playing on a team.
     show_state : bool = False # whether to e.g. print the board
     game_is_over : bool = False # indicates that no more actions should be taken and the scores should be computed.

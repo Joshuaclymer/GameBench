@@ -1,5 +1,6 @@
 README.md
 setup.py
+agents/gpt.py
 agents/random_agent.py
 api/classes.py
 api/play_game.py
