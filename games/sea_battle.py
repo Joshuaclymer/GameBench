@@ -7,6 +7,10 @@ import ast
 from itertools import permutations, product, combinations
 from pprint import pprint
 
+PLAYERS_PER_TEAM = 1
+N_PLAYERS = 1#2 * PLAYERS_PER_TEAM
+BOARD_SIZE = (24, 24)
+
 def get_plan_description(plan):
     """Converts a movement plan string into a human-readable description."""
     map = {"L": "move left", "F": "move forward", "R": "move right",
@@ -18,15 +22,19 @@ def get_plan_description(plan):
 @dataclass
 class Location:
     position : complex
-    heading  : complex
+    heading  : complex = 1
 
-    def move(self, step, turn):
-        return Location(self.position + step*self.heading, turn*self.heading)
+    def forward(self):
+        return Location(self.position + self.heading, self.heading)
+
+    def turn(self, token):
+        dir = {"L": 1j, "F": 1, "R": -1j, "W": 1}[token]
+        return Location(self.position, self.heading * dir)
 
     @staticmethod
     def random():
         return Location(
-            random.randint(-12, 12) + random.randint(-12, 12)*1j,
+            random.randint(0, 23) + random.randint(0, 23)*1j,
             random.choice([1, 1j, -1, -1j])
         )
 
@@ -43,7 +51,9 @@ class SeaBattle(Game):
     )
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
-        self.agents = [agent1(agent_id=0, team_id=0)]#, agent2(agent_id=1, team_id=1)]
+        team1 = [agent1(agent_id=i, team_id=0) for i in range(PLAYERS_PER_TEAM)]
+        #team2 = [agent2(agent_id=i+PLAYERS_PER_TEAM, team_id=1) for i in range(PLAYERS_PER_TEAM)]
+        self.agents = team1# + team2
         self.winning_team = None
 
         self.agent_data = {
@@ -54,28 +64,35 @@ class SeaBattle(Game):
                 "left_tokens": 4,
                 "forward_tokens": 4,
                 "right_tokens": 4,
-            } for i in range(1)
+            } for i in range(N_PLAYERS)
         }
-        self.locations = [Location.random() for _ in range(1)]
-        self.damages = [0] * 1
+        self.locations = [Location.random() for _ in range(N_PLAYERS)]
+        self.damages = [0] * N_PLAYERS
 
-        self.rocks = [Location.random() for _ in range(10)]
+        self.rocks = \
+            [Location(0 +i*1j) for i in range(24)] + \
+            [Location(i + 23j) for i in range(24)] + \
+            [Location(23+i*1j) for i in range(24)] + \
+            [Location(i +  0j) for i in range(24)] + \
+            [Location.random() for _ in range(10)]
+
         self.winds = [Location.random() for _ in range(10)]
-
-        self.plans = [None] * 1
+        self.plans = [None] * N_PLAYERS
 
     def get_board_string(self):
-        """Ideas
-        - the grid is 2d, so return a 2d grid of symbols
-        - a list of objects and their coordinates
-        """
+        def xy(loc):
+            return 23-int(loc.position.imag), int(loc.position.real)
+
         board = [["." for _ in range(24)] for _ in range(24)]
         for agent_id, location in enumerate(self.locations):
-            x = int(location.position.real + 12) % 24
-            y = int(location.position.imag + 12) % 24
+            x, y = xy(location)
             board[x][y] = str(agent_id)
 
-        return "\n".join(["".join(board[i]) for i in range(24)])
+        for location in self.rocks:
+            x, y = xy(location)
+            board[x][y] = "R"
+
+        return "\n".join([" ".join(board[i]) for i in range(24)])
 
     def get_available_plans(self, agent : Agent):
         data = self.agent_data[agent.agent_id]
@@ -115,8 +132,6 @@ class SeaBattle(Game):
             openended={}
         )
 
-        print("Current location: ", self.locations[0])
-
         return observation, available_actions
 
     def update(self, action : Action, available_actions : AvailableActions, agent : Agent):
@@ -128,16 +143,17 @@ class SeaBattle(Game):
         if any(p is None for p in self.plans):
             return
 
-        print(self.plans[0])
+        print("#################\n###################\n################")
+        print(self.get_board_string())
+        print(self.locations)
 
-        # Map movement tokens to position and heading "deltas"
+        # Arguments to Location.move()
         token_move = {
             "L": [(1,  1j), (1, 1)],
             "F": [(1,  1 ), (0, 1)],
             "R": [(1, -1j), (1, 1)],
             "W": [(0,  1 ), (0, 1)]
         }
-
         cannon_move = {
             "l": [1j, 1],
             "r": [-1j, 1],
@@ -146,8 +162,10 @@ class SeaBattle(Game):
         }
 
         for token_i in range(8):
+            tokens = [p[token_i] for p in self.plans]
+
             if token_i % 2:
-                for p in self.plans:
+                """for p in self.plans:
                     token = p[token_i]
                     target = self.locations[agent_id].move(*cannon_move[token])
 
@@ -156,28 +174,65 @@ class SeaBattle(Game):
 
                 for agent_id, damage in enumerate(self.damages):
                     if damage >= 10:
-                        pass
+                        pass"""
 
             else:
-                moves = [token_move[p[token_i]] for p in self.plans]
+                """Movement happens in the following phases:
+                1. All moving ships claim their forward spot
+                2. If any claimed spot is already occupied, collisions occur
+                3. All turning ships rotate in place
+                4. All turning ships claim the next forward spot
+                5. Collisions again
 
-                claimed = []
-                for agent_id in range(1):
-                    move = moves[agent_id]
-                    claimed.append(self.locations[agent_id].move(*move[0]))
+                Collisions change which spot the ship ends up moving to.
+                """
+                print("Tokens:", [p[token_i] for p in self.plans])
 
-                # check collisions
-                self.locations = claimed
+                # For all ships that are moving, claim the forward spot.
+                claims = []
+                for location, token in zip(self.locations, tokens):
+                    if token in "LFR":
+                        claims.append(location.forward())
+                    else:
+                        claims.append(location)
 
-                claimed = []
-                for agent_id in range(1):
-                    move = moves[agent_id]
-                    claimed.append(self.locations[agent_id].move(*move[1]))
+                # Resolve collisions
+                actual = []
+                for old_location, claim in zip(self.locations, claims):
+                    if claim in self.rocks:
+                        actual.append(location)
+                    else:
+                        actual.append(claim)
 
-                # check collisions
-                self.locations = claimed
+                # Turn ships that tried to turn, regardless of collision
+                new = []
+                for location, token in zip(actual, tokens):
+                    new.append(location.turn(token))
 
-        self.plans = [None] * 1
+                # For all turning ships, claim the forward spot
+                claims = []
+                for location, token in zip(new, tokens):
+                    if token in "LR":
+                        claims.append(location.forward())
+                    else:
+                        claims.append(location)
+
+                # Resolve collisions again, with slightly different rules.
+                actual = []
+                for old_location, claim in zip(new, claims):
+                    if claim in self.rocks:
+                        actual.append(location)
+                    else:
+                        actual.append(claim)
+
+                # No more turning
+
+                self.locations = actual
+
+        print(self.get_board_string())
+        print(self.locations)
+
+        self.plans = [None] * N_PLAYERS
 
     def play(self) -> Tuple[float, float]:
         while True:
