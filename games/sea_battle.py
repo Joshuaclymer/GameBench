@@ -91,6 +91,7 @@ class SeaBattle(Game):
         }
         self.locations = [Location.random() for _ in range(N_PLAYERS)]
         self.damages   = [DamageCounter(10) for _ in range(N_PLAYERS)]
+        self.plans = [None] * N_PLAYERS
 
         self.rocks = \
             [Location(0 +i*1j) for i in range(24)] + \
@@ -100,7 +101,11 @@ class SeaBattle(Game):
             [Location.random() for _ in range(10)]
 
         self.winds = [Location.random() for _ in range(10)]
-        self.plans = [None] * N_PLAYERS
+
+    def remove(self, i):
+        del self.locations[i]
+        del self.damages[i]
+        del self.plans[i]
 
     def get_board_string(self):
         def xy(loc):
@@ -174,7 +179,10 @@ class SeaBattle(Game):
         print(self.damages)
         print(self.plans)
 
-        for tokens in zip(*self.plans):
+        for token_i in range(8):
+            tokens = [p[token_i] for p in self.plans]
+            print("tokens", tokens)
+
             # Cannon firing
             if tokens[0] in "lrbn":
                 for location, token in zip(self.locations, tokens):
@@ -188,11 +196,17 @@ class SeaBattle(Game):
                                 print("Ship hit")
                                 dmg = next(dmg for dmg, location in zip(self.damages, self.locations) if target == location)
                                 dmg.cannon()
+
                                 break
 
                             if target in self.rocks:
                                 print("Rock hit")
                                 break
+
+                # Remove sunk ships
+                sunk = [i for i, dmg in enumerate(self.damages) if dmg.sunk()]
+                for i in sunk:
+                    self.remove(i)
 
             # Movement
             else:
@@ -228,6 +242,13 @@ class SeaBattle(Game):
                 for location, token in zip(actual, tokens):
                     new.append(location.turn(token))
 
+                # 3.5 Remove sunk ships
+                sunk = [i for i, dmg in enumerate(self.damages) if dmg.sunk()]
+                for i in sunk:
+                    del new[i]
+                    del tokens[i]
+                    self.remove(i)
+
                 # 4. For all turning ships, claim the forward spot
                 claims = []
                 for location, token in zip(new, tokens):
@@ -245,6 +266,12 @@ class SeaBattle(Game):
                     else:
                         actual.append(claim)
 
+                # 5.5 Remove sunk ships
+                sunk = [i for i, dmg in enumerate(self.damages) if dmg.sunk()]
+                for i in sunk:
+                    del actual[i]
+                    self.remove(i)
+
                 self.locations = actual
 
         print(self.get_board_string())
@@ -255,12 +282,19 @@ class SeaBattle(Game):
 
     def play(self) -> Tuple[float, float]:
         while True:
-            for player in self.agents:
+            for player in (agent for agent, dmg in zip(self.agents, self.damages) if not dmg.sunk()):
                 observation, available_actions = self.get_observation(player)
                 action = player.take_action(self.rules, observation, available_actions, show_state=self.show_state)
                 self.update(action, available_actions, player)
 
-            if self.game_is_over:
-                break
+            if all(dmg.sunk() for dmg in self.damages):
+                print("All ships sunk.")
+                return (0.5, 0.5)
 
-        return (1., 0.) if self.winning_team == 0 else (0., 1.)
+            if all(dmg.sunk() for dmg, player in zip(self.damages, self.agents) if player.team_id == 0):
+                print("Team 0 wins.")
+                return (0., 1.)
+
+            if all(dmg.sunk() for dmg, player in zip(self.damages, self.agents) if player.team_id == 1):
+                print("Team 1 wins.")
+                return (1., 0.)
