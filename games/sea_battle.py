@@ -89,7 +89,11 @@ class SeaBattle(Game):
                 "right_tokens": 4,
             } for i in range(N_PLAYERS)
         }
-        self.locations = [Location.random() for _ in range(N_PLAYERS)]
+
+        all_locations = [Location(x+y*1j) for x in range(1, 23) for y in range(1, 23)]
+        random.shuffle(all_locations)
+
+        self.locations = all_locations[:N_PLAYERS]
         self.damages   = [DamageCounter(10) for _ in range(N_PLAYERS)]
         self.plans = [None] * N_PLAYERS
 
@@ -98,9 +102,9 @@ class SeaBattle(Game):
             [Location(i + 23j) for i in range(24)] + \
             [Location(23+i*1j) for i in range(24)] + \
             [Location(i +  0j) for i in range(24)] + \
-            [Location.random() for _ in range(10)]
+            all_locations[N_PLAYERS:20]
 
-        self.winds = [Location.random() for _ in range(10)]
+        self.winds = all_locations[N_PLAYERS+20:10]
 
     def remove(self, i):
         del self.locations[i]
@@ -173,18 +177,11 @@ class SeaBattle(Game):
         if any(p is None for p in self.plans):
             return
 
-        print("#################\n###################\n################")
-        print(self.get_board_string())
-        print(self.locations)
-        print(self.damages)
-        print(self.plans)
-
         for token_i in range(8):
             tokens = [p[token_i] for p in self.plans]
-            print("tokens", tokens)
 
             # Cannon firing
-            if tokens[0] in "lrbn":
+            if token_i % 2:
                 for location, token in zip(self.locations, tokens):
                     shots = ["l", "r"] if token == "b" else [token]
 
@@ -193,18 +190,15 @@ class SeaBattle(Game):
                         for _ in range(3):
                             target = target.adjacent(shot)
                             if target in self.locations:
-                                print("Ship hit")
                                 dmg = next(dmg for dmg, location in zip(self.damages, self.locations) if target == location)
                                 dmg.cannon()
-
                                 break
 
                             if target in self.rocks:
-                                print("Rock hit")
                                 break
 
                 # Remove sunk ships
-                sunk = [i for i, dmg in enumerate(self.damages) if dmg.sunk()]
+                sunk = reversed([i for i, dmg in enumerate(self.damages) if dmg.sunk()])
                 for i in sunk:
                     self.remove(i)
 
@@ -243,7 +237,7 @@ class SeaBattle(Game):
                     new.append(location.turn(token))
 
                 # 3.5 Remove sunk ships
-                sunk = [i for i, dmg in enumerate(self.damages) if dmg.sunk()]
+                sunk = reversed([i for i, dmg in enumerate(self.damages) if dmg.sunk()])
                 for i in sunk:
                     del new[i]
                     del tokens[i]
@@ -267,16 +261,12 @@ class SeaBattle(Game):
                         actual.append(claim)
 
                 # 5.5 Remove sunk ships
-                sunk = [i for i, dmg in enumerate(self.damages) if dmg.sunk()]
+                sunk = reversed([i for i, dmg in enumerate(self.damages) if dmg.sunk()])
                 for i in sunk:
                     del actual[i]
                     self.remove(i)
 
                 self.locations = actual
-
-        print(self.get_board_string())
-        print(self.locations)
-        print(self.damages)
 
         self.plans = [None] * len(self.plans)
 
