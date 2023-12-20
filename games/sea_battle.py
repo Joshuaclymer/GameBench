@@ -7,9 +7,28 @@ import ast
 from itertools import permutations, product, combinations
 from pprint import pprint
 
-PLAYERS_PER_TEAM = 1
+PLAYERS_PER_TEAM = 3
 N_PLAYERS = 2 * PLAYERS_PER_TEAM
 BOARD_SIZE = (24, 24)
+
+"""
+Remaining features:
+- Wind
+- Whirlpools
+- Different ships (different cannons, different amounts of health, different shooting options)
+- Tokens use/regeneration (damage affects regen)
+- Carpentry (just gradually remove damage)
+- Buoys? Blockade mechanics?
+
+Remaining todo:
+- Write rules out
+- Create deliberation phase
+- Give more state information
+
+Questions:
+- Should I explain all edge cases, simplify the rules, or let the agents learn?
+- How many features should I add?
+"""
 
 def get_plan_description(plan):
     """Converts a movement plan string into a human-readable description."""
@@ -22,25 +41,23 @@ def get_plan_description(plan):
 @dataclass
 class Location:
     position : complex
-    heading  : complex = 1
+    heading  : complex = field(default_factory=lambda: random.choice([1, 1j, -1, -1j]))
 
     def forward(self):
+        """Returns location one square in front of this location."""
         return Location(self.position + self.heading, self.heading)
 
     def turn(self, token):
+        """Returns location rotated from this location according to a movement
+        token."""
         dir = {"L": 1j, "F": 1, "R": -1j, "W": 1}[token]
         return Location(self.position, self.heading * dir)
 
     def adjacent(self, token):
+        """Returns location adjacent from this location according to a cannon
+        token."""
         dir = {"l": 1j, "r": -1j, "n": 99}[token]
         return Location(self.position + self.heading*dir, self.heading)
-
-    @staticmethod
-    def random():
-        return Location(
-            random.randint(0, 23) + random.randint(0, 23)*1j,
-            random.choice([1, 1j, -1, -1j])
-        )
 
     def __eq__(self, t):
         return self.position == t.position
@@ -65,7 +82,21 @@ class SeaBattle(Game):
     rules : Rules = Rules(
         title="Sea Battle",
         summary="Sink all of your opponent team's ships before they sink all of your team's ships.",
-        additional_details=None
+        additional_details={
+            "Gameplay": "Gameplay cycles through three phases: deliberation, planning, and execution.",
+            "Deliberation phase": "During this time, you will communicate with your teammates to share strategical ideas and form a plan.",
+            "Planning phase": "During this phase, all players create a plan.",
+            "Execution phase": "All player's plans are executed simultaneously.",
+            "Plan": "A plan is a sequence of 8 tokens: 4 movement tokens and 4 cannon tokens. These tokens alternate: one movement token, one cannon token, so forth.",
+            "Movement token": "There are four options: F = move forward one space; L = move forward one space, spin left, move forward; R = move forward one space, spin right, move forward. W = do not move. You have a limited number of movement tokens each turn, and will have fewer if you have sustained more damage. You will always have 4 W tokens.",
+            "Cannon token": "There are four options: l = shoot left; r = shoot right; b = shoot left and right; n = don't shoot. You have a limited number of cannons each turn. Token b uses up two cannons and token n doesn't use any.",
+            "Rock": "If you sail into a rock, you will sustain damage.",
+            "Wind": "If you sail into wind, you will be pushed in the direction of the wind.",
+            "Cannon": "If you are shot by a cannon, you will sustain damage.",
+            "Ramming": "If you sail into another ship, or the same square that another ship is attempting to, you may either both sustain damage or either of you may be blocked from moving.",
+            "Damage": "After you sustain enough damage, your ship will sink and you will be unable to play the rest of the game. You heal a little bit of damage each turn.",
+            "Board symbols": ". = open water that you can sail on. R = a rock. A = your ship. B = friendly ship #1. C = friendly ship #2. X, Y, and Z = enemy ships #1, #2, and #3.",
+        }
     )
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
@@ -79,23 +110,17 @@ class SeaBattle(Game):
         self.agents = team1 + team2
         self.winning_team = None
 
-        self.agent_data = {
-            i: {
-                "damage": 0,
-                "water": 0,
-                "cannon_tokens": 4,
-                "left_tokens": 4,
-                "forward_tokens": 4,
-                "right_tokens": 4,
-            } for i in range(N_PLAYERS)
-        }
-
         all_locations = [Location(x+y*1j) for x in range(1, 23) for y in range(1, 23)]
         random.shuffle(all_locations)
 
         self.locations = all_locations[:N_PLAYERS]
         self.damages   = [DamageCounter(10) for _ in range(N_PLAYERS)]
         self.plans = [None] * N_PLAYERS
+        self.lefts = [4] * N_PLAYERS
+        self.forwards = [4] * N_PLAYERS
+        self.rights = [4] * N_PLAYERS
+        self.cannons = [4] * N_PLAYERS
+        self.ship_symbols = list("ABCXYZ") # hardcoded...
 
         self.rocks = \
             [Location(0 +i*1j) for i in range(24)] + \
@@ -106,42 +131,65 @@ class SeaBattle(Game):
 
         self.winds = all_locations[N_PLAYERS+20:10]
 
-    def remove(self, i):
-        del self.locations[i]
-        del self.damages[i]
-        del self.plans[i]
+    def sink(self, *data):
+        """Checks damage counters for ships that have just been sunken, and
+        deletes their data from the game state as well as any local state
+        passed in through *data. Not the prettiest way to do this..."""
+        for i in reversed([i for i, dmg in enumerate(self.damages) if dmg.sunk()]):
+            for d in data:
+                del d[i]
+            del self.locations[i]
+            del self.damages[i]
+            del self.plans[i]
+            del self.lefts[i]
+            del self.forwards[i]
+            del self.rights[i]
+            del self.cannons[i]
+            del self.ship_symbols[i]
 
-    def get_board_string(self):
+    def get_state_string(self, agent : Agent):
         def xy(loc):
             return 23-int(loc.position.imag), int(loc.position.real)
 
+        directions = {}
         board = [["." for _ in range(24)] for _ in range(24)]
         for agent_id, location in enumerate(self.locations):
             x, y = xy(location)
-            board[x][y] = str(agent_id)
+            symbol = self.ship_symbols[agent_id]
+            board[x][y] = symbol
+            directions[symbol] = {1: "East", 1j: "North", -1: "West", -1j: "South"}[location.heading]
 
         for location in self.rocks:
             x, y = xy(location)
             board[x][y] = "R"
 
-        return "\n".join([" ".join(board[i]) for i in range(24)])
+        id = agent.agent_id
+
+        board = "\n".join([" ".join(board[i]) for i in range(24)]) + "\n"
+        board += ". ".join([f"Ship {symbol} is facing {dir}" for symbol, dir in directions.items()]) + ".\n"
+        board += f"You are controlling ship {self.ship_symbols[id]}. Your team's ships are {'A, B, and C' if agent.team_id == 0 else 'X, Y, and Z'}.\n"
+        board += f"You have {self.lefts[id]} L tokens, {self.forwards[id]} F tokens, and {self.rights[id]} R tokens.\n"
+        board += f"You have {self.cannons[id]} cannonballs.\n"
+        board += f"You have {self.damages[id].damage} damage. If you reach {self.damages[id].threshold}, you will sink."
+
+        return board
 
     def get_available_plans(self, agent : Agent):
-        data = self.agent_data[agent.agent_id]
+        id = agent.agent_id
 
         movement_plans = [
             p
             for p
             in list(set(combinations("LLLLFFFFRRRRWWWW", r=4)))
-            if  p.count("L") <= data["left_tokens"]
-            and p.count("F") <= data["forward_tokens"]
-            and p.count("R") <= data["right_tokens"]
+            if  p.count("L") <= self.lefts[id]
+            and p.count("F") <= self.forwards[id]
+            and p.count("R") <= self.rights[id]
         ]
         cannon_plans = [
             p
             for p
             in list(set(combinations("llllrrrrbbbbnnnn", r=4)))
-            if p.count("llll") + p.count("rrrr") + 2*p.count("bbbb") <= data["cannon_tokens"]
+            if p.count("llll") + p.count("rrrr") + 2*p.count("bbbb") <= self.cannons[id]
         ]
 
         plans = [
@@ -153,11 +201,13 @@ class SeaBattle(Game):
         return plans
 
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
-        board_string = self.get_board_string()
-        observation = Observation(text=board_string)
+        state_string = self.get_state_string(agent)
+        observation = Observation(text=state_string)
+
+        print(state_string)
 
         available_actions = AvailableActions(
-            instructions="desc.",
+            instructions="It is the planning phase. Return your action as a plan consisting of tokens you have available to you. A plan is a sequence of 8 tokens, alternating between movement tokens and cannon tokens.",
             predefined={
                 plan: get_plan_description(plan) for plan in self.get_available_plans(agent)
             },
@@ -177,6 +227,9 @@ class SeaBattle(Game):
         if any(p is None for p in self.plans):
             return
 
+        self.execute_plans()
+
+    def execute_plans(self):
         for token_i in range(8):
             tokens = [p[token_i] for p in self.plans]
 
@@ -198,9 +251,7 @@ class SeaBattle(Game):
                                 break
 
                 # Remove sunk ships
-                sunk = reversed([i for i, dmg in enumerate(self.damages) if dmg.sunk()])
-                for i in sunk:
-                    self.remove(i)
+                self.sink()
 
             # Movement
             else:
@@ -237,11 +288,7 @@ class SeaBattle(Game):
                     new.append(location.turn(token))
 
                 # 3.5 Remove sunk ships
-                sunk = reversed([i for i, dmg in enumerate(self.damages) if dmg.sunk()])
-                for i in sunk:
-                    del new[i]
-                    del tokens[i]
-                    self.remove(i)
+                self.sink(new, tokens)
 
                 # 4. For all turning ships, claim the forward spot
                 claims = []
@@ -261,10 +308,7 @@ class SeaBattle(Game):
                         actual.append(claim)
 
                 # 5.5 Remove sunk ships
-                sunk = reversed([i for i, dmg in enumerate(self.damages) if dmg.sunk()])
-                for i in sunk:
-                    del actual[i]
-                    self.remove(i)
+                self.sink(actual)
 
                 self.locations = actual
 
