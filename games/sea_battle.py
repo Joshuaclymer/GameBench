@@ -20,14 +20,18 @@ Remaining features:
 - Carpentry (just gradually remove damage)
 - Buoys? Blockade mechanics?
 
-Remaining todo:
-- Write rules out
-- Create deliberation phase
-- Give more state information
-
 Questions:
 - Should I explain all edge cases, simplify the rules, or let the agents learn?
-- How many features should I add?
+- How many features should I add? Which are just extras?
+- Is deliberation necessary? Maybe I give each player a certain number of messages,
+and as long as a player hasn't used up all of their messages, they can choose
+to send a message instead of submitting a plan. Or maybe it's not necessary
+because it's the same agent controlling each member and they all have pretty much
+perfect information
+- Should the observation report what actions other players took? Maybe give a
+play-by-play where it what each ship did per-token. Can build up that play-by-play
+as the plans are being executed, and then tack it on next turn. This feels
+pretty important, but there's already a lot of text being passed.
 """
 
 def get_plan_description(plan):
@@ -36,7 +40,7 @@ def get_plan_description(plan):
         "W": "wait", "l": "shoot left", "r": "shoot right", "b": "shoot both",
         "n": "don't shoot"}
 
-    return ", ".join([map[token] for token in plan])
+    return ", then ".join([map[token] for token in plan])
 
 @dataclass
 class Location:
@@ -71,10 +75,10 @@ class DamageCounter:
         return self.damage >= self.threshold
 
     def rock(self):
-        self.damage += 3
+        self.damage += 0.2
 
     def cannon(self):
-        self.damage += 5
+        self.damage += 0.5
 
 @dataclass
 class SeaBattle(Game):
@@ -86,16 +90,15 @@ class SeaBattle(Game):
             "Gameplay": "Gameplay cycles through three phases: deliberation, planning, and execution.",
             "Deliberation phase": "During this time, you will communicate with your teammates to share strategical ideas and form a plan.",
             "Planning phase": "During this phase, all players create a plan.",
-            "Execution phase": "All player's plans are executed simultaneously.",
+            "Execution phase": "All player's plans are executed simultaneously. As in, all players take their first movement according to the first movement token in each plan, then each pauses to shoot according to the cannon token, and so forth.",
             "Plan": "A plan is a sequence of 8 tokens: 4 movement tokens and 4 cannon tokens. These tokens alternate: one movement token, one cannon token, so forth.",
             "Movement token": "There are four options: F = move forward one space; L = move forward one space, spin left, move forward; R = move forward one space, spin right, move forward. W = do not move. You have a limited number of movement tokens each turn, and will have fewer if you have sustained more damage. You will always have 4 W tokens.",
-            "Cannon token": "There are four options: l = shoot left; r = shoot right; b = shoot left and right; n = don't shoot. You have a limited number of cannons each turn. Token b uses up two cannons and token n doesn't use any.",
+            "Cannon token": "There are four options: l = shoot left; r = shoot right; b = shoot left and right; n = don't shoot. You have a limited number of cannonballs each turn. Token b uses up two cannonballs and token n doesn't use any.",
             "Rock": "If you sail into a rock, you will sustain damage.",
-            "Wind": "If you sail into wind, you will be pushed in the direction of the wind.",
-            "Cannon": "If you are shot by a cannon, you will sustain damage.",
+            "Cannonball": "If you are shot by a cannonball, you will sustain damage.",
             "Ramming": "If you sail into another ship, or the same square that another ship is attempting to, you may either both sustain damage or either of you may be blocked from moving.",
-            "Damage": "After you sustain enough damage, your ship will sink and you will be unable to play the rest of the game. You heal a little bit of damage each turn.",
-            "Board symbols": ". = open water that you can sail on. R = a rock. A = your ship. B = friendly ship #1. C = friendly ship #2. X, Y, and Z = enemy ships #1, #2, and #3.",
+            "Damage": "After you sustain enough damage, your ship will sink and you will be unable to play the rest of the game.",
+            "Board symbols": ". = open water that you can sail on. R = a rock. A, B, C, X, Y, and Z = all ships. Your team will either be ships A, B, and C, or ships X, Y, and Z.",
         }
     )
 
@@ -204,7 +207,8 @@ class SeaBattle(Game):
         state_string = self.get_state_string(agent)
         observation = Observation(text=state_string)
 
-        print(state_string)
+        if self.show_state:
+            print(state_string)
 
         available_actions = AvailableActions(
             instructions="It is the planning phase. Return your action as a plan consisting of tokens you have available to you. A plan is a sequence of 8 tokens, alternating between movement tokens and cannon tokens.",
@@ -322,13 +326,10 @@ class SeaBattle(Game):
                 self.update(action, available_actions, player)
 
             if all(dmg.sunk() for dmg in self.damages):
-                print("All ships sunk.")
                 return (0.5, 0.5)
 
             if all(dmg.sunk() for dmg, player in zip(self.damages, self.agents) if player.team_id == 0):
-                print("Team 0 wins.")
                 return (0., 1.)
 
             if all(dmg.sunk() for dmg, player in zip(self.damages, self.agents) if player.team_id == 1):
-                print("Team 1 wins.")
                 return (1., 0.)
