@@ -34,6 +34,14 @@ as the plans are being executed, and then tack it on next turn. This feels
 pretty important, but there's already a lot of text being passed.
 """
 
+# Hold up hold up... the max context is 16k?? I don't think this game is
+# possible in that small of a context. Unless we reset the context each time.
+# Which we can do because we make it a DFA?
+# Nope. It doesn't save the context. The problem is that there are too many
+# tokens in one state message. The problem seems to be largely from the moves list.
+# So maybe instead of having them plan out the moves, you ask one move at a time.
+# First a movement, then a cannon, etc. Until you have 8, then you execute.
+
 def get_plan_description(plan):
     """Converts a movement plan string into a human-readable description."""
     map = {"L": "move left", "F": "move forward", "R": "move right",
@@ -118,11 +126,8 @@ class SeaBattle(Game):
 
         self.locations = all_locations[:N_PLAYERS]
         self.damages   = [DamageCounter(10) for _ in range(N_PLAYERS)]
-        self.plans = [None] * N_PLAYERS
-        self.lefts = [4] * N_PLAYERS
-        self.forwards = [4] * N_PLAYERS
-        self.rights = [4] * N_PLAYERS
-        self.cannons = [4] * N_PLAYERS
+        self.plans = [[] for _ in range(N_PLAYERS)]
+        self.tokens = [list("LLLLFFFFRRRRCCCCCC") for _ in range(N_PLAYERS)]
         self.ship_symbols = list("ABCXYZ") # hardcoded...
 
         self.rocks = \
@@ -144,10 +149,7 @@ class SeaBattle(Game):
             del self.locations[i]
             del self.damages[i]
             del self.plans[i]
-            del self.lefts[i]
-            del self.forwards[i]
-            del self.rights[i]
-            del self.cannons[i]
+            del self.tokens[i]
             del self.ship_symbols[i]
 
     def get_state_string(self, agent : Agent):
@@ -168,40 +170,19 @@ class SeaBattle(Game):
 
         id = agent.agent_id
 
+        lefts = self.tokens[id].count("L")
+        forwards = self.tokens[id].count("F")
+        rights = self.tokens[id].count("R")
+        cannons = self.tokens[id].count("C")
+
         board = "\n".join([" ".join(board[i]) for i in range(24)]) + "\n"
         board += ". ".join([f"Ship {symbol} is facing {dir}" for symbol, dir in directions.items()]) + ".\n"
         board += f"You are controlling ship {self.ship_symbols[id]}. Your team's ships are {'A, B, and C' if agent.team_id == 0 else 'X, Y, and Z'}.\n"
-        board += f"You have {self.lefts[id]} L tokens, {self.forwards[id]} F tokens, and {self.rights[id]} R tokens.\n"
-        board += f"You have {self.cannons[id]} cannonballs.\n"
+        board += f"You have {lefts} L tokens, {forwards} F tokens, and {rights} R tokens.\n"
+        board += f"You have {cannons} cannonballs.\n"
         board += f"You have {self.damages[id].damage} damage. If you reach {self.damages[id].threshold}, you will sink."
 
         return board
-
-    def get_available_plans(self, agent : Agent):
-        id = agent.agent_id
-
-        movement_plans = [
-            p
-            for p
-            in list(set(combinations("LLLLFFFFRRRRWWWW", r=4)))
-            if  p.count("L") <= self.lefts[id]
-            and p.count("F") <= self.forwards[id]
-            and p.count("R") <= self.rights[id]
-        ]
-        cannon_plans = [
-            p
-            for p
-            in list(set(combinations("llllrrrrbbbbnnnn", r=4)))
-            if p.count("llll") + p.count("rrrr") + 2*p.count("bbbb") <= self.cannons[id]
-        ]
-
-        plans = [
-            "".join([m + c for m, c in zip(movement, cannon)])
-            for movement, cannon
-            in product(movement_plans, cannon_plans)
-        ]
-
-        return plans
 
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
         state_string = self.get_state_string(agent)
@@ -210,13 +191,35 @@ class SeaBattle(Game):
         if self.show_state:
             print(state_string)
 
-        available_actions = AvailableActions(
-            instructions="It is the planning phase. Return your action as a plan consisting of tokens you have available to you. A plan is a sequence of 8 tokens, alternating between movement tokens and cannon tokens.",
-            predefined={
-                plan: get_plan_description(plan) for plan in self.get_available_plans(agent)
-            },
-            openended={}
-        )
+        agent_id = agent.agent_id
+        cannons = self.tokens[agent_id].count("C")
+        if len(self.plans[agent_id]) % 2:
+            available_actions = AvailableActions(
+                instructions=f"Your plan so far is '{''.join(self.plans[agent_id])}'. It is time to choose a cannon token.",
+                predefined={
+                    "n": "Don't shoot.",
+                } | (
+                    {"l": "Shoot one left.", "r": "Shoot once right."}
+                    if cannons >= 1
+                    else {}
+                ) | (
+                    {"b": "Shoot both left and right."}
+                    if cannons >= 2
+                    else {}
+                ),
+                openended={}
+            )
+        else:
+            available_actions = AvailableActions(
+                instructions=f"Your plan so far is '{''.join(self.plans[agent_id])}'. It is time to choose a movement token.",
+                predefined={token: desc for token, desc in {
+                    "L": "Move forward, rotate left, then move forward again.",
+                    "F": "Move forward",
+                    "R": "Move forward, rotate right, then move forward again.",
+                    "W": "Don't move."
+                }.items() if token in self.tokens[agent_id]},
+                openended={}
+            )
 
         return observation, available_actions
 
@@ -226,12 +229,20 @@ class SeaBattle(Game):
         if action not in available_actions.predefined:
             action = random.choice(list(available_actions.predefined.keys()))
 
-        # Queue this agent's plan, and return if not every agent has queued yet.
-        self.plans[agent.agent_id] = action
-        if any(p is None for p in self.plans):
+        # Queue this agent's plan, and return if not every agent has finishing planning yet.
+        self.plans[agent.agent_id].append(action)
+        if action.isupper():
+            self.tokens[agent.agent_id].remove(action)
+        else:
+            self.tokens[agent.agent_id].remove("C")
+            if action == "b":
+                self.tokens[agent.agent_id].remove("C")
+        if any(len(p) < 8 for p in self.plans):
             return
 
         self.execute_plans()
+
+
 
     def execute_plans(self):
         for token_i in range(8):
@@ -256,6 +267,9 @@ class SeaBattle(Game):
 
                 # Remove sunk ships
                 self.sink()
+
+                # todo: make this based on damage
+                self.tokens = [list("LLLLFFFFRRRRCCCCCC") for _ in range(N_PLAYERS)]
 
             # Movement
             else:
@@ -316,12 +330,13 @@ class SeaBattle(Game):
 
                 self.locations = actual
 
-        self.plans = [None] * len(self.plans)
+        self.plans = [[] for _ in range(len(self.plans))]
 
     def play(self) -> Tuple[float, float]:
         while True:
             for player in (agent for agent, dmg in zip(self.agents, self.damages) if not dmg.sunk()):
                 observation, available_actions = self.get_observation(player)
+                print(available_actions)
                 action = player.take_action(self.rules, observation, available_actions, show_state=self.show_state)
                 self.update(action, available_actions, player)
 
