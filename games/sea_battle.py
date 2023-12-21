@@ -21,26 +21,20 @@ Remaining features:
 - Buoys? Blockade mechanics?
 
 Questions:
-- Should I explain all edge cases, simplify the rules, or let the agents learn?
+- Should I explain all the collision edge cases, simplify the rules, or let the agents learn?
 - How many features should I add? Which are just extras?
 - Is deliberation necessary? Maybe I give each player a certain number of messages,
 and as long as a player hasn't used up all of their messages, they can choose
-to send a message instead of submitting a plan. Or maybe it's not necessary
-because it's the same agent controlling each member and they all have pretty much
-perfect information
+to send a message instead of submitting a plan.
 - Should the observation report what actions other players took? Maybe give a
 play-by-play where it what each ship did per-token. Can build up that play-by-play
 as the plans are being executed, and then tack it on next turn. This feels
 pretty important, but there's already a lot of text being passed.
+- Should I turn actions into an openended prompt? Ask the agent to return a
+string in the correct token syntax. Could make this much faster, maybe save
+money on API calls too. I've seen LLMs do chess moves that are mostly valid
+before so maybe it's possible.
 """
-
-# Hold up hold up... the max context is 16k?? I don't think this game is
-# possible in that small of a context. Unless we reset the context each time.
-# Which we can do because we make it a DFA?
-# Nope. It doesn't save the context. The problem is that there are too many
-# tokens in one state message. The problem seems to be largely from the moves list.
-# So maybe instead of having them plan out the moves, you ask one move at a time.
-# First a movement, then a cannon, etc. Until you have 8, then you execute.
 
 def get_plan_description(plan):
     """Converts a movement plan string into a human-readable description."""
@@ -83,10 +77,13 @@ class DamageCounter:
         return self.damage >= self.threshold
 
     def rock(self):
-        self.damage += 0.2
+        self.damage += 1
 
     def cannon(self):
-        self.damage += 0.5
+        self.damage += 2
+
+    def ram(self):
+        self.damage += 1
 
 @dataclass
 class SeaBattle(Game):
@@ -104,7 +101,7 @@ class SeaBattle(Game):
             "Cannon token": "There are four options: l = shoot left; r = shoot right; b = shoot left and right; n = don't shoot. You have a limited number of cannonballs each turn. Token b uses up two cannonballs and token n doesn't use any.",
             "Rock": "If you sail into a rock, you will sustain damage.",
             "Cannonball": "If you are shot by a cannonball, you will sustain damage.",
-            "Ramming": "If you sail into another ship, or the same square that another ship is attempting to, you may either both sustain damage or either of you may be blocked from moving.",
+            "Ramming": "If two ships attempt to sail into the same spot, neither will end up in that spot, and both may take damage.",
             "Damage": "After you sustain enough damage, your ship will sink and you will be unable to play the rest of the game.",
             "Board symbols": ". = open water that you can sail on. R = a rock. A, B, C, X, Y, and Z = all ships. Your team will either be ships A, B, and C, or ships X, Y, and Z.",
         }
@@ -293,10 +290,13 @@ class SeaBattle(Game):
 
                 # 2. Resolve collisions
                 actual = []
-                for old_location, claim, damage in zip(self.locations, claims, self.damages):
+                for i, (old_location, claim, damage) in enumerate(zip(self.locations, claims, self.damages)):
                     if claim in self.rocks:
                         actual.append(old_location)
                         damage.rock()
+                    if claim in claims[:i] + claims[i:]:
+                        actual.append(old_location)
+                        damage.collision()
                     else:
                         actual.append(claim)
 
@@ -318,10 +318,13 @@ class SeaBattle(Game):
 
                 # 5. Resolve collisions again, with slightly different rules.
                 actual = []
-                for old_location, claim in zip(new, claims):
+                for i, (old_location, claim, damage) in enumerate(zip(self.locations, claims, self.damages)):
                     if claim in self.rocks:
                         actual.append(old_location)
                         damage.rock()
+                    if claim in claims[:i] + claims[i:]:
+                        actual.append(old_location)
+                        # No damage this time
                     else:
                         actual.append(claim)
 
