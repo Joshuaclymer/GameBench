@@ -29,11 +29,30 @@ to send a message instead of submitting a plan.
 - Should the observation report what actions other players took? Maybe give a
 play-by-play where it what each ship did per-token. Can build up that play-by-play
 as the plans are being executed, and then tack it on next turn. This feels
-pretty important, but there's already a lot of text being passed.
+pretty important, but there's already a lot of text being passed. I think
+there are a number of unique interactions in this game and extra mechanics
 - Should I turn actions into an openended prompt? Ask the agent to return a
 string in the correct token syntax. Could make this much faster, maybe save
 money on API calls too. I've seen LLMs do chess moves that are mostly valid
-before so maybe it's possible.
+before so maybe it's possible. Nope. they're totally invalid.
+
+Ideation:
+- Make the token mechanics really limiting... you get fewer tokens and they
+come back slower
+- Queue 3 moves instead of 4
+- Specify more complex tokens, like move forward + move right, then
+describe them in the rules... maybe the agent won't look them up, though.
+- Remove the clarification of actions in the GPT prompt
+- Specify actions as lists of numbers
+
+Feasibility:
+- Not sure if complex tokens would work, I feel like they would have to do
+a lot of lookup and I'm not sure if they would. Especially for all the
+combinations we'd have to make.
+- Cutting down to 3 moves cuts the number of possible plans
+assuming the playre already has full tokens. For 4 moves it's like 1200
+possible plans, for 3 moves it's 400. Combining with removing the clarification
+could be a lot.
 """
 
 def get_plan_description(plan):
@@ -351,3 +370,12 @@ class SeaBattle(Game):
 
             if all(dmg.sunk() for dmg, player in zip(self.damages, self.agents) if player.team_id == 1):
                 return (1., 0.)
+
+len([
+    p
+    for p
+    in list(set(combinations("LLLLFFFFRRRRWWWW", r=3)))
+    if  p.count("L") <= 3
+    and p.count("F") <= 3
+    and p.count("R") <= 3
+])
