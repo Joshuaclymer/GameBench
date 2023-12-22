@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import random
 from abc import abstractmethod
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, ClassVar
 from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 import ast
 from itertools import permutations, product, combinations
@@ -52,7 +52,8 @@ combinations we'd have to make.
 - Cutting down to 3 moves cuts the number of possible plans
 assuming the playre already has full tokens. For 4 moves it's like 1200
 possible plans, for 3 moves it's 400. Combining with removing the clarification
-could be a lot.
+could be a lot. Yeah this also cuts the tokens down to like ~7000... which is
+still $7 per move.
 """
 
 def get_plan_description(plan):
@@ -84,25 +85,55 @@ class Location:
         dir = {"l": 1j, "r": -1j, "n": 99}[token]
         return Location(self.position + self.heading*dir, self.heading)
 
+    def xy(self):
+        return 23-int(self.position.imag), int(self.position.real)
+
     def __eq__(self, t):
         return self.position == t.position
 
 @dataclass
 class DamageCounter:
-    threshold : int
+    threshold : int = 10
     damage : int = 0
 
     def sunk(self):
         return self.damage >= self.threshold
-
     def rock(self):
         self.damage += 1
-
     def cannon(self):
         self.damage += 2
-
     def ram(self):
         self.damage += 1
+
+@dataclass
+class Player:
+    agent    : Agent
+    location : Location
+    symbol   : str
+    damage   : DamageCounter = field(default_factory=lambda: DamageCounter())
+    plan     : str = None
+    tokens   : List = field(default_factory=lambda: list("LLLFFFRRRCCCCCC"))
+
+    def will_collide(self, t):
+        return self.claim == t.claim
+
+    def count(self, t):
+        return self.tokens.count(t)
+
+    def __eq__(self, t):
+        return self.location == t.location
+
+    @property
+    def state_string(self):
+        s = ""
+        s += f"You are controlling ship {self.symbol}. Your team's ships are {'A, B, and C' if self.agent.team_id == 0 else 'X, Y, and Z'}.\n"
+        s += f"You have {self.count('L')} L tokens, {self.count('F')} F tokens, and {self.count('R')} R tokens.\n"
+        s += f"You have {self.count('C')} cannonballs.\n"
+        s += f"You have {self.damage.damage} damage. If you reach {self.damage.threshold}, you will sink."
+        return s
+
+    def reset(self):
+        self.plan = None
 
 @dataclass
 class SeaBattle(Game):
@@ -127,24 +158,18 @@ class SeaBattle(Game):
     )
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
-        """The design pattern for the state is to put all agent data spread
-        out across several lists, where the index i in each list always
-        corresponds to agent i. For state that needs to be modified, objects
-        are used in the list so that they may be modified in-place in
-        iteration. """
         team1 = [agent1(agent_id=i, team_id=0) for i in range(PLAYERS_PER_TEAM)]
         team2 = [agent2(agent_id=i+PLAYERS_PER_TEAM, team_id=1) for i in range(PLAYERS_PER_TEAM)]
         self.agents = team1 + team2
-        self.winning_team = None
 
         all_locations = [Location(x+y*1j) for x in range(1, 23) for y in range(1, 23)]
         random.shuffle(all_locations)
 
-        self.locations = all_locations[:N_PLAYERS]
-        self.damages   = [DamageCounter(10) for _ in range(N_PLAYERS)]
-        self.plans = [[] for _ in range(N_PLAYERS)]
-        self.tokens = [list("LLLLFFFFRRRRCCCCCC") for _ in range(N_PLAYERS)]
-        self.ship_symbols = list("ABCXYZ") # hardcoded...
+        self._players = [
+            Player(agent, location, symbol)
+            for _, agent, location, symbol
+            in zip(range(N_PLAYERS), self.agents, all_locations, list("ABCXYZ"))
+        ]
 
         self.rocks = \
             [Location(0 +i*1j) for i in range(24)] + \
@@ -153,89 +178,73 @@ class SeaBattle(Game):
             [Location(i +  0j) for i in range(24)] + \
             all_locations[N_PLAYERS:20]
 
-        self.winds = all_locations[N_PLAYERS+20:10]
+    @property
+    def players(self):
+        """Return only non-sunk players."""
+        return [p for p in self._players if not p.damage.sunk()]
 
-    def sink(self, *data):
-        """Checks damage counters for ships that have just been sunken, and
-        deletes their data from the game state as well as any local state
-        passed in through *data. Not the prettiest way to do this..."""
-        for i in reversed([i for i, dmg in enumerate(self.damages) if dmg.sunk()]):
-            for d in data:
-                del d[i]
-            del self.locations[i]
-            del self.damages[i]
-            del self.plans[i]
-            del self.tokens[i]
-            del self.ship_symbols[i]
+    def player_from_agent(self, agent : Agent):
+        """Used by functions that are called per-agent."""
+        return self._players[agent.agent_id]
 
-    def get_state_string(self, agent : Agent):
-        def xy(loc):
-            return 23-int(loc.position.imag), int(loc.position.real)
-
+    def get_board_string(self):
         directions = {}
         board = [["." for _ in range(24)] for _ in range(24)]
-        for agent_id, location in enumerate(self.locations):
-            x, y = xy(location)
-            symbol = self.ship_symbols[agent_id]
-            board[x][y] = symbol
-            directions[symbol] = {1: "East", 1j: "North", -1: "West", -1j: "South"}[location.heading]
+        for p in self.players:
+            x, y = p.location.xy()
+            board[x][y] = p.symbol
+            directions[p.symbol] = {1: "East", 1j: "North", -1: "West", -1j: "South"}[p.location.heading]
 
         for location in self.rocks:
-            x, y = xy(location)
+            x, y = location.xy()
             board[x][y] = "R"
-
-        id = agent.agent_id
-
-        lefts = self.tokens[id].count("L")
-        forwards = self.tokens[id].count("F")
-        rights = self.tokens[id].count("R")
-        cannons = self.tokens[id].count("C")
 
         board = "\n".join([" ".join(board[i]) for i in range(24)]) + "\n"
         board += ". ".join([f"Ship {symbol} is facing {dir}" for symbol, dir in directions.items()]) + ".\n"
-        board += f"You are controlling ship {self.ship_symbols[id]}. Your team's ships are {'A, B, and C' if agent.team_id == 0 else 'X, Y, and Z'}.\n"
-        board += f"You have {lefts} L tokens, {forwards} F tokens, and {rights} R tokens.\n"
-        board += f"You have {cannons} cannonballs.\n"
-        board += f"You have {self.damages[id].damage} damage. If you reach {self.damages[id].threshold}, you will sink."
-
         return board
 
+    def get_available_plans(self, agent : Agent):
+        player = self.player_from_agent(agent)
+
+        movement_plans = [
+            p
+            for p
+            in list(set(combinations("LLLLFFFFRRRRWWWW", r=3)))
+            if  p.count("L") <= player.count("L")
+            and p.count("F") <= player.count("F")
+            and p.count("R") <= player.count("R")
+        ]
+        cannon_plans = [
+            p
+            for p
+            in list(set(combinations("llllrrrrbbbbnnnn", r=3)))
+            if p.count("llll") + p.count("rrrr") + 2*p.count("bbbb") <= player.count("C")
+        ]
+
+        plans = [
+            "".join([m + c for m, c in zip(movement, cannon)])
+            for movement, cannon
+            in product(movement_plans, cannon_plans)
+        ]
+
+        return plans
+
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
-        state_string = self.get_state_string(agent)
+        state_string = self.get_board_string() + self.player_from_agent(agent).state_string
         observation = Observation(text=state_string)
+
+        print(agent, self.player_from_agent(agent), self.player_from_agent(agent).damage.sunk())
 
         if self.show_state:
             print(state_string)
 
-        agent_id = agent.agent_id
-        cannons = self.tokens[agent_id].count("C")
-        if len(self.plans[agent_id]) % 2:
-            available_actions = AvailableActions(
-                instructions=f"Your plan so far is '{''.join(self.plans[agent_id])}'. It is time to choose a cannon token.",
-                predefined={
-                    "n": "Don't shoot.",
-                } | (
-                    {"l": "Shoot one left.", "r": "Shoot once right."}
-                    if cannons >= 1
-                    else {}
-                ) | (
-                    {"b": "Shoot both left and right."}
-                    if cannons >= 2
-                    else {}
-                ),
-                openended={}
-            )
-        else:
-            available_actions = AvailableActions(
-                instructions=f"Your plan so far is '{''.join(self.plans[agent_id])}'. It is time to choose a movement token.",
-                predefined={token: desc for token, desc in {
-                    "L": "Move forward, rotate left, then move forward again.",
-                    "F": "Move forward",
-                    "R": "Move forward, rotate right, then move forward again.",
-                    "W": "Don't move."
-                }.items() if token in self.tokens[agent_id]},
-                openended={}
-            )
+        available_actions = AvailableActions(
+            instructions="It is the planning phase. Return your action as a plan consisting of tokens you have available to you. A plan is a sequence of 6 tokens, alternating between movement tokens and cannon tokens.",
+            predefined={
+                plan: get_plan_description(plan) for plan in self.get_available_plans(agent)
+            },
+            openended={}
+        )
 
         return observation, available_actions
 
@@ -246,136 +255,87 @@ class SeaBattle(Game):
             action = random.choice(list(available_actions.predefined.keys()))
 
         # Queue this agent's plan, and return if not every agent has finishing planning yet.
-        self.plans[agent.agent_id].append(action)
-        if action.isupper():
-            self.tokens[agent.agent_id].remove(action)
-        else:
-            self.tokens[agent.agent_id].remove("C")
-            if action == "b":
-                self.tokens[agent.agent_id].remove("C")
-        if any(len(p) < 8 for p in self.plans):
+        self.player_from_agent(agent).plan = action
+        if any(p.plan is None for p in self.players):
             return
 
         self.execute_plans()
 
-
+        for player in self.players:
+            player.reset()
 
     def execute_plans(self):
-        for token_i in range(8):
-            tokens = [p[token_i] for p in self.plans]
-
-            # Cannon firing
-            if token_i % 2:
-                for location, token in zip(self.locations, tokens):
+        # break this function up a bit probably
+        for plan_i in range(6):
+            if plan_i % 2:
+                for player in self.players:
+                    token = player.plan[plan_i]
                     shots = ["l", "r"] if token == "b" else [token]
 
                     for shot in shots:
-                        target = location
+                        target = player.location
+
+                        # Cannons travel for 3 squares
                         for _ in range(3):
                             target = target.adjacent(shot)
-                            if target in self.locations:
-                                dmg = next(dmg for dmg, location in zip(self.damages, self.locations) if target == location)
-                                dmg.cannon()
-                                break
 
                             if target in self.rocks:
                                 break
 
-                # Remove sunk ships
-                self.sink()
+                            hit = next((p for p in self.players if target == p.location), False)
+                            if hit:
+                                hit.damage.cannon()
+                                break
 
-                # todo: make this based on damage
-                self.tokens = [list("LLLLFFFFRRRRCCCCCC") for _ in range(N_PLAYERS)]
-
-            # Movement
             else:
-                """Movement happens in the following phases:
-                1. All moving ships claim their forward spot
-                2. If any claimed spot is already occupied, collisions occur
-                3. All turning ships rotate in place
-                4. All turning ships claim the next forward spot
-                5. Collisions again
-
-                Collisions change which spot the ship ends up moving to.
-                """
-
                 # 1. For all ships that are moving, claim the forward spot.
-                claims = []
-                for location, token in zip(self.locations, tokens):
-                    if token in "LFR":
-                        claims.append(location.forward())
+                for player in self.players:
+                    if player.plan[plan_i] in "LFR":
+                        player.claim = player.location.forward()
                     else:
-                        claims.append(location)
+                        player.claim = player.location
 
                 # 2. Resolve collisions
-                actual = []
-                for i, (old_location, claim, damage) in enumerate(zip(self.locations, claims, self.damages)):
-                    if claim in self.rocks:
-                        actual.append(old_location)
-                        damage.rock()
-                    if claim in claims[:i] + claims[i:]:
-                        actual.append(old_location)
-                        damage.collision()
+                for player in self.players:
+                    if player.claim in self.rocks:
+                        player.damage.rock()
+                    elif any(player.will_collide(t) for t in self.players if t != player):
+                        player.damage.ram()
                     else:
-                        actual.append(claim)
+                        player.location = player.claim
+
 
                 # 3. Turn ships that tried to turn, regardless of collision
-                new = []
-                for location, token in zip(actual, tokens):
-                    new.append(location.turn(token))
-
-                # 3.5 Remove sunk ships
-                self.sink(new, tokens)
+                for player in self.players:
+                    player.location = player.location.turn(player.plan[plan_i])
 
                 # 4. For all turning ships, claim the forward spot
-                claims = []
-                for location, token in zip(new, tokens):
-                    if token in "LR":
-                        claims.append(location.forward())
+                for player in self.players:
+                    if player.plan[plan_i] in "LR":
+                        player.claim = player.location.forward()
                     else:
-                        claims.append(location)
+                        player.claim = player.location
 
                 # 5. Resolve collisions again, with slightly different rules.
-                actual = []
-                for i, (old_location, claim, damage) in enumerate(zip(self.locations, claims, self.damages)):
-                    if claim in self.rocks:
-                        actual.append(old_location)
-                        damage.rock()
-                    if claim in claims[:i] + claims[i:]:
-                        actual.append(old_location)
-                        # No damage this time
-                    else:
-                        actual.append(claim)
+                for player in self.players:
+                    if player.claim in self.rocks:
+                        player.damage.rock()
 
-                # 5.5 Remove sunk ships
-                self.sink(actual)
-
-                self.locations = actual
-
-        self.plans = [[] for _ in range(len(self.plans))]
+                    elif not any(player.will_collide(t) for t in self.players if t != player):
+                        player.location = player.claim
 
     def play(self) -> Tuple[float, float]:
         while True:
-            for player in (agent for agent, dmg in zip(self.agents, self.damages) if not dmg.sunk()):
-                observation, available_actions = self.get_observation(player)
-                print(available_actions)
-                action = player.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-                self.update(action, available_actions, player)
+            for player in self.players:
+                observation, available_actions = self.get_observation(player.agent)
+                action = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                self.update(action, available_actions, player.agent)
 
-            if all(dmg.sunk() for dmg in self.damages):
+            if len(self.players) == 0:
                 return (0.5, 0.5)
 
-            if all(dmg.sunk() for dmg, player in zip(self.damages, self.agents) if player.team_id == 0):
-                return (0., 1.)
-
-            if all(dmg.sunk() for dmg, player in zip(self.damages, self.agents) if player.team_id == 1):
+            if all(player.agent.team_id == 0 for player in self.players):
                 return (1., 0.)
 
-len([
-    p
-    for p
-    in list(set(combinations("LLLLFFFFRRRRWWWW", r=3)))
-    if  p.count("L") <= 3
-    and p.count("F") <= 3
-    and p.count("R") <= 3
-])
+            if all(player.agent.team_id == 1 for player in self.players):
+                return (0., 1.)
