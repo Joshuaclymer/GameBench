@@ -31,29 +31,7 @@ play-by-play where it what each ship did per-token. Can build up that play-by-pl
 as the plans are being executed, and then tack it on next turn. This feels
 pretty important, but there's already a lot of text being passed. I think
 there are a number of unique interactions in this game and extra mechanics
-- Should I turn actions into an openended prompt? Ask the agent to return a
-string in the correct token syntax. Could make this much faster, maybe save
-money on API calls too. I've seen LLMs do chess moves that are mostly valid
-before so maybe it's possible. Nope. they're totally invalid.
 
-Ideation:
-- Make the token mechanics really limiting... you get fewer tokens and they
-come back slower
-- Queue 3 moves instead of 4
-- Specify more complex tokens, like move forward + move right, then
-describe them in the rules... maybe the agent won't look them up, though.
-- Remove the clarification of actions in the GPT prompt
-- Specify actions as lists of numbers
-
-Feasibility:
-- Not sure if complex tokens would work, I feel like they would have to do
-a lot of lookup and I'm not sure if they would. Especially for all the
-combinations we'd have to make.
-- Cutting down to 3 moves cuts the number of possible plans
-assuming the playre already has full tokens. For 4 moves it's like 1200
-possible plans, for 3 moves it's 400. Combining with removing the clarification
-could be a lot. Yeah this also cuts the tokens down to like ~7000... which is
-still $7 per move.
 """
 
 def get_plan_description(plan):
@@ -85,8 +63,13 @@ class Location:
         dir = {"l": 1j, "r": -1j, "n": 99}[token]
         return Location(self.position + self.heading*dir, self.heading)
 
+    @property
     def xy(self):
         return 23-int(self.position.imag), int(self.position.real)
+
+    @property
+    def cardinal(self):
+        return {1: "East", 1j: "North", -1: "West", -1j: "South"}[self.heading]
 
     def __eq__(self, t):
         return self.position == t.position
@@ -120,20 +103,11 @@ class Player:
     def count(self, t):
         return self.tokens.count(t)
 
-    def __eq__(self, t):
-        return self.location == t.location
-
-    @property
-    def state_string(self):
-        s = ""
-        s += f"You are controlling ship {self.symbol}. Your team's ships are {'A, B, and C' if self.agent.team_id == 0 else 'X, Y, and Z'}.\n"
-        s += f"You have {self.count('L')} L tokens, {self.count('F')} F tokens, and {self.count('R')} R tokens.\n"
-        s += f"You have {self.count('C')} cannonballs.\n"
-        s += f"You have {self.damage.damage} damage. If you reach {self.damage.threshold}, you will sink."
-        return s
-
     def reset(self):
         self.plan = None
+
+    def __eq__(self, t):
+        return self.location == t.location
 
 @dataclass
 class SeaBattle(Game):
@@ -146,7 +120,7 @@ class SeaBattle(Game):
             "Deliberation phase": "During this time, you will communicate with your teammates to share strategical ideas and form a plan.",
             "Planning phase": "During this phase, all players create a plan.",
             "Execution phase": "All player's plans are executed simultaneously. As in, all players take their first movement according to the first movement token in each plan, then each pauses to shoot according to the cannon token, and so forth.",
-            "Plan": "A plan is a sequence of 8 tokens: 4 movement tokens and 4 cannon tokens. These tokens alternate: one movement token, one cannon token, so forth.",
+            "Plan": "A plan is a sequence of 6 tokens: 3 movement tokens and 3 cannon tokens. These tokens alternate: one movement token, one cannon token, so forth.",
             "Movement token": "There are four options: F = move forward one space; L = move forward one space, spin left, move forward; R = move forward one space, spin right, move forward. W = do not move. You have a limited number of movement tokens each turn, and will have fewer if you have sustained more damage. You will always have 4 W tokens.",
             "Cannon token": "There are four options: l = shoot left; r = shoot right; b = shoot left and right; n = don't shoot. You have a limited number of cannonballs each turn. Token b uses up two cannonballs and token n doesn't use any.",
             "Rock": "If you sail into a rock, you will sustain damage.",
@@ -230,13 +204,20 @@ class SeaBattle(Game):
         return plans
 
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
-        state_string = self.get_board_string() + self.player_from_agent(agent).state_string
-        observation = Observation(text=state_string)
+        player = self.player_from_agent(agent)
+        s = "Rocks line the border of the 24 by 24 board.\n"
+        for p in self.players:
+            q = 'you' if p.agent == agent else ('your teammate' if p.agent.team_id == agent.team_id else 'your opponent')
+            s += f"Ship {p.symbol} ({q}) is located at {p.location.xy} facing {p.location.cardinal}.\n"
+        s += "There are more rocks located at " + ", ".join([str(r.xy) for r in self.rocks[-20:]]) + "\n"
+        s += f"You have {player.count('L')} L tokens, {player.count('F')} F tokens, and {player.count('R')} R tokens.\n"
+        s += f"You have {player.count('C')} cannonballs.\n"
+        s += f"You have {player.damage.damage} damage. If you reach {player.damage.threshold}, you will sink."
 
-        print(agent, self.player_from_agent(agent), self.player_from_agent(agent).damage.sunk())
+        observation = Observation(text=s)
 
         if self.show_state:
-            print(state_string)
+            print(s)
 
         available_actions = AvailableActions(
             instructions="It is the planning phase. Return your action as a plan consisting of tokens you have available to you. A plan is a sequence of 6 tokens, alternating between movement tokens and cannon tokens.",
