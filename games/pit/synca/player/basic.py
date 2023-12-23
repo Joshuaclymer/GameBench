@@ -9,8 +9,8 @@ import random
 import threading
 import time
 
-import config
-import util
+import games.pit.config as config
+import games.pit.util as util
 from synca import gameengine
 from synca.player import base
 
