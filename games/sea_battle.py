@@ -11,36 +11,9 @@ PLAYERS_PER_TEAM = 3
 N_PLAYERS = 2 * PLAYERS_PER_TEAM
 BOARD_SIZE = (24, 24)
 
-"""
-Remaining features:
-- Wind
-- Whirlpools
-- Different ships (different cannons, different amounts of health, different shooting options)
-- Tokens use/regeneration (damage affects regen)
-- Carpentry (just gradually remove damage)
-- Buoys? Blockade mechanics?
-
-Questions:
-- Should I explain all the collision edge cases, simplify the rules, or let the agents learn?
-- How many features should I add? Which are just extras?
-- Is deliberation necessary? Maybe I give each player a certain number of messages,
-and as long as a player hasn't used up all of their messages, they can choose
-to send a message instead of submitting a plan.
-- Should the observation report what actions other players took? Maybe give a
-play-by-play where it what each ship did per-token. Can build up that play-by-play
-as the plans are being executed, and then tack it on next turn. This feels
-pretty important, but there's already a lot of text being passed. I think
-there are a number of unique interactions in this game and extra mechanics
-
-"""
-
-def get_plan_description(plan):
-    """Converts a movement plan string into a human-readable description."""
-    map = {"L": "move left", "F": "move forward", "R": "move right",
-        "W": "wait", "l": "shoot left", "r": "shoot right", "b": "shoot both",
-        "n": "don't shoot"}
-
-    return ", then ".join([map[token] for token in plan])
+# maybe generate image?
+# in actions, maybe say what coordinates they will end up at
+# maybe say something like: last turn you were at xy, chose this action, and etc happened as result
 
 @dataclass
 class Location:
@@ -51,25 +24,20 @@ class Location:
         """Returns location one square in front of this location."""
         return Location(self.position + self.heading, self.heading)
 
-    def turn(self, token):
-        """Returns location rotated from this location according to a movement
-        token."""
-        dir = {"L": 1j, "F": 1, "R": -1j, "W": 1}[token]
-        return Location(self.position, self.heading * dir)
+    def turn(self, direction):
+        return Location(self.position, self.heading * direction)
 
-    def adjacent(self, token):
-        """Returns location adjacent from this location according to a cannon
-        token."""
-        dir = {"l": 1j, "r": -1j, "n": 99}[token]
-        return Location(self.position + self.heading*dir, self.heading)
+    def adjacent(self, direction):
+        return Location(self.position + self.heading*direction, self.heading)
 
     @property
     def xy(self):
-        return 23-int(self.position.imag), int(self.position.real)
+        return int(self.position.real), int(self.position.imag)
 
     @property
     def cardinal(self):
-        return {1: "East", 1j: "North", -1: "West", -1j: "South"}[self.heading]
+        # Alternatively, maybe say "increasing X", "increasing Y", etc.
+        return {1: "direction of increasing X coordinates", 1j: "direction of increasing Y coordinates", -1: "direction of decreasing X coordinates", -1j: "direction of decreasing Y coordinates"}[self.heading]
 
     def __eq__(self, t):
         return self.position == t.position
@@ -92,16 +60,11 @@ class DamageCounter:
 class Player:
     agent    : Agent
     location : Location
-    symbol   : str
     damage   : DamageCounter = field(default_factory=lambda: DamageCounter())
-    plan     : str = None
-    tokens   : List = field(default_factory=lambda: list("LLLFFFRRRCCCCCC"))
+    plan     : List[str] = None
 
     def will_collide(self, t):
         return self.claim == t.claim
-
-    def count(self, t):
-        return self.tokens.count(t)
 
     def reset(self):
         self.plan = None
@@ -114,20 +77,14 @@ class SeaBattle(Game):
     id : str = "sea_battle"
     rules : Rules = Rules(
         title="Sea Battle",
-        summary="Sink all of your opponent team's ships before they sink all of your team's ships.",
+        summary="Sink all of your opponent team's ships before they sink all of your team's ships. Players can be damaged in three ways: (1) by getting shot at by another player, (2) by sailing into a rock, (3) by colliding with another ship. After a player has sustained enough damage, they sink and cannot play the rest of the round. A team wins if they have at least one live ship when all of their opponents have sunken. The board is a 24x24 grid. Some squares are occupied by rocks and some are occupied by players' ships. Each turn, all players choose how they want to move and how they want to shoot. All players' choices are executed simultaneously. At the start of the game, there are three players on each team.",
         additional_details={
-            "Gameplay": "Gameplay cycles through three phases: deliberation, planning, and execution.",
-            "Deliberation phase": "During this time, you will communicate with your teammates to share strategical ideas and form a plan.",
-            "Planning phase": "During this phase, all players create a plan.",
-            "Execution phase": "All player's plans are executed simultaneously. As in, all players take their first movement according to the first movement token in each plan, then each pauses to shoot according to the cannon token, and so forth.",
-            "Plan": "A plan is a sequence of 6 tokens: 3 movement tokens and 3 cannon tokens. These tokens alternate: one movement token, one cannon token, so forth.",
-            "Movement token": "There are four options: F = move forward one space; L = move forward one space, spin left, move forward; R = move forward one space, spin right, move forward. W = do not move. You have a limited number of movement tokens each turn, and will have fewer if you have sustained more damage. You will always have 4 W tokens.",
-            "Cannon token": "There are four options: l = shoot left; r = shoot right; b = shoot left and right; n = don't shoot. You have a limited number of cannonballs each turn. Token b uses up two cannonballs and token n doesn't use any.",
-            "Rock": "If you sail into a rock, you will sustain damage.",
-            "Cannonball": "If you are shot by a cannonball, you will sustain damage.",
-            "Ramming": "If two ships attempt to sail into the same spot, neither will end up in that spot, and both may take damage.",
-            "Damage": "After you sustain enough damage, your ship will sink and you will be unable to play the rest of the game.",
-            "Board symbols": ". = open water that you can sail on. R = a rock. A, B, C, X, Y, and Z = all ships. Your team will either be ships A, B, and C, or ships X, Y, and Z.",
+            "Damage": "Players can be damaged in three ways: (1) by getting shot at by another player, (2) by sailing into a rock, (3) by colliding with another ship.",
+            "Sinking": "After a player has sustained enough damage, they sink and cannot play the rest of the round.",
+            "Winning": "A team wins if they have at least one live ship when all of their opponents have sunken.",
+            "Board": "The board is a 24x24 grid. Some squares are occupied by rocks and some are occupied by players' ships.",
+            "Gameplay": "Each turn, all players choose how they want to move and how they want to shoot. All players' choices are executed simultaneously.",
+            "Teams": "At the start of the game, there are three players on each team."
         }
     )
 
@@ -140,9 +97,9 @@ class SeaBattle(Game):
         random.shuffle(all_locations)
 
         self._players = [
-            Player(agent, location, symbol)
-            for _, agent, location, symbol
-            in zip(range(N_PLAYERS), self.agents, all_locations, list("ABCXYZ"))
+            Player(agent, location)
+            for _, agent, location
+            in zip(range(N_PLAYERS), self.agents, all_locations)
         ]
 
         self.rocks = \
@@ -161,68 +118,30 @@ class SeaBattle(Game):
         """Used by functions that are called per-agent."""
         return self._players[agent.agent_id]
 
-    def get_board_string(self):
-        directions = {}
-        board = [["." for _ in range(24)] for _ in range(24)]
-        for p in self.players:
-            x, y = p.location.xy()
-            board[x][y] = p.symbol
-            directions[p.symbol] = {1: "East", 1j: "North", -1: "West", -1j: "South"}[p.location.heading]
-
-        for location in self.rocks:
-            x, y = location.xy()
-            board[x][y] = "R"
-
-        board = "\n".join([" ".join(board[i]) for i in range(24)]) + "\n"
-        board += ". ".join([f"Ship {symbol} is facing {dir}" for symbol, dir in directions.items()]) + ".\n"
-        return board
-
-    def get_available_plans(self, agent : Agent):
-        player = self.player_from_agent(agent)
-
-        movement_plans = [
-            p
-            for p
-            in list(set(combinations("LLLLFFFFRRRRWWWW", r=3)))
-            if  p.count("L") <= player.count("L")
-            and p.count("F") <= player.count("F")
-            and p.count("R") <= player.count("R")
-        ]
-        cannon_plans = [
-            p
-            for p
-            in list(set(combinations("llllrrrrbbbbnnnn", r=3)))
-            if p.count("llll") + p.count("rrrr") + 2*p.count("bbbb") <= player.count("C")
-        ]
-
-        plans = [
-            "".join([m + c for m, c in zip(movement, cannon)])
-            for movement, cannon
-            in product(movement_plans, cannon_plans)
-        ]
-
-        return plans
-
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
         player = self.player_from_agent(agent)
         s = "Rocks line the border of the 24 by 24 board.\n"
         for p in self.players:
-            q = 'you' if p.agent == agent else ('your teammate' if p.agent.team_id == agent.team_id else 'your opponent')
-            s += f"Ship {p.symbol} ({q}) is located at {p.location.xy} facing {p.location.cardinal}.\n"
+            q = 'Your ship' if p.agent == agent else ('A teammate\'s ship' if p.agent.team_id == agent.team_id else 'An opponent\'s ship')
+            s += f"{q} is located at {p.location.xy} facing {p.location.cardinal}.\n"
         s += "There are more rocks located at " + ", ".join([str(r.xy) for r in self.rocks[-20:]]) + "\n"
-        s += f"You have {player.count('L')} L tokens, {player.count('F')} F tokens, and {player.count('R')} R tokens.\n"
-        s += f"You have {player.count('C')} cannonballs.\n"
-        s += f"You have {player.damage.damage} damage. If you reach {player.damage.threshold}, you will sink."
-
+        s += f"You've sustained {player.damage.damage} damage. If you reach {player.damage.threshold}, you will sink."
         observation = Observation(text=s)
 
         if self.show_state:
             print(s)
 
         available_actions = AvailableActions(
-            instructions="It is the planning phase. Return your action as a plan consisting of tokens you have available to you. A plan is a sequence of 6 tokens, alternating between movement tokens and cannon tokens.",
+            instructions="Choose your action for the next turn.",
             predefined={
-                plan: get_plan_description(plan) for plan in self.get_available_plans(agent)
+                "move left and shoot left"    : "Move forward one square, rotate left, move forward another square, then shoot to your left.",
+                "move left and shoot right"   : "Move forward one square, rotate left, move forward another square, then shoot to your right.",
+                "move forward and shoot left" : "Move forward one square, then shoot to your left.",
+                "move forward and shoot right": "Move forward one square, then shoot to your right.",
+                "move right and shoot left"   : "Move forward one square, rotate right, move forward another square, then shoot to your left.",
+                "move right and shoot right"  : "Move forward one square, rotate right, move forward another square, then shoot to your right.",
+                "don't move and shoot left"   : "Don't move, then shoot to your left.",
+                "don't move and shoot right"  : "Don't move, then shoot to your right.",
             },
             openended={}
         )
@@ -236,74 +155,75 @@ class SeaBattle(Game):
             action = random.choice(list(available_actions.predefined.keys()))
 
         # Queue this agent's plan, and return if not every agent has finishing planning yet.
-        self.player_from_agent(agent).plan = action
+        self.player_from_agent(agent).plan = action.split(" and ")
         if any(p.plan is None for p in self.players):
             return
 
-        self.execute_plans()
+        self.move_ships()
+        self.fire_cannons()
 
         for player in self.players:
             player.reset()
 
-    def execute_plans(self):
-        # break this function up a bit probably
-        for plan_i in range(6):
-            if plan_i % 2:
-                for player in self.players:
-                    token = player.plan[plan_i]
-                    shots = ["l", "r"] if token == "b" else [token]
-
-                    for shot in shots:
-                        target = player.location
-
-                        # Cannons travel for 3 squares
-                        for _ in range(3):
-                            target = target.adjacent(shot)
-
-                            if target in self.rocks:
-                                break
-
-                            hit = next((p for p in self.players if target == p.location), False)
-                            if hit:
-                                hit.damage.cannon()
-                                break
-
+    def move_ships(self):
+        for player in self.players:
+            print("Player", player.agent.agent_id, player.plan[0])
+        # 1. For all ships that are moving, claim the forward spot.
+        for player in self.players:
+            if player.plan[0] in ["move left", "move forward", "move right"]:
+                player.claim = player.location.forward()
             else:
-                # 1. For all ships that are moving, claim the forward spot.
-                for player in self.players:
-                    if player.plan[plan_i] in "LFR":
-                        player.claim = player.location.forward()
-                    else:
-                        player.claim = player.location
+                player.claim = player.location
 
-                # 2. Resolve collisions
-                for player in self.players:
-                    if player.claim in self.rocks:
-                        player.damage.rock()
-                    elif any(player.will_collide(t) for t in self.players if t != player):
-                        player.damage.ram()
-                    else:
-                        player.location = player.claim
+        # 2. Resolve collisions
+        for player in self.players:
+            if player.claim in self.rocks:
+                print("Ram rock!", player.agent.agent_id)
+                player.damage.rock()
+            elif any(player.will_collide(t) for t in self.players if t != player):
+                print("Collision!", player.agent.agent_id)
+                player.damage.ram()
+            else:
+                player.location = player.claim
 
+        # 3. Turn ships that tried to turn, regardless of collision
+        for player in self.players:
+            direction = {"move left": 1j, "move right": -1j, "move forward": 1, "don't move": 1}
+            player.location = player.location.turn(direction[player.plan[0]])
 
-                # 3. Turn ships that tried to turn, regardless of collision
-                for player in self.players:
-                    player.location = player.location.turn(player.plan[plan_i])
+        # 4. For all turning ships, claim the forward spot
+        for player in self.players:
+            if player.plan[0] in ["move left", "move right"]:
+                player.claim = player.location.forward()
+            else:
+                player.claim = player.location
 
-                # 4. For all turning ships, claim the forward spot
-                for player in self.players:
-                    if player.plan[plan_i] in "LR":
-                        player.claim = player.location.forward()
-                    else:
-                        player.claim = player.location
+        # 5. Resolve collisions again, with slightly different rules.
+        for player in self.players:
+            if player.claim in self.rocks:
+                print("Ram rock!", player.agent.agent_id)
+                player.damage.rock()
 
-                # 5. Resolve collisions again, with slightly different rules.
-                for player in self.players:
-                    if player.claim in self.rocks:
-                        player.damage.rock()
+            elif not any(player.will_collide(t) for t in self.players if t != player):
+                player.location = player.claim
 
-                    elif not any(player.will_collide(t) for t in self.players if t != player):
-                        player.location = player.claim
+    def fire_cannons(self):
+        for player in self.players:
+            print("Player", player.agent.agent_id, player.plan[1])
+            direction = 1j if player.plan[1] == "shoot left" else -1j
+
+            target = player.location
+            for _ in range(3):
+                target = target.adjacent(direction)
+
+                if target in self.rocks:
+                    break
+
+                hit = next((p for p in self.players if target == p.location), False)
+                if hit:
+                    print("Cannon hit!", hit.agent.agent_id)
+                    hit.damage.cannon()
+                    break
 
     def play(self) -> Tuple[float, float]:
         while True:
