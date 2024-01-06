@@ -19,7 +19,7 @@ class TwoRoomsAndaBoom(Game):
             self.special_character = special_character # Pres / Bomber
             
         def __repr__(self):
-            return f"Card({self.team}, {self.special_character})"
+            return f"Card({self.identifier}, {self.team}, {self.special_character})"
 
     class Room:
         def __init__(self, identifier):
@@ -59,6 +59,9 @@ class TwoRoomsAndaBoom(Game):
             self.rooms[0].add_card(TwoRoomsAndaBoom.Card(f"Card{i}", "Blue", ""))
             self.rooms[1].add_card(TwoRoomsAndaBoom.Card(f"Card{ i + cards_per_room }", "Red", ""))
 
+        # assign special characters
+        self.rooms[0].cards[ random.randrange(0, cards_per_room + 1) ].special_character = "President"
+        self.rooms[1].cards[ random.randrange(0, cards_per_room + 1) ].special_character = "Bomber"
 
         self.winning_team = None
         if self.show_state:
