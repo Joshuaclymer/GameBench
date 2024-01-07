@@ -9,153 +9,38 @@ from api.classes import Action, Agent, AvailableActions, Game, Observation, Rule
 import santorinai
 from santorinai.player_examples.random_player import RandomPlayer
 from santorinai.tester import Tester
+from santorinai.player import Player
+from santorinai.board import Board
+from santorinai.board_displayer.board_displayer import (
+    init_window,
+    update_board,
+    close_window,
+)
+from time import sleep
 
-
-@dataclass
-class TicTacToe(Game):
-    rules: Rules = Rules(
-        title="Tic Tac Toe",
-        summary="Get 3 in a row of your own marker to win (and avoid letting the other player get 3 in a row of their marker)",
-        additional_details=None,
-    )
-    id: str = "tic_tac_toe"
-
-    def init_game(self, agent1: Agent, agent2: Agent):
-        self.states = [
-            {
-                "board": [
-                    ["-", "-", "-"],
-                    ["-", "-", "-"],
-                    ["-", "-", "-"],
-                ],
-            }
-        ]
-        self.agents = [agent1(team_id=0, agent_id=0), agent2(team_id=1, agent_id=1)]
-
-        self.agent_data = {0: {"marker": "X"}, 1: {"marker": "O"}}
-        self.winning_team = None
-        if self.show_state:
-            print(
-                f"Agent {self.agents[0].agent_type_id} is X and agent {self.agents[1].agent_type_id} is O"
-            )
-
-    def get_board_string(self):
-        board = self.states[-1]["board"]
-        row_strings = [", ".join(row) for row in board]
-        board_string = "\n".join(row_strings)
-        return board_string
-
-    def get_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
-        board_string = self.get_board_string()
-        observation = Observation(text=board_string)
-
-        marker = self.agent_data[agent.agent_id]["marker"]
-        available_actions = AvailableActions(
-            instructions=f"Return your actions as tuples with zero-indexed (x, y) coordinates of where you'd like to place your marker. The origin is the top left. Your marker is {marker}.",
-            predefined={
-                f"({i},{j})": None
-                for i in range(3)
-                for j in range(3)
-                if self.states[-1]["board"][i][j] == "-"
-            },
-            openended={},
-        )
-        return observation, available_actions
-
-    def update(self, action: Action, available_actions: AvailableActions, agent: Agent):
-        action = action.action_id
-
-        # Select a random action if no valid actions are provided
-        if action not in available_actions.predefined:
-            action = random.choice(list(available_actions.keys()))
-
-        x, y = ast.literal_eval(action)
-
-        marker = self.agent_data[agent.agent_id]["marker"]
-        board = self.states[-1]["board"]
-        board[x][y] = marker
-
-        # Show the board
-        if self.show_state:
-            print("")
-            print(self.get_board_string())
-            print("")
-
-        # Check if player has won
-        player_won = False
-
-        # Check rows
-        for i in range(3):
-            if board[i][0] == board[i][1] == board[i][2] == marker:
-                player_won = True
-
-        # Check columns
-        for i in range(3):
-            if board[0][i] == board[1][i] == board[2][i] == marker:
-                player_won = True
-
-        # Check diagonals
-        if board[0][0] == board[1][1] == board[2][2] == marker:
-            player_won = True
-        if board[0][2] == board[1][1] == board[2][0] == marker:
-            player_won = True
-
-        if player_won:
-            self.winning_team = agent.team_id
-            self.game_is_over = True
-            if self.show_state:
-                print(f"Game over: {marker} won")
-
-        # check if there is a tie
-        if not player_won and "-" not in [
-            board[i][j] for i in range(3) for j in range(3)
-        ]:
-            self.winning_team = None
-            self.game_is_over = True
-            if self.show_state:
-                print("Game over: tie")
-
-    def play(self):
-        player_1 = self.agents[0]
-        player_2 = self.agents[1]
-        while True:
-            # Player 1 moves
-            observation, available_actions = self.get_observation(player_1)
-            action = player_1.take_action(
-                self.rules, observation, available_actions, show_state=self.show_state
-            )
-            self.update(action, available_actions, player_1)
-            if self.game_is_over:
-                break
-
-            # Player 2 moves
-            observation, available_actions = self.get_observation(player_2)
-            action = player_2.take_action(
-                self.rules, observation, available_actions, show_state=self.show_state
-            )
-            self.update(action, available_actions, player_2)
-            if self.game_is_over:
-                break
-
-        return (
-            (0.5, 0.5)
-            if self.winning_team == None
-            else (float(self.winning_team == 0), float(self.winning_team == 1))
-        )
-
+class MyPlayer(Player):
 
 @dataclass
 class Santorini(Game):
-    rules: Rules = Rules(title="Santorini", summary="", additional_details=None)
+    rules: Rules = Rules(
+        title="Santorini",
+        summary='Win by moving one of your pawns to the third level of the board or forcing your opponent to be unable to move. The game is played on a five by five grid of squares, and each player controls two pawns. Blocks can be placed on squares on the board up to three blocks high, creating three possible height levels. The board begins with no blocks placed, so every square begins at level 0. Before the game starts, player 1 places each of their pawns anywhere on the board, and then player 2 places their pawns in any two unoccupied squares. A square is occupied if a pawn is on it. Play alternates between the players, starting with player 1. Each turn consists of two stages: the "move" stage and the "build" stage. During the move stage, a player must select one of their pawns and move it to an adjacent square (horizontally, vertically, or diagonally). They cannot move a pawn onto a square that is occupied by another pawn, occupied by a dome, or is more than one level higher than the pawn. They can move a pawn any number of levels down, to the same level, or one level higher, but not more than one level higher. During the build stage, the player must select an unoccupied square adjacent to the pawn they moved during the move stage and place a block or dome on it. They can place a block onto an unoccupied square at any level except level 3, or they can place a dome onto a square at level 3, marking the square as "complete". The player instantly wins if they move their pawn onto a square at level 3, or if their opponent is finish their turn by moving and building.',
+        additional_details=None,
+    )
     id: str = "santorini"
     agents: List[Agent] = None
     show_state: bool = False
     game_is_over: bool = False
+    board: Board = None
 
     def init_game(self, agent_1: Agent, agent_2: Agent):
-        pass
+        self.agents = [agent_1(team_id=0, agent_id=0), agent_2(team_id=1, agent_id=1)]
+        board = Board(2)
 
     def get_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
+        # return a tuple with observation and available actions
+        # observation is just a text representation of the board, and maybe in the future an image
+        # available actions has the possible actions the agent can take and instructions on how to use them
         pass
 
     def update(self, action: Action, available_actions: AvailableActions, agent: Agent):
@@ -163,18 +48,9 @@ class Santorini(Game):
 
     def play(self) -> Tuple[float, float]:
         """Returns the scores for agent_1 and agent_2 after the game is finished."""
-        pass
-
-
-# Init the tester
-tester = Tester()
-tester.verbose_level = 2  # 0: no output, 1: Each game results, 2: Each move summary
-tester.delay_between_moves = 0.1  # Delay between each move in seconds
-tester.display_board = True  # Display a graphical view of the board in a window
-
-# Init the players
-my_player = MyPlayer()
-random_payer = RandomPlayer()
-
-# Play 100 games
-tester.play_1v1(my_player, random_payer, nb_games=100)
+        # Returns 1 for the winning team, 0 for the losing team
+        # A tie should not be possible since the other player wins if a player can't finish their move, and it must end since a block is placed on every turn, so eventually the board will be full and a player will not be able to move their pawn or build another block
+        # First, let each agent place their pawns
+        # Then, enter a loop where each agent takes a turn
+        # The loop exits when one of the agents wins
+        # Originally was planning to use SantoriniAI's tester.py, but I've realized it makes more sense to implement a version of it myself
