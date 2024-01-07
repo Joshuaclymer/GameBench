@@ -1,0 +1,9 @@
+{
+    "actions": "\n{who} current observation of the game state is\n{observation}\nFrom this position, the following actions are available to {who}",
+    "state": "{who} current observation of the game state is\n{observation}\n{who} are taking the following action\n{action}\nAs a result, the new game state is as follows:",
+    "action_select": "{who} current observation of the game state is\n{observation}\n{who} available actions are as follows:\n{actions}\nChoose an action by writing the exactly number at the start of the line (and nothing else) corresponding to the action you think {who} will take.",
+    "self_eval": "{who} current observation of the game state is\n{observation}\n{who} are taking the following action\n{action}\nIs this a good move? 'yes' or 'no'.",
+    "goal": "{who} current observation of the game state is\n{observation}\nWill you eventually win from this position? 'yes' or 'no'.",
+    "terminal": "{who} current observation of the game state is\n{observation}\nIs this a terminal game state? 'yes' or 'no'.\n",
+    "prefix": "You are playing a game called {title}.\nThe rules are as follows: {summary}.\nA past observation of the game state was\n{observation}\nIs this position a terminal game state? Say 'yes' or 'no'.\nno\nDo you think you will eventually win from this position? Say 'yes' or 'no'.\n{win}\nFrom this position, your available actions are\n{actions}\n"
+}
