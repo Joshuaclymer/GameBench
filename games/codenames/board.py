@@ -6,6 +6,7 @@ import random
 class Board:
     cards_remaining : int = 0
     guesses_made_during_turn : int = 0
+    last_hint : (str, int) = None
 
     def increment_guesses(self):
         self.guesses_made_during_turn += 1
@@ -48,6 +49,7 @@ class Board:
         else:
             self.current_turn = CardType.RED
         self.guesses_made_during_turn = 0
+        self.last_hint = None
 
     def winner(self):
         if self.cards_remaining != 0:

@@ -23,8 +23,6 @@ class CodenamesGame:
     game_is_over : bool = False # indicates that no more actions should be taken and the scores should be computed.
     game_board : Board = None
     config : Config = None
-    last_red_hint: (str, int) = None
-    last_blue_hint: (str, int) = None
 
 
     def init_game(self, agents: List[Agent]):
@@ -81,11 +79,10 @@ class CodenamesGame:
                 text += f"{card.word} (HIDDEN)\n"
 
         if agent in self.red_team_list:
-            current_clue, current_num_guesses = self.last_red_hint
-        elif agent in self.blue_team_list:
-            current_clue, current_num_guesses = self.last_blue_hint
+            current_clue, current_num_guesses = self.game_board.last_hint
         else:
             raise ValueError("Agent is not on a team.")
+        
         if current_num_guesses == 0:
             clue_text = f"You were given the clue word: {current_clue} relating to {current_num_guesses} cards. You may guess as many cards as you wish."
         else:
@@ -121,10 +118,7 @@ class CodenamesGame:
         if action.action_id == "submit_clue":
             clue, num_guesses = action.openended_response[0].split(",")
             num_guesses = int(num_guesses)
-            if self.game_board.current_turn == CardType.RED:
-                self.last_red_hint = (clue, num_guesses)
-            else:
-                self.last_blue_hint = (clue, num_guesses)
+            self.game_board.last_hint = (clue, num_guesses)
         else:
             raise ValueError("Invalid action for spymaster.")
         
@@ -152,14 +146,14 @@ class CodenamesGame:
                 elif self.game_board.current_turn == CardType.RED:
                     if card.card_type == CardType.RED:
                         self.game_board.reveal_card(index)
-                        if self.last_red_hint[1] == self.game_board.guesses_made_during_turn:
+                        if self.game_board.last_hint[1] == self.game_board.guesses_made_during_turn:
                             self.game_board.end_turn()
                     elif card.card_type == CardType.BLUE:
                         self.game_board.reveal_card(index)
                         self.game_board.end_turn()
                 else:
                     if card.card_type == CardType.BLUE:
-                        if self.last_blue_hint[1] == self.game_board.guesses_made_during_turn:
+                        if self.game_board.last_hint[1] == self.game_board.guesses_made_during_turn:
                             self.game_is_over = True
                     else:
                         self.game_is_over = True
@@ -188,6 +182,22 @@ class CodenamesGame:
                 spymaster = self.spymaster_2
                 operative = self.operative_2
 
-            spymaster_observation, spymaster_available_actions = self.get_observation(spymaster)
-            spymaster_action = spymaster.take_action(spymaster_observation, spymaster_available_actions)
-            self.update(spymaster_action, spymaster_available_actions, spymaster)
+            if not self.last_hint:
+                spymaster_observation, spymaster_available_actions = self.get_observation(spymaster)
+                spymaster_action = spymaster.take_action(spymaster_observation, spymaster_available_actions)
+                self.update(spymaster_action, spymaster_available_actions, spymaster)
+
+            operative_observation, operative_available_actions = self.get_observation(operative)
+            operative_action = operative.take_action(operative_observation, operative_available_actions)
+            self.update(operative_action, operative_available_actions, operative)
+
+            possible_winner = self.game_board.winner()
+            if self.game_is_over or possible_winner:
+                if self.game_board.current_turn == CardType.RED or possible_winner == CardType.BLUE:
+                    return (-1, 1)
+                else:
+                    return (1, -1)
+
+
+
+
