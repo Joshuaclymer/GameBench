@@ -4,6 +4,12 @@ import config
 import random
 
 class Board:
+    cards_remaining : int = 0
+    guesses_made_during_turn : int = 0
+
+    def increment_guesses(self):
+        self.guesses_made_during_turn += 1
+
     @staticmethod
     def cards_from_words(words, first_team: CardType, second_team: CardType):
         total_cards = config.FIRST_TEAM_CARDS + config.SECOND_TEAM_CARDS + config.ASSASSIN_CARDS + config.NEUTRAL_CARDS
@@ -26,22 +32,27 @@ class Board:
         
     def __init__(self, words, game_config):
         num_cards = game_config.FIRST_TEAM_CARDS + game_config.SECOND_TEAM_CARDS + game_config.ASSASSIN_CARDS + game_config.NEUTRAL_CARDS
+        self.cards_remaining = num_cards
         random_words = random.sample(words, num_cards)
         self.cards = Board.cards_from_words(random_words, CardType.RED, CardType.BLUE)
         self.revealed = [False for _ in self.cards]
         self.current_turn = CardType.RED
 
-    def team_turn(self):
+    @property
+    def current_turn(self):
         return self.current_turn
-    
-
+        
     def end_turn(self):
         if self.current_turn == CardType.RED:
             self.current_turn = CardType.BLUE
         else:
             self.current_turn = CardType.RED
+        self.guesses_made_during_turn = 0
 
     def winner(self):
+        if self.cards_remaining != 0:
+            return None
+        
         red_cards = 0
         blue_cards = 0
         for index, card in enumerate(self.cards):
