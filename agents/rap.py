@@ -5,6 +5,7 @@ import api.util as util
 from agents.reasoners.base import Reasoner, SearchConfig, WorldModel
 from agents.reasoners.algorithm import MCTS
 import openai
+import math
 
 # To-do:
 # * add support for openeded actions
@@ -20,7 +21,8 @@ prompt_templates = util.load_json("agents\prompt_templates.json")
 
 def completion(prompt: str) -> str:
     """Regular chat completion."""
-    return (
+    print(prompt)
+    ret =  (
         openai_client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
             messages=[
@@ -30,11 +32,15 @@ def completion(prompt: str) -> str:
         .choices[0]
         .message.content
     )
+    print(ret)
+    return ret
 
 
 def probability(prompt: str, token: str = "yes", n: int = 2) -> float:
     """Prompt for exactly one token, and return probability that the LLM
     returned 'token' out of 'n' token options."""
+    n = min(n, 5)  # OpenAI doesn't allow more than 5
+    print(prompt)
     top_logprobs = (
         openai_client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
@@ -56,6 +62,7 @@ def probability(prompt: str, token: str = "yes", n: int = 2) -> float:
             -100,
         )
     )
+    print(p / p_total)
     return p / p_total
 
 
@@ -132,16 +139,16 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
     def step(self, state: GameState, action: str) -> GameState:
         """Predict next state from action."""
-        prompt = self.prefix + state_template.format(
+        prompt = self.prefix + prompt_templates["state"].format(
             observation=state.state,
             who="You" if state.myturn else "Other players",
             action=action,
         )
         new_state = completion(prompt)
 
-        prompt = self.prefix + reward_template.format(observation=new_state)
+        prompt = self.prefix + prompt_templates["goal"].format(who="you" if not state.myturn else "other players", observation=new_state)
         goal = probability(prompt)
-        return GameState(new_state, not state.myturn, state.depth + 1), {"goal": goal}
+        return GameState(new_state, not state.myturn, state.depth + 1), {"goal_reached": goal}
 
     def is_terminal(self, state: GameState) -> bool:
         """Terminal calculation
@@ -173,12 +180,16 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         return actions
 
     def calculate_reward(
-        self, state: GameState, intuition: float, self_eval: float, goal_reached: float
+        self,
+        state: GameState,
+        intuition: float,
+        self_eval: float,
+        goal_reached: float = 0.5,
     ) -> float:
         """Calculates reward of taking action.
 
         goal_reached is always calculated from the player's own perspective
-        (will YOU win), so we map it from [0, 1] to [-1, 1] to mean that low
+        ("will YOU win"), so we map it from [0, 1] to [-1, 1] to mean that low
         probability of winning == high probability of others' winning.
         """
         goal_reward = 2 * goal_reached - 1
@@ -203,7 +214,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             who="you" if state.myturn else "other players",
         )
         idx = next(i for i, a in enumerate(state.actions) if action == a)
-        intuition = probability(prompt, idx, len(state.actions))
+        intuition = probability(prompt, str(idx), len(state.actions))
 
         prompt = self.prefix + prompt_templates["self_eval"].format(
             title=self.rules.title,
@@ -228,6 +239,6 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         goal_reached: float,
     ) -> tuple[float, dict[str, float]]:
         return (
-            self.calculate_reward(state, intuition, self_eval),
+            self.calculate_reward(state, intuition, self_eval, goal_reached),
             {"intuition": intuition, "goal_reached": goal_reached},
         )
