@@ -6,6 +6,10 @@ class CardType(Enum):
     NEUTRAL = 3
     ASSASSIN = 4
 
+    def __str__(self):
+        return self.name
+    
+
 class Card:
     def __init__(self, word: str, card_type: Enum):
         self.word = word
