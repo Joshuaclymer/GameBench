@@ -6,28 +6,40 @@ from agents.reasoners.base import Reasoner, SearchConfig, WorldModel
 from agents.reasoners.algorithm import MCTS
 import openai
 import math
+from functools import partial
 
 # To-do:
 # * add support for openeded actions
 # * add support for image observations
 # * make side-by-side comparison between RAP and LATS, and see how you might
 #   borrow ReACT. Or implement LATS separately (ask Josh first)
+#   * we want CoT reasoning and ability for agent to lookup rules
+# * maybe use unique prompts for emphasizing the unknown of what other
+#   players are going to do
 
 openai_client = openai.Client(
     api_key=util.load_json("credentials.json")["openai_api_key"]
 )
-prompt_templates = util.load_json("agents\prompt_templates.json")
+
+context_templates = util.load_json("agents\prompt_templates.json")
 
 
-def completion(prompt: str) -> str:
+def context(template, **kwargs) -> list[dict[str, str]]:
+    format = partial(str.format, **kwargs)
+
+    return [
+        {"role": ("user" if i & 1 == 0 else "assistant"), "content": format(message)}
+        for i, message in enumerate(context_templates[template])
+    ]
+
+
+def completion(context: list[dict[str, str]]) -> str:
     """Regular chat completion."""
-    print(prompt)
-    ret =  (
+    for msg in context:
+        print(msg["role"].upper(), "::", msg["content"])
+    ret = (
         openai_client.chat.completions.create(
-            model="gpt-3.5-turbo-1106",
-            messages=[
-                {"role": "user", "content": prompt},
-            ],
+            model="gpt-3.5-turbo-1106", messages=context
         )
         .choices[0]
         .message.content
@@ -36,17 +48,16 @@ def completion(prompt: str) -> str:
     return ret
 
 
-def probability(prompt: str, token: str = "yes", n: int = 2) -> float:
+def probability(context: list[dict[str, str]], token: str = "yes", n: int = 2) -> float:
     """Prompt for exactly one token, and return probability that the LLM
     returned 'token' out of 'n' token options."""
+    for msg in context:
+        print(msg["role"].upper(), "::", msg["content"])
     n = min(n, 5)  # OpenAI doesn't allow more than 5
-    print(prompt)
     top_logprobs = (
         openai_client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
-            messages=[
-                {"role": "user", "content": prompt},
-            ],
+            messages=context,
             logprobs=True,
             top_logprobs=n,
             max_tokens=1,
@@ -91,7 +102,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         self.reasoner = Reasoner(world_model=self, search_config=self, search_algo=mcts)
 
     @property
-    def prefix(self) -> str:
+    def prefix(self) -> list[dict[str, str]]:
         """A prompt prefix with examples showing how to reasond and respond.
 
         Future:
@@ -102,15 +113,18 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         * maybe split the prefix into system, user, and assistant messages
         if it improves performance
         """
-        return prompt_templates["prefix"].format(
+        return context(
+            "prefix",
             title=self.rules.title,
             summary=self.rules.summary,
             observation=self.observation.text,
-            win=random.choices(["yes", "no"]),
+            win=random.choice(["yes", "no"]),
             actions="\n".join(
                 f"{action}: {description}"
                 for action, description in self.available_actions.predefined.items()
             ),
+            action=random.choice(list(self.available_actions.predefined.keys())),
+            eval=random.choice(["yes", "no"]),
         )
 
     def take_action(
@@ -125,7 +139,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         self.available_actions = available_actions
         try:
             action_id = self.reasoner(None).trace[1][0]
-            return Action(action_id=action_id)
+            #return Action(action_id=action_id)
         except TypeError:
             raise "Depth limit reached on MCTS with no terminal state reached."
 
@@ -139,16 +153,24 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
     def step(self, state: GameState, action: str) -> GameState:
         """Predict next state from action."""
-        prompt = self.prefix + prompt_templates["state"].format(
+        prompt = self.prefix + context(
+            "state",
             observation=state.state,
             who="You" if state.myturn else "Other players",
+            who2="Other players" if state.myturn else "You",
             action=action,
         )
         new_state = completion(prompt)
 
-        prompt = self.prefix + prompt_templates["goal"].format(who="you" if not state.myturn else "other players", observation=new_state)
+        prompt = self.prefix + context(
+            "goal",
+            who="you" if not state.myturn else "other players",
+            observation=new_state,
+        )
         goal = probability(prompt)
-        return GameState(new_state, not state.myturn, state.depth + 1), {"goal_reached": goal}
+        return GameState(new_state, not state.myturn, state.depth + 1), {
+            "goal_reached": goal
+        }
 
     def is_terminal(self, state: GameState) -> bool:
         """Terminal calculation
@@ -163,14 +185,15 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         Future: maybe ask agent if the state is terminal, then return True
         with probability that agent says yes.
         """
-        return state.depth > 2
+        return state.depth > 1
 
     def get_actions(self, state: GameState) -> list[str]:
         """Predict actions from current state."""
         if state.actions:
             return state.actions
 
-        prompt = self.prefix + prompt_templates["actions"].format(
+        prompt = self.prefix + context(
+            "actions",
             observation=state.state,
             who="Your" if state.myturn else "Other players'",
         )
@@ -204,7 +227,8 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     ) -> tuple[float, dict[str, float]]:
         """Get probability of LLM selection action + probability of saying it's
         a good choice."""
-        prompt = self.prefix + prompt_templates["action_select"].format(
+        prompt = self.prefix + context(
+            "action_select",
             title=self.rules.title,
             summary=self.rules.summary,
             observation=state.state,
@@ -216,7 +240,8 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         idx = next(i for i, a in enumerate(state.actions) if action == a)
         intuition = probability(prompt, str(idx), len(state.actions))
 
-        prompt = self.prefix + prompt_templates["self_eval"].format(
+        prompt = self.prefix + context(
+            "self_eval",
             title=self.rules.title,
             summary=self.rules.summary,
             observation=state.state,
