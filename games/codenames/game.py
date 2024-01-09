@@ -1,8 +1,9 @@
 from api.classes import Agent, Action, Observation, AvailableActions, Rules
-from card import CardType, Card
-from board import Board
-from config import GameConfig as Config
-
+from .card import CardType, Card
+from .board import Board
+from .config import GameConfig as Config
+from dataclasses import dataclass, field
+from typing import List, Tuple
 import random
 
 @dataclass
@@ -14,21 +15,22 @@ class CodenamesGame:
     operative_1 : Agent = None
     operative_2 : Agent = None
 
-    spymaster_list : List[Agent] = []
-    operative_list : List[Agent] = []
-    red_team_list : List[Agent] = []
-    blue_team_list : List[Agent] = []
-
+    spymaster_list : List[Agent] = field(default_factory=list)
+    operative_list : List[Agent] = field(default_factory=list)
+    red_team_list : List[Agent] = field(default_factory=list)
+    blue_team_list : List[Agent] = field(default_factory=list)
     show_state : bool = False # whether to e.g. print the board
     game_is_over : bool = False # indicates that no more actions should be taken and the scores should be computed.
     game_board : Board = None
     config : Config = None
 
 
-    def init_game(self, agents: List[Agent]):
+    def __init__(self, config : Config, agents : List[Agent]):
         if len(agents) != 4:
             raise ValueError("Exactly four agents are required to start the game.")
 
+        self.config = config
+        
         team1 = [agent for agent in agents if agent.team_id == 1]
         team2 = [agent for agent in agents if agent.team_id == 2]
 
@@ -58,30 +60,29 @@ class CodenamesGame:
         if agent not in self.spymaster_list:
             raise ValueError("Agent is not a spymaster.")
         
-        text = "Current board:\n"
+        team_name = self.game_board.current_team_name()
+        text = team_name + " Spymaster\n\n" + "Current board:\n"
         for index, card in enumerate(self.game_board.cards):
             if self.game_board.revealed[index]:
                 text += f"{card.word} ({card.card_type}) (REVEALED)\n"
             else:
                 text += f"{card.word} ({card.card_type}) (HIDDEN)\n"
 
-        return Observation(text), AvailableActions("Enter a one-word clue and the number of cards the clue relates to. In the following format: word,3", {}, Action("submit_clue"))
+        return Observation(text), AvailableActions("Enter a one-word clue and the number of cards the clue relates to. In the following format: word,3", {}, {"submit_clue": Action("submit_clue")})
 
     def get_operative_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
         if agent not in self.operative_list:
             raise ValueError("Agent is not an operative.")            
 
-        text = "Current board:\n"
+        team_name = self.game_board.current_team_name()
+        text = team_name + " Operative\n\n" + "Current board:\n"
         for index, card in enumerate(self.game_board.cards):
             if self.game_board.revealed[index]:
                 text += f"{card.word} ({card.card_type}) (REVEALED)\n"
             else:
                 text += f"{card.word} (HIDDEN)\n"
 
-        if agent in self.red_team_list:
-            current_clue, current_num_guesses = self.game_board.last_hint
-        else:
-            raise ValueError("Agent is not on a team.")
+        current_clue, current_num_guesses = self.game_board.last_hint
         
         if current_num_guesses == 0:
             clue_text = f"You were given the clue word: {current_clue} relating to {current_num_guesses} cards. You may guess as many cards as you wish."
@@ -93,15 +94,12 @@ class CodenamesGame:
             for index, card in enumerate(self.game_board.cards):
                 if self.game_board.revealed[index]:
                     continue
-                if card.card_type == self.game_board.current_turn:
-                    possible_actions[card.word] = Action("guess_" + str(index))
-
+                possible_actions[card.word] = Action("guess_" + str(index))
         if self.game_board.guesses_made_during_turn > 0:
-            possible_actions["End Turn"] = Action("end_turn")
+            possible_actions["end_turn"] = Action("end_turn")
 
         return Observation(text), AvailableActions(clue_text, possible_actions, {})
 
-        
 
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
         if agent in self.spymaster_list:
@@ -182,7 +180,7 @@ class CodenamesGame:
                 spymaster = self.spymaster_2
                 operative = self.operative_2
 
-            if not self.last_hint:
+            if not self.game_board.last_hint:
                 spymaster_observation, spymaster_available_actions = self.get_observation(spymaster)
                 spymaster_action = spymaster.take_action(spymaster_observation, spymaster_available_actions)
                 self.update(spymaster_action, spymaster_available_actions, spymaster)
