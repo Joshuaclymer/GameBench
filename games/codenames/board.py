@@ -42,6 +42,7 @@ class Board:
         num_cards = game_config.FIRST_TEAM_CARDS + game_config.SECOND_TEAM_CARDS + game_config.ASSASSIN_CARDS + game_config.NEUTRAL_CARDS
         self.cards_remaining = num_cards
         random_words = random.sample(words, num_cards)
+        print(len(words) == len(set(words)))
         self.cards = Board.cards_from_words(random_words, CardType.RED, CardType.BLUE)
         self.revealed = [False for _ in self.cards]
         self.current_turn = CardType.RED

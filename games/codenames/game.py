@@ -116,6 +116,8 @@ class CodenamesGame:
         if action.action_id == "submit_clue":
             clue, num_guesses = action.openended_response[0].split(",")
             num_guesses = int(num_guesses)
+            if num_guesses < 0:
+                raise ValueError("Number of guesses must be non-negative.")
             self.game_board.last_hint = (clue, num_guesses)
         else:
             raise ValueError("Invalid action for spymaster.")
@@ -133,14 +135,12 @@ class CodenamesGame:
             elif card.card_type == CardType.NEUTRAL:
                 self.game_board.reveal_card(index)
                 self.game_board.increment_guesses()
+                self.game_board.end_turn()
             else:
                 self.game_board.reveal_card(index)
                 self.game_board.increment_guesses()
                 if card.card_type == CardType.ASSASSIN:
                     self.game_is_over = True
-                elif card.card_type == CardType.NEUTRAL:
-                    self.game_board.reveal_card(index)
-                    self.game_board.end_turn()
                 elif self.game_board.current_turn == CardType.RED:
                     if card.card_type == CardType.RED:
                         self.game_board.reveal_card(index)
@@ -180,7 +180,7 @@ class CodenamesGame:
                 spymaster = self.spymaster_2
                 operative = self.operative_2
 
-            if not self.game_board.last_hint:
+            if self.game_board.last_hint is None:
                 spymaster_observation, spymaster_available_actions = self.get_observation(spymaster)
                 spymaster_action = spymaster.take_action(spymaster_observation, spymaster_available_actions)
                 self.update(spymaster_action, spymaster_available_actions, spymaster)
