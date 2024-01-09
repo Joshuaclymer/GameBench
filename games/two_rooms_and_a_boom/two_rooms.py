@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 import random
+import pdb
 
 
 @dataclass
@@ -9,7 +10,7 @@ class TwoRoomsAndaBoom(Game):
     class Card:
         def __init__(self, identifier, team, special_character):
             self.identifier = identifier #for ease of trading back and forth
-            self.team = team # red / blue
+            self.team = team # blue / red
             self.special_character = special_character # Pres / Bomber
             
         def __repr__(self):
@@ -20,15 +21,16 @@ class TwoRoomsAndaBoom(Game):
             self.cards = []
             self.identifier = identifier
 
-        def add_card(self, card):
-            self.cards.append(card)
-
         def show_cards(self):
             return self.cards
 
-        # TODO: It'd be nice to have a one for one trade where you pass in the card that belongs to a specific room and swap that with the card from the other room.
-        def trade_card(room_a_receive_card, room_b_receive_card):
-            return
+        def add_card(self, card):
+            self.cards.append(card)
+
+        def remove_card(self, card):
+            self.cards.remove(card)
+
+
 
     ## attribute definitions  
     rules : Rules = Rules(
@@ -38,6 +40,17 @@ class TwoRoomsAndaBoom(Game):
     )
     id : str = "two_rooms_and_a_boom"
     rooms: list[Room] = field(default_factory=lambda: [TwoRoomsAndaBoom.Room("0"), TwoRoomsAndaBoom.Room("1")])
+
+    # TODO: It'd be nice to have a one for one trade where you pass in the card that belongs to a specific room and swap that with the card from the other room.
+    def trade_card(self, room_0_give_card, room_1_give_card):
+        # add to deck
+        self.rooms[0].add_card(room_1_give_card)
+        self.rooms[1].add_card(room_0_give_card)
+
+        # delete
+        self.rooms[0].remove_card(room_0_give_card)
+        self.rooms[1].remove_card(room_1_give_card)
+        return
 
     ## Function definitions
     def init_game(self, agent1 : Agent, agent2 : Agent):        
@@ -52,8 +65,6 @@ class TwoRoomsAndaBoom(Game):
         }
         
         self.agents = [agent1(team_id = 0, agent_id = 0), agent2(team_id = 1, agent_id = 1)]
-        print(self.agents)
-        print(self.agent_data)
         
         # init cards
         cards_per_room = 6
@@ -66,9 +77,6 @@ class TwoRoomsAndaBoom(Game):
         self.rooms[1].cards[ random.randrange(0, cards_per_room ) ].special_character = "Bomber"
 
         self.winning_team = None
-        if self.show_state:
-            print(f"Agent {self.agents[0].agent_type_id} is X and agent {self.agents[1].agent_type_id} is O")
-
         return
     
     def get_observation(self, agent : Agent): 
@@ -97,6 +105,18 @@ class TwoRoomsAndaBoom(Game):
                         bomber_location = self.rooms[room_index]
 
             winning_score = (0,1) if bomber_location == pres_location else (1,0) 
+            if winning_score == (0,1):
+                print("Red won!")
+            else:
+                print("Blue won!")
             return winning_score
+
+        determine_winner()
+        self.trade_card(self.rooms[0].cards[2], self.rooms[1].cards[2])
+        determine_winner()
+        #pdb.set_trace()
+
+
+
 
         return determine_winner()
