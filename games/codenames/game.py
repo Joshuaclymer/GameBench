@@ -19,15 +19,10 @@ class CodenamesGame:
     operative_list : List[Agent] = field(default_factory=list)
     red_team_list : List[Agent] = field(default_factory=list)
     blue_team_list : List[Agent] = field(default_factory=list)
-    show_state : bool = False # whether to e.g. print the board
-    game_is_over : bool = False # indicates that no more actions should be taken and the scores should be computed.
+    show_state : bool = False 
+    game_is_over : bool = False 
     game_board : Board = None
     config : Config = None
-
-    last_red_hint: Tuple[str, int] = None
-    last_blue_hint: Tuple[str, int] = None
-    last_red_guesses: List[str] = field(default_factory=list)
-    last_blue_guesses: List[str] = field(default_factory=list)
 
 
     def __init__(self, config : Config, agents : List[Agent]):
@@ -53,11 +48,6 @@ class CodenamesGame:
 
         self.red_team_list = [self.spymaster_1, self.operative_1]
         self.blue_team_list = [self.spymaster_2, self.operative_2]
-
-        self.last_red_hint = None
-        self.last_blue_hint = None
-        self.last_red_guesses = []
-        self.last_blue_guesses = []
 
         self.setup_board()
 
@@ -86,11 +76,11 @@ class CodenamesGame:
             else:
                 text += f"{card.word} ({card.card_type}) (HIDDEN)\n"
 
-        if self.get_agent_team(agent) == CardType.RED and self.last_blue_hint:
-            previous_turn_info = f"Last Turn Hint: '{self.last_blue_hint[0]}', for {self.last_blue_hint[1]} cards.\nLast Turn Guesses: {', '.join(self.last_blue_guesses)}"
+        if self.get_agent_team(agent) == CardType.RED and self.game_board.last_blue_hint:
+            previous_turn_info = f"Last Turn Hint: '{self.game_board.last_blue_hint[0]}', for {self.game_board.last_blue_hint[1]} cards.\nLast Turn Guesses: {', '.join(self.game_board.last_blue_guesses)}"
             text += "\n\n" + previous_turn_info
-        elif self.get_agent_team(agent) == CardType.BLUE and self.last_red_hint:
-            previous_turn_info = f"Last Turn Hint: '{self.last_red_hint[0]}', for {self.last_red_hint[1]} cards.\nLast Turn Guesses: {', '.join(self.last_red_guesses)}"
+        elif self.get_agent_team(agent) == CardType.BLUE and self.game_board.last_red_hint:
+            previous_turn_info = f"Last Turn Hint: '{self.game_board.last_red_hint[0]}', for {self.game_board.last_red_hint[1]} cards.\nLast Turn Guesses: {', '.join(self.game_board.last_red_guesses)}"
             text += "\n\n" + previous_turn_info
         
         return Observation(text), AvailableActions("Enter a one-word clue and the number of cards the clue relates to. In the following format: word,3", {}, {"submit_clue": Action("submit_clue")})
@@ -113,11 +103,11 @@ class CodenamesGame:
         text += "\n\n" + clue_text
 
         # Show last turn info from the opposing team
-        if self.get_agent_team(agent) == CardType.RED and self.last_blue_hint:
-            previous_turn_info = f"Last Turn Hint: {self.last_blue_hint[0]}, for {self.last_blue_hint[1]} cards.\nLast Turn Guesses: {', '.join(self.last_blue_guesses)}"
+        if self.get_agent_team(agent) == CardType.RED and self.game_board.last_blue_hint:
+            previous_turn_info = f"Last Turn Hint: {self.game_board.last_blue_hint[0]}, for {self.game_board.last_blue_hint[1]} cards.\nLast Turn Guesses: {', '.join(self.game_board.last_blue_guesses)}"
             text += "\n\n" + previous_turn_info
-        elif self.get_agent_team(agent) == CardType.BLUE and self.last_red_hint:
-            previous_turn_info = f"Last Turn Hint: {self.last_red_hint[0]}, for {self.last_red_hint[1]} cards.\nLast Turn Guesses: {', '.join(self.last_red_guesses)}"
+        elif self.get_agent_team(agent) == CardType.BLUE and self.game_board.last_red_hint:
+            previous_turn_info = f"Last Turn Hint: {self.game_board.last_red_hint[0]}, for {self.game_board.last_red_hint[1]} cards.\nLast Turn Guesses: {', '.join(self.game_board.last_red_guesses)}"
             text += "\n\n" + previous_turn_info
 
         possible_actions = {}
@@ -154,9 +144,9 @@ class CodenamesGame:
             raise ValueError("Invalid action for spymaster.")
         
         if self.get_agent_team(agent) == CardType.RED:
-            self.last_red_hint = (clue, num_guesses)
+            self.game_board.last_red_hint = (clue, num_guesses)
         else:
-            self.last_blue_hint = (clue, num_guesses)
+            self.game_board.last_blue_hint = (clue, num_guesses)
 
     def handle_turn(self, card, index, expected_card_type):
         if card.card_type == expected_card_type:
@@ -180,9 +170,9 @@ class CodenamesGame:
             guessed_word = self.game_board.cards[index].word
             card_type = self.game_board.cards[index].card_type
             if self.get_agent_team(agent) == CardType.RED:
-                self.last_red_guesses.append(f"{guessed_word} (guessed) - {card_type}")
+                self.game_board.last_red_guesses.append(f"{guessed_word} (guessed) - {card_type}")
             else:
-                self.last_blue_guesses.append(f"{guessed_word} (guessed) - {card_type}")
+                self.game_board.last_blue_guesses.append(f"{guessed_word} (guessed) - {card_type}")
 
             card = self.game_board.cards[index]
 

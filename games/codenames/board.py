@@ -2,7 +2,7 @@
 from .card import Card, CardType
 from .config import GameConfig as config
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 import random
 
 class Board:
@@ -11,6 +11,11 @@ class Board:
     last_hint : (str, int) = None
     current_turn : CardType = None
     saved_turn : CardType = None
+
+    last_red_hint: Tuple[str, int] = None
+    last_blue_hint: Tuple[str, int] = None
+    last_red_guesses: List[str] = field(default_factory=list)
+    last_blue_guesses: List[str] = field(default_factory=list)
 
 
     def increment_guesses(self):
@@ -51,6 +56,11 @@ class Board:
         self.cards = Board.cards_from_words(random_words, CardType.RED, CardType.BLUE)
         self.revealed = [False for _ in self.cards]
         self.current_turn = CardType.RED
+
+        self.last_red_hint = None
+        self.last_blue_hint = None
+        self.last_red_guesses = []
+        self.last_blue_guesses = []
 
         
     def end_turn(self):
