@@ -30,6 +30,8 @@ class CodenamesGame:
             raise ValueError("Exactly four agents are required to start the game.")
 
         self.config = config
+        self.rules = self.config.codenames_rules
+        self.id = "codenames_game"
         
         team1 = [agent for agent in agents if agent.team_id == 1]
         team2 = [agent for agent in agents if agent.team_id == 2]
@@ -135,7 +137,7 @@ class CodenamesGame:
             raise ValueError("Agent is not a spymaster.")
 
         if action.action_id == "submit_clue":
-            clue, num_guesses = action.openended_response[0].split(",")
+            clue, num_guesses = action.openended_response.split(",")
             num_guesses = int(num_guesses)
             if num_guesses < 0:
                 raise ValueError("Number of guesses must be non-negative.")
@@ -163,7 +165,6 @@ class CodenamesGame:
     def update_operative(self, action : Action, available_actions : AvailableActions, agent : Agent):
         if agent not in self.operative_list:
             raise ValueError("Agent is not an operative.")
-
         if action.action_id.startswith("guess_"):
             index = int(action.action_id.split("_")[1])
             
@@ -225,12 +226,12 @@ class CodenamesGame:
             # Spymaster's action
             if self.game_board.last_hint is None:
                 spymaster_observation, spymaster_available_actions = self.get_observation(spymaster)
-                spymaster_action = spymaster.take_action(spymaster_observation, spymaster_available_actions)
+                spymaster_action = spymaster.take_action(self.rules, spymaster_observation, spymaster_available_actions, show_state=True)
                 self.update(spymaster_action, spymaster_available_actions, spymaster)
 
             # Operative's action
             operative_observation, operative_available_actions = self.get_observation(operative)
-            operative_action = operative.take_action(operative_observation, operative_available_actions)
+            operative_action = operative.take_action(self.rules, operative_observation, operative_available_actions, show_state=True)
             self.update(operative_action, operative_available_actions, operative)
 
             # Check for game end conditions
