@@ -1,32 +1,39 @@
 {
     "actions": [
-        "Write {who} observation of the state contained between <state> and </state>.",
+        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
         "<state>\n{observation}\n</state>",
-        "Write a short description of each action available to {who} in this state."
-    ],
-    "state": [
-        "Write {who} observation of the state contained between <state> and </state>.",
-        "<state>\n{observation}\n</state>",
-        "Write the action {who} are taking.",
-        "{action}",
-        "As a result of this action, write {who2} observation of the state contained between <state> and </state>."
+        "Based on your understanding of the rules, predict what your available actions are."
     ],
     "action_select": [
-        "Write {who} observation of the state contained between <state> and </state>.",
+        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
         "<state>\n{observation}\n</state>",
-        "Write a short description of each action available to you in this state and number each line.",
+        "Based on your understanding of the rules, predict what your available actions are.",
         "{actions}",
         "Write exactly the number of the action you are taking."
     ],
     "self_eval": [
-        "Write {who} observation of the state contained between <state> and </state>.",
+        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
         "<state>\n{observation}\n</state>",
-        "Write the action {who} are taking.",
+        "Write the action you are taking.",
         "{action}",
         "Is this a good action? yes/no."
     ],
+    "others": [
+        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
+        "<state>\n{observation}\n</state>",
+        "Based on your understanding of the rules, predict precisely what actions other players (both opponents and teammates, if applicable) might take during or after your turn."
+    ],
+    "state": [
+        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
+        "<state>\n{observation}\n</state>",
+        "This turn, you are taking the following action:",
+        "{action}",
+        "During or after this turn, other players will do the following:",
+        "{others}",
+        "Based on your understanding of the rules, your observation of the state, your selected action, and other players' actions, predict what your next observation of the game state will be."
+    ],
     "goal": [
-        "Write {who} observation of the state contained between <state> and </state>.s",
+        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
         "<state>\n{observation}\n</state>",
         "Will you eventually win from this position? yes/no"
     ],
@@ -36,17 +43,6 @@
         "Is this game over? yes/no."
     ],
     "prefix": [
-        "Write your observation of the state contained between <state> and </state>.",
-        "<state>\n{observation}\n</state>",
-        "Is this game over? yes/no.",
-        "no",
-        "Will you eventually win from this position? yes/no.",
-        "{win}",
-        "Write a short description of each action available to you in this state and number each line.",
-        "{actions}",
-        "Write exactly the number of the action you are taking.",
-        "{action}",
-        "Is this a good action? yes/no",
-        "{eval}"
+        "You are playing a game called {title}.\nThe rules are as follows {summary}."
     ]
 }

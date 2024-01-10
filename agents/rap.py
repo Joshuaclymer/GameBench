@@ -16,6 +16,8 @@ from functools import partial
 #   * we want CoT reasoning and ability for agent to lookup rules
 # * maybe use unique prompts for emphasizing the unknown of what other
 #   players are going to do
+# * maybe caching results? It's possible the agent will accurately predict
+#   a future state, in which case it shouldn't recalculate rewards and all.
 
 openai_client = openai.Client(
     api_key=util.load_json("credentials.json")["openai_api_key"]
@@ -82,7 +84,6 @@ class GameState:
     """Wrapper for game state. 'state' is the observation."""
 
     state: str
-    myturn: bool = True
     depth: int = 0
     actions: list[str] = field(default_factory=list)
 
@@ -120,10 +121,12 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             observation=self.observation.text,
             win=random.choice(["yes", "no"]),
             actions="\n".join(
-                f"{action}: {description}"
-                for action, description in self.available_actions.predefined.items()
+                f"{i} {action} {description}"
+                for i, (action, description) in enumerate(
+                    self.available_actions.predefined.items()
+                )
             ),
-            action=random.choice(list(self.available_actions.predefined.keys())),
+            action=random.randrange(len(self.available_actions.predefined)),
             eval=random.choice(["yes", "no"]),
         )
 
@@ -139,14 +142,13 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         self.available_actions = available_actions
         try:
             action_id = self.reasoner(None).trace[1][0]
-            #return Action(action_id=action_id)
+            # return Action(action_id=action_id)
         except TypeError:
             raise "Depth limit reached on MCTS with no terminal state reached."
 
     def init_state(self) -> GameState:
         return GameState(
             self.observation.text,
-            myturn=True,
             depth=0,
             actions=self.available_actions.predefined.keys(),
         )
@@ -154,21 +156,16 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     def step(self, state: GameState, action: str) -> GameState:
         """Predict next state from action."""
         prompt = self.prefix + context(
-            "state",
-            observation=state.state,
-            who="You" if state.myturn else "Other players",
-            who2="Other players" if state.myturn else "You",
-            action=action,
+            "state", observation=state.state, action=action, others=state.others
         )
-        new_state = completion(prompt)
+        new_state = completion(prompt).replace("<state>", "").replace("</state>", "")
 
         prompt = self.prefix + context(
             "goal",
-            who="you" if not state.myturn else "other players",
             observation=new_state,
         )
         goal = probability(prompt)
-        return GameState(new_state, not state.myturn, state.depth + 1), {
+        return GameState(new_state, depth=state.depth + 1), {
             "goal_reached": goal
         }
 
@@ -188,14 +185,18 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         return state.depth > 1
 
     def get_actions(self, state: GameState) -> list[str]:
-        """Predict actions from current state."""
+        """Predict actions from current state. And also about others' actions
+        because it's convenient to do that here."""
+        prompt = self.prefix + context("others", observation=state.state)
+        others = completion(prompt)
+        state.others = others
+
         if state.actions:
             return state.actions
 
         prompt = self.prefix + context(
             "actions",
             observation=state.state,
-            who="Your" if state.myturn else "Other players'",
         )
         response = completion(prompt)
         actions = [r.split(":")[0] for r in response.split("\n")]
@@ -204,7 +205,6 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
     def calculate_reward(
         self,
-        state: GameState,
         intuition: float,
         self_eval: float,
         goal_reached: float = 0.5,
@@ -216,11 +216,10 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         probability of winning == high probability of others' winning.
         """
         goal_reward = 2 * goal_reached - 1
-        flip = 1 if state.myturn else -1
         reward = (intuition + self_eval) * self.reward_alpha + goal_reward * (
             1 - self.reward_alpha
         )
-        return flip * reward
+        return reward
 
     def fast_reward(
         self, state: GameState, action: str
@@ -229,28 +228,20 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         a good choice."""
         prompt = self.prefix + context(
             "action_select",
-            title=self.rules.title,
-            summary=self.rules.summary,
             observation=state.state,
             actions="\n".join(
                 f"{idx} {action}" for idx, action in enumerate(state.actions)
             ),
-            who="you" if state.myturn else "other players",
         )
         idx = next(i for i, a in enumerate(state.actions) if action == a)
         intuition = probability(prompt, str(idx), len(state.actions))
 
         prompt = self.prefix + context(
-            "self_eval",
-            title=self.rules.title,
-            summary=self.rules.summary,
-            observation=state.state,
-            action=f"{action}",
-            who="you" if state.myturn else "other players",
+            "self_eval", observation=state.state, action=f"{action}"
         )
         self_eval = probability(prompt)
 
-        return self.calculate_reward(state, intuition, self_eval), {
+        return self.calculate_reward(intuition, self_eval), {
             "intuition": intuition,
             "self_eval": self_eval,
         }
@@ -264,6 +255,20 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         goal_reached: float,
     ) -> tuple[float, dict[str, float]]:
         return (
-            self.calculate_reward(state, intuition, self_eval, goal_reached),
+            self.calculate_reward(intuition, self_eval, goal_reached),
             {"intuition": intuition, "goal_reached": goal_reached},
         )
+
+
+if __name__ == "__main__":
+    from games.tic_tac_toe import TicTacToe
+    from agents.random_agent import RandomAgent
+
+    game = TicTacToe()
+    game.init_game(ReasoningViaPlanning, RandomAgent)
+    rap = game.players[0]
+    obs, aa = game.get_observation(rap)
+
+    rap.rules = rules
+    rap.available_actions = aa
+    rap.observation = obs
