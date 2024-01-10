@@ -1,6 +1,8 @@
 # board for codenames game
 from .card import Card, CardType
 from .config import GameConfig as config
+from dataclasses import dataclass, field
+from typing import List
 import random
 
 class Board:
@@ -8,6 +10,8 @@ class Board:
     guesses_made_during_turn : int = 0
     last_hint : (str, int) = None
     current_turn : CardType = None
+    saved_turn : CardType = None
+
 
     def increment_guesses(self):
         self.guesses_made_during_turn += 1
@@ -22,7 +26,6 @@ class Board:
         for word in words:
             cards.append(Card(word, CardType.NEUTRAL))
 
-        random.shuffle(cards)
         # place first team cards
         cards[0:config.FIRST_TEAM_CARDS] = [Card(word, first_team) for word in words[0:config.FIRST_TEAM_CARDS]]
         # place second team cards
@@ -37,12 +40,14 @@ class Board:
             return "Red Team"
         else:
             return "Blue Team"
+        
+    def update_last_turn_info(self, hint, num_guesses):
+        self.last_turn_info = f"{self.current_team_name()} guessed {num_guesses} words with the hint {hint}."
 
     def __init__(self, words, game_config):
         num_cards = game_config.FIRST_TEAM_CARDS + game_config.SECOND_TEAM_CARDS + game_config.ASSASSIN_CARDS + game_config.NEUTRAL_CARDS
         self.cards_remaining = num_cards
         random_words = random.sample(words, num_cards)
-        print(len(words) == len(set(words)))
         self.cards = Board.cards_from_words(random_words, CardType.RED, CardType.BLUE)
         self.revealed = [False for _ in self.cards]
         self.current_turn = CardType.RED
