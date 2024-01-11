@@ -17,9 +17,9 @@ config = GameConfig()
 agents = [OpenAITextAgent(openai_model="gpt-4-1106-preview",agent_id=1, team_id=1, agent_type_id="agent"), OpenAITextAgent(openai_model="gpt-4-1106-preview",agent_id=2, team_id=1, agent_type_id="agent"), OpenAITextAgent(openai_model="gpt-4-1106-preview",agent_id=3, team_id=2, agent_type_id="agent"), OpenAITextAgent(openai_model="gpt-4-1106-preview",agent_id=4,team_id=2, agent_type_id="agent")]
 # create a game
 
-game = Game(config=config, agents=agents)
-
 # play the game
 
-print(game.play())
+for i in range(1):
+    game = Game(config=config, agents=agents)
+    print(game.play())
 
