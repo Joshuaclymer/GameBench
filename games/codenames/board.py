@@ -61,7 +61,6 @@ class Board:
     def reveal_card(self, index: int) -> CardType:
         if 0 <= index < len(self.cards) and not self.revealed[index]:
             self.revealed[index] = True
-            self.guesses_made_during_turn += 1
             return self.cards[index].card_type
         return None
 
