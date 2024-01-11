@@ -19,7 +19,7 @@ class CodenamesGame:
     operative_list : List[Agent] = field(default_factory=list)
     red_team_list : List[Agent] = field(default_factory=list)
     blue_team_list : List[Agent] = field(default_factory=list)
-    show_state : bool = False 
+    show_state : bool = True 
     game_is_over : bool = False 
     game_board : Board = None
     config : Config = None
@@ -86,7 +86,7 @@ class CodenamesGame:
         text += "\n\n" + last_hint_info
 
         actions = {"submit_clue": Action("submit_clue")}
-        return Observation(text), AvailableActions("Enter a one-word clue and the number of cards the clue relates to. In the following format: word,3", {}, actions)
+        return Observation(text), AvailableActions("Enter a one-word clue and the number of cards from your team that the clue relates to. In the following format: word,3", {}, actions)
 
     def get_operative_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
         self._validate_role(agent, self.operative_list, "Operative")
@@ -94,7 +94,8 @@ class CodenamesGame:
         text = self._get_observation_text(agent)
         current_clue, current_num_guesses = self.game_board.last_hint
         if current_clue:
-            text += f"\n\nYour clue is: '{current_clue}' for {current_num_guesses} cards."
+            text += f"\n\nYour clue is: '{current_clue}' for {current_num_guesses} cards. You have made {self.game_board.guesses_made_during_turn} guesses so far."
+
 
         last_hint_info = self._get_last_hint_info(agent)
         text += "\n\n" + last_hint_info
@@ -116,7 +117,7 @@ class CodenamesGame:
 
     def _get_operative_actions(self, current_num_guesses) -> dict:
         actions = {}
-        if self.game_board.guesses_made_during_turn < current_num_guesses or current_num_guesses == 0:
+        if self.game_board.guesses_made_during_turn <= current_num_guesses or current_num_guesses == 0:
             for index, card in enumerate(self.game_board.cards):
                 if not self.game_board.revealed[index]:
                     actions[card.word] = Action(f"guess_{index}")
@@ -158,7 +159,7 @@ class CodenamesGame:
     def handle_turn(self, card, index, expected_card_type):
         if card.card_type == expected_card_type:
             self.game_board.reveal_card(index)
-            if self.game_board.last_hint[1] == self.game_board.guesses_made_during_turn:
+            if self.game_board.last_hint[1] + 1 == self.game_board.guesses_made_during_turn:
                 self.game_board.end_turn()
         elif card.card_type in [CardType.RED, CardType.BLUE]:
             self.game_board.reveal_card(index)
@@ -243,11 +244,21 @@ class CodenamesGame:
 
     def _determine_scores(self) -> Tuple[float, float]:
         winner = self.game_board.winner()
+        red_points = sum(1 for i, card in enumerate(self.game_board.cards) if card.card_type == CardType.RED and self.game_board.revealed[i])
+        blue_points = sum(1 for i, card in enumerate(self.game_board.cards) if card.card_type == CardType.BLUE and self.game_board.revealed[i])
+        assassin_revealed = any(card.card_type == CardType.ASSASSIN and self.game_board.revealed[i] for i, card in enumerate(self.game_board.cards))
+        
+        if assassin_revealed:
+            if winner == CardType.RED:
+                blue_points = 0
+            elif winner == CardType.BLUE:
+                red_points = 0
+
         if winner == CardType.RED:
-            return (1, -1)
+            red_points += 3
         elif winner == CardType.BLUE:
-            return (-1, 1)
-        return (0, 0)  # In case of a draw or incomplete game
+            blue_points += 3
+        return red_points, blue_points
 
     def _get_current_team(self) -> Tuple[Agent, Agent]:
         if self.game_board.current_turn == CardType.RED:
@@ -255,6 +266,7 @@ class CodenamesGame:
         else:
             return self.spymaster_2, self.operative_2
         
+
     def play(self) -> Tuple[float, float]:
         while not self.game_is_over:
             current_team = self._get_current_team()

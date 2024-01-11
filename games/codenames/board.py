@@ -49,7 +49,7 @@ class Board:
     def is_turn_over(self) -> bool:
         if self.last_hint[1] == 0:
             return False
-        return self.guesses_made_during_turn >= self.last_hint[1]
+        return self.guesses_made_during_turn >= self.last_hint[1] + 1
 
 
     def end_turn(self):
