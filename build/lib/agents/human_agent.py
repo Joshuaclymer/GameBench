@@ -14,4 +14,3 @@ class HumanAgent(Agent):
         elif action in openended_list:
             return Action(action_id=available_actions.openended[action].action_id, openended_response=input("Enter open-ended response: "))
         
-        print("NOT IN EITHER LIST")
