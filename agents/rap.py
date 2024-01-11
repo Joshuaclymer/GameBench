@@ -7,6 +7,7 @@ from agents.reasoners.algorithm import MCTS
 import openai
 import math
 from functools import partial
+import re
 
 # To-do:
 # * add support for openeded actions
@@ -26,7 +27,7 @@ openai_client = openai.Client(
 context_templates = util.load_json("agents\prompt_templates.json")
 
 
-def context(template, **kwargs) -> list[dict[str, str]]:
+def context_builder(template, **kwargs) -> list[dict[str, str]]:
     format = partial(str.format, **kwargs)
 
     return [
@@ -37,8 +38,7 @@ def context(template, **kwargs) -> list[dict[str, str]]:
 
 def completion(context: list[dict[str, str]]) -> str:
     """Regular chat completion."""
-    for msg in context:
-        print(msg["role"].upper(), "::", msg["content"])
+    print("USER ::", context[-1]["content"])
     ret = (
         openai_client.chat.completions.create(
             model="gpt-3.5-turbo-1106", messages=context
@@ -46,15 +46,14 @@ def completion(context: list[dict[str, str]]) -> str:
         .choices[0]
         .message.content
     )
-    print(ret)
+    print("ASSISTANT ::", ret)
     return ret
 
 
 def probability(context: list[dict[str, str]], token: str = "yes", n: int = 2) -> float:
     """Prompt for exactly one token, and return probability that the LLM
     returned 'token' out of 'n' token options."""
-    for msg in context:
-        print(msg["role"].upper(), "::", msg["content"])
+    print("USER ::", context[-1]["content"])
     n = min(n, 5)  # OpenAI doesn't allow more than 5
     top_logprobs = (
         openai_client.chat.completions.create(
@@ -75,17 +74,26 @@ def probability(context: list[dict[str, str]], token: str = "yes", n: int = 2) -
             -100,
         )
     )
-    print(p / p_total)
+    print("ASSISTANT ::", p / p_total)
     return p / p_total
+
+
+def context_builder(template, **kw):
+    template = context_templates["prefix"] + context_templates[template]
+    format = partial(str.format, **kw)
+
+    return [
+        {"role": ("user" if i & 1 == 0 else "assistant"), "content": format(message)}
+        for i, message in enumerate(template)
+    ]
 
 
 @dataclass
 class GameState:
-    """Wrapper for game state. 'state' is the observation."""
-
-    state: str
+    observation: str
     depth: int = 0
     actions: list[str] = field(default_factory=list)
+    others: str = None
 
 
 @dataclass
@@ -102,34 +110,6 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         mcts = MCTS()
         self.reasoner = Reasoner(world_model=self, search_config=self, search_algo=mcts)
 
-    @property
-    def prefix(self) -> list[dict[str, str]]:
-        """A prompt prefix with examples showing how to reasond and respond.
-
-        Future:
-        * keep running list of past observations and available_actions to
-        generate more diversity of prefixes
-        * keep track of token count and maybe drop some example interactions
-        if we're hitting the context length
-        * maybe split the prefix into system, user, and assistant messages
-        if it improves performance
-        """
-        return context(
-            "prefix",
-            title=self.rules.title,
-            summary=self.rules.summary,
-            observation=self.observation.text,
-            win=random.choice(["yes", "no"]),
-            actions="\n".join(
-                f"{i} {action} {description}"
-                for i, (action, description) in enumerate(
-                    self.available_actions.predefined.items()
-                )
-            ),
-            action=random.randrange(len(self.available_actions.predefined)),
-            eval=random.choice(["yes", "no"]),
-        )
-
     def take_action(
         self,
         rules: Rules,
@@ -137,9 +117,13 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         available_actions: AvailableActions,
         show_state: bool,
     ) -> Action:
-        self.rules = rules
-        self.observation = observation
-        self.available_actions = available_actions
+        self.context_builder = partial(
+            context_builder, title=rules.title, summary=rules.summary
+        )
+        self._init_state = GameState(
+            observation=observation.text, actions=available_actions.predefined.keys()
+        )
+
         try:
             action_id = self.reasoner(None).trace[1][0]
             # return Action(action_id=action_id)
@@ -147,27 +131,22 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             raise "Depth limit reached on MCTS with no terminal state reached."
 
     def init_state(self) -> GameState:
-        return GameState(
-            self.observation.text,
-            depth=0,
-            actions=self.available_actions.predefined.keys(),
-        )
+        return self._init_state
 
     def step(self, state: GameState, action: str) -> GameState:
         """Predict next state from action."""
-        prompt = self.prefix + context(
-            "state", observation=state.state, action=action, others=state.others
+        prompt = self.context_builder(
+            "state", observation=state.observation, action=action, others=state.others
         )
-        new_state = completion(prompt).replace("<state>", "").replace("</state>", "")
+        new_state = completion(prompt)
+        new_state = re.findall(r"<state>(.*)</state>", new_state)[0]
 
-        prompt = self.prefix + context(
+        prompt = self.context_builder(
             "goal",
             observation=new_state,
         )
         goal = probability(prompt)
-        return GameState(new_state, depth=state.depth + 1), {
-            "goal_reached": goal
-        }
+        return GameState(new_state, depth=state.depth + 1), {"goal_reached": goal}
 
     def is_terminal(self, state: GameState) -> bool:
         """Terminal calculation
@@ -187,19 +166,19 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     def get_actions(self, state: GameState) -> list[str]:
         """Predict actions from current state. And also about others' actions
         because it's convenient to do that here."""
-        prompt = self.prefix + context("others", observation=state.state)
+        prompt = self.context_builder("others", observation=state.observation)
         others = completion(prompt)
         state.others = others
 
         if state.actions:
             return state.actions
 
-        prompt = self.prefix + context(
+        prompt = self.context_builder(
             "actions",
-            observation=state.state,
+            observation=state.observation,
         )
-        response = completion(prompt)
-        actions = [r.split(":")[0] for r in response.split("\n")]
+        response = re.findall(r"<actions>(.*)</actions>")[0]
+        actions = response.strip().split("\n")
         state.actions = actions
         return actions
 
@@ -209,12 +188,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         self_eval: float,
         goal_reached: float = 0.5,
     ) -> float:
-        """Calculates reward of taking action.
-
-        goal_reached is always calculated from the player's own perspective
-        ("will YOU win"), so we map it from [0, 1] to [-1, 1] to mean that low
-        probability of winning == high probability of others' winning.
-        """
+        """Calculates reward of taking action."""
         goal_reward = 2 * goal_reached - 1
         reward = (intuition + self_eval) * self.reward_alpha + goal_reward * (
             1 - self.reward_alpha
@@ -226,18 +200,15 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     ) -> tuple[float, dict[str, float]]:
         """Get probability of LLM selection action + probability of saying it's
         a good choice."""
-        prompt = self.prefix + context(
+        prompt = self.context_builder(
             "action_select",
-            observation=state.state,
-            actions="\n".join(
-                f"{idx} {action}" for idx, action in enumerate(state.actions)
-            ),
+            observation=state.observation,
+            actions="\n".join(state.actions),
         )
-        idx = next(i for i, a in enumerate(state.actions) if action == a)
-        intuition = probability(prompt, str(idx), len(state.actions))
+        intuition = probability(prompt, action[0], len(state.actions))
 
-        prompt = self.prefix + context(
-            "self_eval", observation=state.state, action=f"{action}"
+        prompt = self.context_builder(
+            "self_eval", observation=state.observation, action=f"{action}"
         )
         self_eval = probability(prompt)
 

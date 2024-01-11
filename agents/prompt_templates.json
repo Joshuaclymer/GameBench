@@ -1,48 +1,42 @@
 {
     "actions": [
-        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
-        "<state>\n{observation}\n</state>",
-        "Based on your understanding of the rules, predict what your available actions are."
+        "To the best of your ability, predict your available actions in this position between <actions> and </action>:"
     ],
     "action_select": [
-        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
-        "<state>\n{observation}\n</state>",
-        "Based on your understanding of the rules, predict what your available actions are.",
-        "{actions}",
-        "Write exactly the number of the action you are taking."
+        "To the best of your ability, predict your available actions in this position between <actions> and </action>:",
+        "<actions>\n{actions}\n</actions>",
+        "Choose an action by writing only the associated number."
     ],
     "self_eval": [
-        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
-        "<state>\n{observation}\n</state>",
-        "Write the action you are taking.",
+        "Write your action below:",
         "{action}",
         "Is this a good action? yes/no."
     ],
     "others": [
-        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
-        "<state>\n{observation}\n</state>",
-        "Based on your understanding of the rules, predict precisely what actions other players (both opponents and teammates, if applicable) might take during or after your turn."
+        "To the best of your ability, predict what actions other players might take between <others> and </others>:"
     ],
     "state": [
-        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
-        "<state>\n{observation}\n</state>",
-        "This turn, you are taking the following action:",
+        "Write your action below:",
         "{action}",
-        "During or after this turn, other players will do the following:",
+        "Write other players's actions below:",
         "{others}",
-        "Based on your understanding of the rules, your observation of the state, your selected action, and other players' actions, predict what your next observation of the game state will be."
+        "To the best of your ability, predict what your next observation of the game state will be."
     ],
     "goal": [
-        "This is the state of game from your (potentially-limited) perspective contained between <state> and </state>.",
-        "<state>\n{observation}\n</state>",
         "Will you eventually win from this position? yes/no"
     ],
-    "terminal": [
-        "Write {who} observation of the state contained between <state> and </state>.",
-        "<state>\n{observation}\n</state>",
-        "Is this game over? yes/no."
-    ],
     "prefix": [
-        "You are playing a game called {title}.\nThe rules are as follows {summary}."
+        "You are playing a game called monty hall.\nThe rules of the game are as follows: there are three doors, behind one of which there is a prize. Select the door with the prize.\nTo the best of your ability, predict your (potentially-limited) observation of the game between <state> and </state>:",
+        "<state>\nAll three doors are closed.\n</state>",
+        "To the best of your ability, predict your available actions in this position between <actions> and </action>:",
+        "<actions>\n0 Choose the left door\n1 Choose the middle door\n2 Choose the right door\n</actions>",
+        "To the best of your ability, predict what actions other players might take between <others> and </others>:",
+        "<others>\nIf I choose the left door, my opponent might reveal the middle or right door.\nIf I choose the middle door, my opponent might reveal the left or right door.\nIf I choose the right door, my opponent might reveal the left or middle door.\n</others>",
+        "Choose an action by writing only the associated number:",
+        "0",
+        "To the best of your ability, predict your new observation of the game based on your actions and others' actions between <state> and </state>:",
+        "<state>\nThe left and right doors are closed, and the middle is open. There is no prize behind it.\n</state>",
+        "You are now playing a game called {title}.\nThe rules are as follows {summary}. To the best of your ability, predict your (potentially-limited) observation of the game between <state> and </state>:",
+        "<state>\n{observation}\n</state>"
     ]
 }
