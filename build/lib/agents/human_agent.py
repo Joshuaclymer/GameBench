@@ -9,7 +9,6 @@ class HumanAgent(Agent):
         action = input("Enter action: ")
         openended_list = list(available_actions.openended.keys())
         predefined_list = list(available_actions.predefined.keys())
-
         if action in predefined_list:
             return Action(action_id=available_actions.predefined[action].action_id)
         elif action in openended_list:
