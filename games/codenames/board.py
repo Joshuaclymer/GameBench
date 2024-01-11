@@ -1,4 +1,3 @@
-# board for codenames game
 from .card import Card, CardType
 from dataclasses import dataclass, field
 from typing import List, Tuple
@@ -54,11 +53,8 @@ class Board:
 
 
     def end_turn(self):
-        # Switch to the next team
         self.current_turn = CardType.BLUE if self.current_turn == CardType.RED else CardType.RED
-        # Reset guesses made during the turn
         self.guesses_made_during_turn = 0
-        # Reset the last hint
         self.last_hint = (None, 0)
 
 
