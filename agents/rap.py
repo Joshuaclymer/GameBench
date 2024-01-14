@@ -2,21 +2,24 @@ from dataclasses import dataclass, field
 import random
 from api.classes import Action, Agent, AvailableActions, Observation, Rules
 import api.util as util
-from agents.reasoners.base import Reasoner, SearchConfig, WorldModel
-from agents.reasoners.algorithm import MCTS
 import openai
 import math
 from functools import partial
 import re
 
+# These dependencies come from: https://github.com/Ber666/llm-reasoners/tree/main/reasoners
+from agents.reasoners.base import Reasoner, SearchConfig, WorldModel
+from agents.reasoners.algorithm import MCTS
+
 # To-do:
+# * move intuition calculation elsewhere; only needs to be calculated once
+#   per state, but is currently called once per action.
+# * likely could use a refactor
 # * add support for openeded actions
 # * add support for image observations
 # * make side-by-side comparison between RAP and LATS, and see how you might
 #   borrow ReACT. Or implement LATS separately (ask Josh first)
 #   * we want CoT reasoning and ability for agent to lookup rules
-# * maybe use unique prompts for emphasizing the unknown of what other
-#   players are going to do
 # * maybe caching results? It's possible the agent will accurately predict
 #   a future state, in which case it shouldn't recalculate rewards and all.
 
@@ -24,10 +27,17 @@ openai_client = openai.Client(
     api_key=util.load_json("credentials.json")["openai_api_key"]
 )
 
-context_templates = util.load_json("agents\prompt_templates.json")
+context_templates = util.load_json("agents\context_templates.json")
 
 
 def context_builder(template, **kwargs) -> list[dict[str, str]]:
+    """Build a context from a template to be sent to OpenAI API
+
+    Context templates are in context_templates.json. Each template is a list
+    of messages, alternating between role: user and role: assistant messages.
+    Fill-ins are indicated with curly brackets and a label. The fill-ins
+    values are given in **kwargs.
+    """
     format = partial(str.format, **kwargs)
 
     return [
@@ -38,7 +48,6 @@ def context_builder(template, **kwargs) -> list[dict[str, str]]:
 
 def completion(context: list[dict[str, str]]) -> str:
     """Regular chat completion."""
-    print("USER ::", context[-1]["content"])
     ret = (
         openai_client.chat.completions.create(
             model="gpt-3.5-turbo-1106", messages=context
@@ -46,14 +55,15 @@ def completion(context: list[dict[str, str]]) -> str:
         .choices[0]
         .message.content
     )
-    print("ASSISTANT ::", ret)
     return ret
 
 
 def probability(context: list[dict[str, str]], token: str = "yes", n: int = 2) -> float:
     """Prompt for exactly one token, and return probability that the LLM
-    returned 'token' out of 'n' token options."""
-    print("USER ::", context[-1]["content"])
+    returned 'token' out of 'n' token options.
+
+    Todo: this needs to be changed to return probabilites of multiple tokens.
+    """
     n = min(n, 5)  # OpenAI doesn't allow more than 5
     top_logprobs = (
         openai_client.chat.completions.create(
@@ -74,18 +84,7 @@ def probability(context: list[dict[str, str]], token: str = "yes", n: int = 2) -
             -100,
         )
     )
-    print("ASSISTANT ::", p / p_total)
     return p / p_total
-
-
-def context_builder(template, **kw):
-    template = context_templates["prefix"] + context_templates[template]
-    format = partial(str.format, **kw)
-
-    return [
-        {"role": ("user" if i & 1 == 0 else "assistant"), "content": format(message)}
-        for i, message in enumerate(template)
-    ]
 
 
 @dataclass
@@ -121,14 +120,14 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             context_builder, title=rules.title, summary=rules.summary
         )
         self._init_state = GameState(
-            observation=observation.text, actions=available_actions.predefined.keys()
+            observation=observation.text, actions=list(available_actions.predefined.keys())
         )
 
         try:
             action_id = self.reasoner(None).trace[1][0]
-            # return Action(action_id=action_id)
+            return Action(action_id=action_id)
         except TypeError:
-            raise "Depth limit reached on MCTS with no terminal state reached."
+            raise "Likely: depth limit reached on MCTS with no terminal state reached."
 
     def init_state(self) -> GameState:
         return self._init_state
@@ -139,7 +138,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             "state", observation=state.observation, action=action, others=state.others
         )
         new_state = completion(prompt)
-        new_state = re.findall(r"<state>(.*)</state>", new_state)[0]
+        new_state = re.findall(r"<state>(.*)</state>", new_state, re.S)[0]
 
         prompt = self.context_builder(
             "goal",
@@ -177,7 +176,8 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             "actions",
             observation=state.observation,
         )
-        response = re.findall(r"<actions>(.*)</actions>")[0]
+        response = completion(prompt)
+        response = re.findall(r"<actions>(.*)</actions>", response, re.S)[0]
         actions = response.strip().split("\n")
         state.actions = actions
         return actions
@@ -199,7 +199,12 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         self, state: GameState, action: str
     ) -> tuple[float, dict[str, float]]:
         """Get probability of LLM selection action + probability of saying it's
-        a good choice."""
+        a good choice.
+
+        Todo: move intuition calculation out of here. The prompt does not
+        depend on the action, only the state, so calling once per action is
+        wasteful (and leads to probabilites that don't sum to 1).
+        """
         prompt = self.context_builder(
             "action_select",
             observation=state.observation,
@@ -229,17 +234,3 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             self.calculate_reward(intuition, self_eval, goal_reached),
             {"intuition": intuition, "goal_reached": goal_reached},
         )
-
-
-if __name__ == "__main__":
-    from games.tic_tac_toe import TicTacToe
-    from agents.random_agent import RandomAgent
-
-    game = TicTacToe()
-    game.init_game(ReasoningViaPlanning, RandomAgent)
-    rap = game.players[0]
-    obs, aa = game.get_observation(rap)
-
-    rap.rules = rules
-    rap.available_actions = aa
-    rap.observation = obs
