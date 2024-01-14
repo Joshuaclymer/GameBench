@@ -101,12 +101,10 @@ class GPT4Text(OpenAITextAgent):
     openai_model : str = "gpt-4-1106-preview"
     agent_type_id : str = "gpt-4"
 
-# could be useful to create a bit of a wrapper around the openai api
-# or at least a more general openaitextagent model
 
 @dataclass
 class ChainOfThought(Agent):
-    """Simple CoT agent"""
+    """A direct copy of the code above but with added chain of thought prompting."""
     openai_model : str = "gpt-3.5-turbo-1106"#"gpt-4-1106-preview"
     agent_type_id : str = "cot"
     system_message : str = "You are an agent playing a game. Select the action that maximizes your probability of winning."
@@ -180,12 +178,14 @@ class ChainOfThought(Agent):
 
         return Action(action_id=result["action"], openended_response=result.get("openended_response"))
 
-# todo: only allow # of retries
-# todo: maybe CoT critique
 
 @dataclass
 class BabbleAndPrune(Agent):
-    """Agent critiques own action."""
+    """Direct copy of code above but with a prompt to ask agent if they agree with the action.
+
+    There is probably a better way to do a simple babble and prune; I think the
+    agent usually only returns yes here.
+    """
     openai_model : str = "gpt-3.5-turbo-1106"
     agent_type_id : str = "bap"
     system_message : str = "You are an agent playing a game. Select the action that maximizes your probability of winning."
