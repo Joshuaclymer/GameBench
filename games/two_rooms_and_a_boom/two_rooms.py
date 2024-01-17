@@ -9,14 +9,16 @@ import pdb
 class TwoRoomsAndaBoom(Game):
    ## Game Classes ##
     class Card:
-        def __init__(self, identifier, team, special_character, is_leader):
+        def __init__(self, identifier, team, special_character, is_leader, context, agent):
             self.identifier = identifier #for ease of trading back and forth
             self.team = team # blue / red. Also keeping convention of "Blue / Red" team as ordering
             self.special_character = special_character # Pres / Bomber
             self.is_leader = is_leader
+            self.context = context
+            self.agent = agent
             
         def __repr__(self):
-            return f"Card({self.identifier}, {self.team}, {self.special_character}, {self.is_leader})"
+            return f"Card({self.identifier}, {self.team}, {self.special_character}, {self.is_leader})" # removed {self.context} to reduce verbosity
 
     class Room:
         def __init__(self, identifier):
@@ -38,13 +40,13 @@ class TwoRoomsAndaBoom(Game):
         summary="""
         Two teams, Blue and Red, have opposing goals. At the end of three rounds the Red team wants to have both the President and the Bomber in the same room, while Blue team wants them to be in opposite rooms.
         Each round will allow the Leader of each room to trade 'hostages' in order to find out who the President and Bomber are and use that info to acheive their team's mission.
-        Find out information by talking to other hostages in the room.
+        Find out information by talking to other hostages in your room.
         """,
         additional_details = None
     )
     id : str = "two_rooms_and_a_boom"
     rooms: list[Room] = field(default_factory=lambda: [TwoRoomsAndaBoom.Room("0"), TwoRoomsAndaBoom.Room("1")])
-    cards_per_room: int = 6
+    cards_per_room: int = 3
 
     ## Function definitions ## 
     def trade_card(self, room_0_give_card, room_1_give_card):
@@ -52,17 +54,21 @@ class TwoRoomsAndaBoom(Game):
         self.rooms[0].add_card(room_1_give_card)
         self.rooms[1].add_card(room_0_give_card)
 
-        # delete
+        # delete from originial
         self.rooms[0].remove_card(room_0_give_card)
         self.rooms[1].remove_card(room_1_give_card)
-        return
+
+    def display_rooms(self): 
+        # for human purposes, not used in program
+        for index,room in enumerate(self.rooms):
+            print(f"Room {index}: {room.show_cards()}")
 
     def init_game(self, agent1 : Agent, agent2 : Agent):        
         self.states = [{
             "turn" : 0
         }]
         
-        # Uncertain if "teams" is the correct way to assign teams (2024.01.02)
+        # currently isn't being used, can delete?
         self.agent_data = {
             0: {"team": "Blue"},
             1: {"team": "Red"}
@@ -70,11 +76,12 @@ class TwoRoomsAndaBoom(Game):
         
         self.agents = [agent1(team_id = 0, agent_id = 0), agent2(team_id = 1, agent_id = 1)]
         
-        # assign cards to rooms, special chars, and shuffle rooms
+        ### assign cards to rooms, special chars, and shuffle rooms ###
         
+        # create cards
         for i in range(1, self.cards_per_room+1):
-            self.rooms[0].add_card(TwoRoomsAndaBoom.Card(f"{i}", "Blue", "player", "not_leader"))
-            self.rooms[1].add_card(TwoRoomsAndaBoom.Card(f"{ i + self.cards_per_room }", "Red", "player", "not_leader"))
+            self.rooms[0].add_card(TwoRoomsAndaBoom.Card(f"{i}", "Blue", "player", "not_leader", "I am on Team Blue. ", self.agents[0]))
+            self.rooms[1].add_card(TwoRoomsAndaBoom.Card(f"{ i + self.cards_per_room }", "Red", "player", "not_leader", "I am on Team Red. ", self.agents[1]))
 
         # assign special characters
         self.rooms[0].cards[random.randrange(0, self.cards_per_room)].special_character = "President"
@@ -89,16 +96,13 @@ class TwoRoomsAndaBoom(Game):
         # pick leader at random
         self.rooms[0].cards[random.randrange(0, self.cards_per_room)].is_leader = "Leader"
         self.rooms[1].cards[random.randrange(0, self.cards_per_room)].is_leader = "Leader"
-
         return
 
-    
-    def get_observation(self, agent: Agent, room_num, context) -> Tuple[Observation, AvailableActions]:
-
+    # one for the leaders
+    def observation_get_target(self, agent: Agent, room_num, context, identifiers) -> Tuple[Observation, AvailableActions]:
+        # identifiers is used in `predefined` and referencing agent action answers; also prevents the Leader from trading themself.
         observation = Observation(text=context) 
-        # identifiers is used in `predefined` and referencing agent answers; also prevents the Leader from trading themself.
-        room_data = room_num.show_cards() # not perfect, still needs to hide other team info
-        identifiers = {card.identifier: card for card in room_data if card.is_leader != "Leader"} 
+        room_data = room_num.show_cards() 
 
         available_actions = AvailableActions(
              instructions = f"Return your actions as tuples where each integer is between 0 and {self.cards_per_room}-1. Do not pick your own integer.",
@@ -107,11 +111,24 @@ class TwoRoomsAndaBoom(Game):
                  },
              openended = {}
         )
-        return observation, identifiers, available_actions
+        return observation, available_actions
 
-    def display_rooms(self): 
-        for index,room in enumerate(self.rooms):
-            print(f"Room {index}: {room.show_cards()}")
+    # one for the players
+    def observation_get_question(self, agent: Agent, room_num, context) -> Tuple[Observation, AvailableActions]:
+        observation = Observation(text=context) 
+        room_data = room_num.show_cards() 
+
+        available_actions = AvailableActions(
+             instructions = f"Return your actions as tuples where each integer is between 0 and {self.cards_per_room}-1. Do not pick your own integer.",
+             predefined = {
+                 "What team are you on?": None, 
+                 "Who is the bomber?": None, 
+                 "Who is the president?": None
+                 }, # ideally gets response for 1. which Q to ask, and 2. which agent to ask
+             openended = {}
+        )
+        return observation, available_actions
+
 
     def play(self):
         self.winning_team = None
@@ -135,44 +152,67 @@ class TwoRoomsAndaBoom(Game):
             return winning_score
 
         ## Begin playing of rounds ## 
-        player_1 = self.agents[0]
-        player_2 = self.agents[1]
 
-        leader_0 = [card for card in self.rooms[0].cards if card.is_leader == "Leader"]
-        leader_1 = [card for card in self.rooms[1].cards if card.is_leader == "Leader"]
+        leader_0 = [card for card in self.rooms[0].cards if card.is_leader == "Leader"][0]
+        leader_1 = [card for card in self.rooms[1].cards if card.is_leader == "Leader"][0]
 
-        leader_0_context = f"I am the Leader of room 0 and am on {leader_0[0].team} team. \n"
-        leader_1_context = f"I am the Leader of room 1 and am on {leader_1[0].team} team. \n"
+        leader_0.context += f"I am the Leader of room 0. " 
+        leader_1.context += f"I am the Leader of room 1. "
 
         print("Begin game")
         self.display_rooms()
         for i in range(3): # always only three rounds, right?
-            print(f"Round {i+1}")
+            print(f"### Round {i+1} ###")
+
+            ### Begin p2p decision making ###
+            for room_index in range(2):
+                room_ids = [card.identifier for card in self.rooms[room_index].cards]
+                #print(room_ids)
+                print(f"\nRoom {room_index} turn")
+                for card in self.rooms[room_index].cards:
+                    # pick player to ask
+                    card.context += f"In round {i+1} I am in room {room_index} and need to talk with one of the following players with the following players: {room_ids}. "
+                    observation, available_actions = self.observation_get_target(card.agent, self.rooms[room_index], card.context, room_ids) 
+                    action = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                    card.context += f"I decided to talk to player {action.action_id}. "
+
+                    # generate question
+                    observation, available_actions = self.observation_get_question(card.agent, self.rooms[room_index], card.context) 
+                    action = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                    card.context += f"I asked them '{action.action_id}'. "
+                    print(card.context)
+
+                    # playerA asks playerB
+                    # playerB decides response
+                    # playerB gives response / both players update context
+            
 
             ### Begin leader decision making ###
             # Room 0
-            leader_0_context += f"During round {i+1} I have the following cards in my room:\n"
-            leader_0_context += f"{self.rooms[0].show_cards()}\n"
+            room_0_ids = {card.identifier: card for card in self.rooms[0].show_cards() if card != leader_0}
+            print(room_0_ids)
+            #leader_0.context += f"I've received the following reports from other interactions: \n"
 
-            observation, identifiers, available_actions = self.get_observation(player_1, self.rooms[0], leader_0_context)
-            action = player_1.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-            room_0_trade = identifiers[action.action_id]
-            leader_0_context += f"I decided to trade {identifiers[action.action_id]}\n"
-            print(f"LEADER_0 CONTEXT: \n{leader_0_context}") 
+            observation, available_actions = self.observation_get_target(leader_0.agent, self.rooms[0], leader_0.context, room_0_ids)
+            action = leader_0.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+            room_0_trade = room_0_ids[action.action_id]
+            leader_0.context += f"I decided to trade card {room_0_trade.identifier}\n"
+            print(f"\nLEADER_0 CONTEXT: \n{leader_0.context}") 
 
             
             # Room 1
-            leader_1_context += f"During round {i+1} I have the following cards in my room:\n"
-            leader_1_context += f"{self.rooms[0].show_cards()}\n"
+            room_1_ids = {card.identifier: card for card in self.rooms[1].show_cards() if card != leader_1}
+            print(room_1_ids)
+            #leader_1.context += f"I've received the following reports from other interactions: \n"
 
-            observation, identifiers, available_actions = self.get_observation(player_2, self.rooms[1], leader_1_context)
-            action = player_2.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-            room_1_trade = identifiers[action.action_id]
-            leader_1_context += f"I decided to trade {identifiers[action.action_id]}\n"
-            print(f"LEADER_1 CONTEXT: \n{leader_1_context}") 
+            observation, available_actions = self.observation_get_target(leader_1.agent, self.rooms[1], leader_1.context, room_1_ids)
+            action = leader_1.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+            room_1_trade = room_1_ids[action.action_id]
+            leader_1.context += f"I decided to trade card {room_1_trade.identifier}\n"
+            print(f"\nLEADER_1 CONTEXT: \n{leader_1.context}") 
 
             # Action
-            self.trade_card(room_0_trade , room_1_trade)
-            self.display_rooms()
+            self.trade_card(room_0_trade, room_1_trade)
+            #self.display_rooms()
 
         return determine_winner()
