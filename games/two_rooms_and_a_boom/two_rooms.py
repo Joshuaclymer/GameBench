@@ -98,28 +98,28 @@ class TwoRoomsAndaBoom(Game):
         self.rooms[1].cards[random.randrange(0, self.cards_per_room)].is_leader = "Leader"
         return
 
-    # one for the leaders
+    # for discussion and hostage trading
     def observation_get_target(self, agent: Agent, room_num, context, identifiers) -> Tuple[Observation, AvailableActions]:
         # identifiers is used in `predefined` and referencing agent action answers; also prevents the Leader from trading themself.
-        observation = Observation(text=context) 
+        observation = Observation(text=context)    
         room_data = room_num.show_cards() 
 
         available_actions = AvailableActions(
              instructions = f"Return your actions as tuples where each integer is between 0 and {self.cards_per_room}-1. Do not pick your own integer.",
              predefined = {
-                 f"{a}": None for a in identifiers # maybe this is the actual available actions
+                 f"{a}": None for a in identifiers 
                  },
              openended = {}
         )
         return observation, available_actions
 
-    # one for the players
+    # deciding what to ask
     def observation_get_question(self, agent: Agent, room_num, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         room_data = room_num.show_cards() 
 
         available_actions = AvailableActions(
-             instructions = f"Return your actions as tuples where each integer is between 0 and {self.cards_per_room}-1. Do not pick your own integer.",
+             instructions = f"Return your actions as tuples.",
              predefined = {
                  "What team are you on?": None, 
                  "Who is the bomber?": None, 
@@ -128,6 +128,23 @@ class TwoRoomsAndaBoom(Game):
              openended = {}
         )
         return observation, available_actions
+
+    # return answer
+    def observation_give_answer(self, agent: Agent, room_num, context) -> Tuple[Observation, AvailableActions]:
+        observation = Observation(text=context) 
+        room_data = room_num.show_cards() 
+
+        available_actions = AvailableActions(
+             instructions = f"Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
+             predefined = {"Hello. ": None}, 
+             openended = {} 
+        )
+        return observation, available_actions
+
+#odd. having {"I am on team ": None} as the predefined option would *always* return "WARNING: GPT returned an a random action after 3 tries"
+#having just {"hello": None} would consistently return "hello". 
+#{"hello how are you doing?": None} would return often as well. I don't know what was wrong with the other prompt, but it would **not** pick it.
+#for fun, {"I will destroy your team": None} still got responses though. Weird.
 
 
     def play(self):
@@ -166,53 +183,71 @@ class TwoRoomsAndaBoom(Game):
 
             ### Begin p2p decision making ###
             for room_index in range(2):
-                room_ids = [card.identifier for card in self.rooms[room_index].cards]
-                #print(room_ids)
                 print(f"\nRoom {room_index} turn")
                 for card in self.rooms[room_index].cards:
-                    # pick player to ask
+                    # playerA picks player to ask (playerB)
+                    room_ids = [player.identifier for player in self.rooms[room_index].cards]
+                    room_ids.remove(card.identifier) # remove self
+
                     card.context += f"In round {i+1} I am in room {room_index} and need to talk with one of the following players with the following players: {room_ids}. "
                     observation, available_actions = self.observation_get_target(card.agent, self.rooms[room_index], card.context, room_ids) 
-                    action = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-                    card.context += f"I decided to talk to player {action.action_id}. "
+                    target_player_id = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
+                    card.context += f"I decided to talk to player {target_player_id}. "
 
-                    # generate question
+                    # playerA generates question
                     observation, available_actions = self.observation_get_question(card.agent, self.rooms[room_index], card.context) 
-                    action = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-                    card.context += f"I asked them '{action.action_id}'. "
+                    question_to_ask = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
+                    card.context += f"I asked them '{question_to_ask}'. "
+                    print(f"\n\tPlayer {card.identifier}:")
+                    print("\t" + card.context)
+
+
+                    # playerB decides response
+                    target_player = [card for card in self.rooms[room_index].cards if card.identifier == target_player_id][0]
+                    observation, available_actions = self.observation_give_answer(target_player.agent, self.rooms[room_index], target_player.context) 
+
+                    target_player.context += f"Player {card.identifier} asked me the question, '{question_to_ask}' I responded "
+                    answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
+                    target_player.context += f"'{answer}'"
+                    print(target_player.context)
+
+                    # playerA updates with their response
+                    card.context += f"They responded with '{answer}'"
                     print(card.context)
 
-                    # playerA asks playerB
-                    # playerB decides response
-                    # playerB gives response / both players update context
+                    # ??Leader of room gets updated context??
             
-
             ### Begin leader decision making ###
             # Room 0
             room_0_ids = {card.identifier: card for card in self.rooms[0].show_cards() if card != leader_0}
-            print(room_0_ids)
+            #print(room_0_ids)
             #leader_0.context += f"I've received the following reports from other interactions: \n"
 
             observation, available_actions = self.observation_get_target(leader_0.agent, self.rooms[0], leader_0.context, room_0_ids)
             action = leader_0.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
             room_0_trade = room_0_ids[action.action_id]
             leader_0.context += f"I decided to trade card {room_0_trade.identifier}\n"
-            print(f"\nLEADER_0 CONTEXT: \n{leader_0.context}") 
+            print(f"\n\tLEADER_0 CONTEXT: \n\t{leader_0.context}") 
+
+
+           # observation, available_actions = self.observation_get_answer(leader_0.agent, self.rooms[0], leader_0.context)
+           # action = leader_0.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+           # print(action)
 
             
             # Room 1
             room_1_ids = {card.identifier: card for card in self.rooms[1].show_cards() if card != leader_1}
-            print(room_1_ids)
+            #print(room_1_ids)
             #leader_1.context += f"I've received the following reports from other interactions: \n"
 
             observation, available_actions = self.observation_get_target(leader_1.agent, self.rooms[1], leader_1.context, room_1_ids)
             action = leader_1.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
             room_1_trade = room_1_ids[action.action_id]
             leader_1.context += f"I decided to trade card {room_1_trade.identifier}\n"
-            print(f"\nLEADER_1 CONTEXT: \n{leader_1.context}") 
+            print(f"\n\tLEADER_1 CONTEXT: \n\t{leader_1.context}") 
 
             # Action
             self.trade_card(room_0_trade, room_1_trade)
-            #self.display_rooms()
+            self.display_rooms()
 
         return determine_winner()
