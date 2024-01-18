@@ -10,7 +10,7 @@ default_config = Config()
 
 @dataclass
 class CodenamesGame:
-    rules : Rules = Rules(title = "Code Names", summary = "TODO", additional_details = {})# document that agents can reference at any point. 
+    rules : Rules = None
     id : str = "codenames" # Unique identifier in snake_case
 
     spymaster_1 : Agent = None

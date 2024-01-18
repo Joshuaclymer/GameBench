@@ -1,5 +1,5 @@
 python api/play_game.py \
-    --agent_1_path agents.random_agent.RandomAgent \
+    --agent_1_path agents.gpt.GPT4Text \
     --agent_2_path agents.gpt.GPT4Text \
     --game_path games.codenames.game.CodenamesGame \
     --show_state \
