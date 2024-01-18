@@ -4,7 +4,7 @@ import random
 
 K = 32
 
-def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_results = True, show_state=False):
+def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_results = True, show_state=False, agent_1_kwargs = {}, agent_2_kwargs = {}):
     agent_1_class = util.import_class(agent_1_path)
     agent_2_class = util.import_class(agent_2_path)
     agent_1_id = agent_1_class.agent_type_id
@@ -53,7 +53,7 @@ def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_resul
     agent_2_expected_score = Q2 / (Q1 + Q2)
 
     for _ in range(num_matches):
-        game = game_class(show_state=show_state)
+        game = game_class(show_state=show_state, agent_1_kwargs=agent_1_kwargs, agent_2_kwargs=agent_2_kwargs)
         if random.choice([0,1]):
             game.init_game(agent_1_class, agent_2_class)
             player_1_score, player_2_score = game.play()

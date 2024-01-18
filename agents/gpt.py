@@ -109,8 +109,11 @@ class ChainOfThought(Agent):
     agent_type_id : str = "cot"
     system_message : str = "You are an agent playing a game. Select the action that maximizes your probability of winning."
     max_retries : int = 3
+    transparent_reasoning : bool = False
 
     def take_action(self, rules: Rules, observation: Observation, available_actions: AvailableActions, show_state : bool):
+        if self.transparent_reasoning:
+            print("Transparent reasoning flag is enabled! TODO: actually show reasoning")
         valid_actions = []
         prompt = f"You are playing a game called {rules.title}. The rules are as follows:\n{rules.summary}\n"
         if rules.additional_details != None:

@@ -44,6 +44,8 @@ class Game:
     agents : List[Agent] = None # agents in the game. Should be initialized in init_game. Can be more than 2 agents because there can be copies playing on a team.
     show_state : bool = False # whether to e.g. print the board
     game_is_over : bool = False # indicates that no more actions should be taken and the scores should be computed.
+    agent_1_kwargs : dict = field(default_factory=dict) # kwargs to pass to the agent 1 class when initializing.
+    agent_2_kwargs : dict = field(default_factory=dict) # kwargs to pass to the agent 2 class when initializing.
 
     @abstractmethod
     def init_game(self, agent_1: Agent, agent_2: Agent):

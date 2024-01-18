@@ -22,7 +22,7 @@ class TicTacToe(Game):
                 ['-','-','-'],
             ],
         }]
-        self.agents = [agent1(team_id = 0, agent_id = 0), agent2(team_id = 1, agent_id = 1)]
+        self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_2_kwargs)]
 
         self.agent_data = {
             0: {"marker": "X"},
