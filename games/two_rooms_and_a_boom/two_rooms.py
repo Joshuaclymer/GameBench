@@ -11,7 +11,7 @@ class TwoRoomsAndaBoom(Game):
     class Card:
         def __init__(self, identifier, team, special_character, is_leader, context, agent):
             self.identifier = identifier #for ease of trading back and forth
-            self.team = team # blue / red. Also keeping convention of "Blue / Red" team as ordering
+            self.team = team # Blue / Red. Also keeping convention of "Blue / Red" team as ordering
             self.special_character = special_character # Pres / Bomber
             self.is_leader = is_leader
             self.context = context
@@ -146,7 +146,6 @@ class TwoRoomsAndaBoom(Game):
 #{"hello how are you doing?": None} would return often as well. I don't know what was wrong with the other prompt, but it would **not** pick it.
 #for fun, {"I will destroy your team": None} still got responses though. Weird.
 
-
     def play(self):
         self.winning_team = None
 
@@ -181,23 +180,39 @@ class TwoRoomsAndaBoom(Game):
         for i in range(3): # always only three rounds, right?
             print(f"### Round {i+1} ###")
 
+            #################################
             ### Begin p2p decision making ###
+            #################################
+
             for room_index in range(2):
                 print(f"\nRoom {room_index} turn")
+                if room_index == 0:
+                    current_leader = leader_0
+                else:
+                    current_leader = leader_1
+
                 for card in self.rooms[room_index].cards:
+
+                    discussion_context = ""
+
                     # playerA picks player to ask (playerB)
                     room_ids = [player.identifier for player in self.rooms[room_index].cards]
                     room_ids.remove(card.identifier) # remove self
 
                     card.context += f"In round {i+1} I am in room {room_index} and need to talk with one of the following players with the following players: {room_ids}. "
+                    discussion_context += f"In round {i+1} I am in room {room_index} and need to talk with one of the following players with the following players: {room_ids}. " 
+
+
                     observation, available_actions = self.observation_get_target(card.agent, self.rooms[room_index], card.context, room_ids) 
                     target_player_id = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
                     card.context += f"I decided to talk to player {target_player_id}. "
+                    discussion_context += f"I decided to talk to player {target_player_id}. " 
 
                     # playerA generates question
                     observation, available_actions = self.observation_get_question(card.agent, self.rooms[room_index], card.context) 
                     question_to_ask = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
                     card.context += f"I asked them '{question_to_ask}'. "
+                    discussion_context += f"I asked them '{question_to_ask}'. "
                     print(f"\n\tPlayer {card.identifier}:")
                     print("\t" + card.context)
 
@@ -209,15 +224,23 @@ class TwoRoomsAndaBoom(Game):
                     target_player.context += f"Player {card.identifier} asked me the question, '{question_to_ask}' I responded "
                     answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
                     target_player.context += f"'{answer}'"
-                    print(target_player.context)
+                    #print(target_player.context)
 
                     # playerA updates with their response
                     card.context += f"They responded with '{answer}'"
+                    discussion_context += f"They responded with '{answer}'"
                     print(card.context)
 
-                    # ??Leader of room gets updated context??
-            
+                    # Leader of room gets updated context
+                    if card.is_leader != "Leader":
+                        if card.team == current_leader.team:
+                            current_leader.context += f"""During round {i+1} Player {card.identifier} gave the following info for me to make decisions with ""{discussion_context}""."""
+
+
+            ####################################
             ### Begin leader decision making ###
+            ####################################
+            
             # Room 0
             room_0_ids = {card.identifier: card for card in self.rooms[0].show_cards() if card != leader_0}
             #print(room_0_ids)
@@ -228,12 +251,6 @@ class TwoRoomsAndaBoom(Game):
             room_0_trade = room_0_ids[action.action_id]
             leader_0.context += f"I decided to trade card {room_0_trade.identifier}\n"
             print(f"\n\tLEADER_0 CONTEXT: \n\t{leader_0.context}") 
-
-
-           # observation, available_actions = self.observation_get_answer(leader_0.agent, self.rooms[0], leader_0.context)
-           # action = leader_0.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-           # print(action)
-
             
             # Room 1
             room_1_ids = {card.identifier: card for card in self.rooms[1].show_cards() if card != leader_1}
