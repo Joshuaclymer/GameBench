@@ -57,7 +57,8 @@ class OpenAITextAgent(Agent):
             prompt += "The following are predefined actions you can take:\n"
             prompt += str(list(available_actions.predefined)) + "\n"
             valid_actions += list(available_actions.predefined)
-        if any([available_actions.predefined[action] != None for action in list(available_actions.predefined.keys()) + list(available_actions.openended.keys())]):
+        combined_dictionaries = dict(available_actions.predefined | available_actions.openended)
+        if any([combined_dictionaries[action] != None for action in list(available_actions.predefined.keys()) + list(available_actions.openended.keys())]):
             prompt += "Return the action Explain(<action>) to receive additional info about what any of the above actions do.\n"
         
         prompt += "\nTo summarize, you must return json with an 'action' key which contains one of the following valid actions:\n"
