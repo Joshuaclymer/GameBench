@@ -6,10 +6,13 @@ from dataclasses import dataclass, field
 from typing import List, Tuple
 import random
 
+default_config = Config()
+
 @dataclass
 class CodenamesGame:
-    id : str # Unique identifier in snake_case
-    rules : Rules # document that agents can reference at any point. 
+    rules : Rules = Rules(title = "Code Names", summary = "TODO", additional_details = {})# document that agents can reference at any point. 
+    id : str = "codenames" # Unique identifier in snake_case
+
     spymaster_1 : Agent = None
     spymaster_2 : Agent = None
     operative_1 : Agent = None
@@ -24,9 +27,15 @@ class CodenamesGame:
     game_board : Board = None
     config : Config = None
 
-
-    def __init__(self, config: Config, agents: List[Agent]):
+    def init_game(self, agent_1_class: Agent, agent_2_class : Agent, config: Config = default_config):
         self.config = config
+        agents = [
+            agent_1_class(team_id=1, agent_id=0),
+            agent_1_class(team_id=1, agent_id=1),
+            agent_2_class(team_id=2, agent_id=2),
+            agent_2_class(team_id=2, agent_id=3)
+        ]
+
         self._validate_agents(agents)
         self.rules = config.codenames_rules
         self._assign_teams(agents)
