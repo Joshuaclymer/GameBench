@@ -235,6 +235,11 @@ class CodenamesGame:
             self.reset_last_turn_guesses()
             observation, actions = self.get_spymaster_observation(spymaster)
             action = spymaster.take_action(self.rules, observation, actions, show_state=self.show_state)
+            if action is None:
+                clue = "None"
+                num_guesses = 1
+                action = Action(f"submit_clue", openended_response=f"{clue},{num_guesses}")
+
             self.update(action, actions, spymaster)
 
     def _check_turn_end(self) -> bool:
@@ -243,6 +248,8 @@ class CodenamesGame:
     def _process_operative_turn(self, operative: Agent):
         observation, actions = self.get_operative_observation(operative)
         action = operative.take_action(self.rules, observation, actions, show_state=self.show_state)
+        if action is None:
+            action = random.choice(list(actions.values()))
         self.update(action, actions, operative)
 
         if self._check_turn_end():

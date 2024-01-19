@@ -1,10 +1,10 @@
 from api.classes import Rules
 
 class GameConfig:
-    FIRST_TEAM_CARDS = 1 # was 9
-    SECOND_TEAM_CARDS = 1 # was 8
+    FIRST_TEAM_CARDS = 9 # was 9
+    SECOND_TEAM_CARDS = 8 # was 8
     ASSASSIN_CARDS = 1
-    NEUTRAL_CARDS = 1 # was 7
+    NEUTRAL_CARDS = 3 # was 7
     TOTAL_CARDS = FIRST_TEAM_CARDS + SECOND_TEAM_CARDS + ASSASSIN_CARDS + NEUTRAL_CARDS
     WORD_LIST = ["AGENT",
     "AFRICA",
