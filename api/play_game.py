@@ -53,12 +53,12 @@ def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_resul
     agent_2_expected_score = Q2 / (Q1 + Q2)
 
     for _ in range(num_matches):
-        game = game_class(show_state=show_state)
+        game = game_class()
         if random.choice([0,1]):
-            game.init_game(agent_1_class, agent_2_class)
+            game.init_game(agent_1_class, agent_2_class, show_state=show_state)
             player_1_score, player_2_score = game.play()
         else:
-            game.init_game(agent_2_class, agent_1_class)
+            game.init_game(agent_2_class, agent_1_class, show_state=show_state)
             player_2_score, player_1_score = game.play()
         
         print(f"{agent_1_id} score: ", player_1_score)
