@@ -25,7 +25,6 @@ from agents.reasoners.algorithm import MCTS
 #   will accurately predict a future state, in which case it shouldn't
 #   recalculate rewards and all.
 
-# Todo: tell MCTS to go to this depth
 DEPTH_LIMIT = 2
 
 """A context, based on OpenAI API"""
@@ -50,10 +49,12 @@ def random_replies() -> tuple[CompletionsFunction, ProbabilitiesFunction]:
     def randstr():
         """There is a probability that this returns the same string in different
         calls which could make debugging confusing."""
-        return "".join(random.choices("abcdefghijklmnopqrstuvwxyz", k=random.randint(5, 10)))
+        return "".join(
+            random.choices("abcdefghijklmnopqrstuvwxyz", k=random.randint(5, 10))
+        )
 
     def completions(template: str, **kwargs) -> str:
-        return f"<state>{randstr()}</state><actions>{randstr()}</actions>"
+        return f"<state>{randstr()}</state><actions>{randstr()}\n{randstr()}\n{randstr()}</actions>"
 
     def probabilities(
         template: str, tokens: list[str, str] = ["yes", "no"], n: int = 0, **kwargs
@@ -136,43 +137,60 @@ def expose_openai_api(
 
 @dataclass(frozen=True)
 class GameState:
+    """Immutable wrapper for observations, essentially."""
+
     observation: str
     depth: int = 0
     actions: tuple[str] = None
 
 
 @cache
-def step(state: GameState, action: str, others: str, completions: CompletionsFunction) -> GameState:
+def step(
+    state: GameState, action: str, others: str, completions: CompletionsFunction
+) -> GameState:
+    """Determines the next state after an action + other players' actions."""
     new_state = completions(
         "state", observation=state.observation, action=action, others=others
     )
-    new_state = re.findall(r"<state>(.*)</state>", new_state, re.S)[0]
-    return GameState(new_state, depth=state.depth + 1)
+
+    try:
+        new_state = re.findall(r"<state>(.*)</state>", new_state, re.S)[0]
+        return GameState(new_state, depth=state.depth + 1)
+    except:
+        return ""
 
 
 @cache
 def win_probability(state: GameState, probabilities: ProbabilitiesFunction) -> float:
+    """Determines probability of winning in the future from current state."""
     winp = probabilities("goal", observation=state.observation)["yes"]
     return winp
 
 
 @cache
 def is_terminal(state: GameState) -> bool:
+    """A terminal state must be reached or MCTS will throw out its results."""
     return state.depth >= DEPTH_LIMIT
 
 
 @cache
 def get_actions(state: GameState, completions: CompletionsFunction) -> tuple[str]:
+    """Determine available actions in a state."""
     if state.actions:
         return state.actions
 
     response = completions("actions", observation=state.observation)
-    response = re.findall(r"<actions>(.*)</actions>", response, re.S)[0]
-    actions = response.strip().split("\n")
-    return tuple(actions)
+    try:
+        response = re.findall(r"<actions>(.*)</actions>", response, re.S)[0]
+        actions = response.strip().split("\n")
+        return tuple(actions)
+    except:
+        return tuple()
+
 
 @cache
 def others_actions(state: GameState, completions: CompletionsFunction) -> str:
+    """Determines other players' actions in a state."""
     others = completions("others", observation=state.observation)
     return others
 
@@ -181,6 +199,7 @@ def others_actions(state: GameState, completions: CompletionsFunction) -> str:
 def calculate_reward(
     intuition: float, self_eval: float, win_probability: float = 0.5
 ) -> float:
+    """Reward formula, basically copied from RAP paper."""
     win_probability = 2 * win_probability - 1
     return intuition + self_eval + win_probability
 
@@ -189,6 +208,7 @@ def calculate_reward(
 def intuitions(
     state: GameState, actions: tuple[str], probabilities: ProbabilitiesFunction
 ) -> dict[str, float]:
+    """Determines probabilities of agent selecting each action in a state."""
     ints = probabilities(
         "action_select",
         actions,
@@ -201,6 +221,7 @@ def intuitions(
 
 @cache
 def self_eval(state: GameState, action: str, probabilities: ProbabilitiesFunction):
+    """Determines probability agent says action is good."""
     val = probabilities("self_eval", observation=state.observation, action=f"{action}")
     val = val["yes"]
     return val
@@ -208,6 +229,9 @@ def self_eval(state: GameState, action: str, probabilities: ProbabilitiesFunctio
 
 @dataclass
 class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
+    """Inherents Agent from api.classes, and WorldModel and SearchConfig
+    from the llm-agents library."""
+
     agent_type_id: str = "rap"
     transparent_reasoning: bool = False
     use_openai: bool = False
@@ -217,7 +241,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     _init_state: GameState = None
 
     def __post_init__(self):
-        mcts = MCTS()
+        mcts = MCTS(depth_limit=DEPTH_LIMIT)
         self.reasoner = Reasoner(world_model=self, search_config=self, search_algo=mcts)
 
     def take_action(
@@ -237,27 +261,25 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             actions=tuple(available_actions.predefined.keys()),
         )
 
-        # try:
-        action_id = self.reasoner(None).trace[1][0]
+        try:
+            action_id = self.reasoner(None).trace[1][0]
 
-        if self.transparent_reasoning:
-            print(
-                f"RAP: Recieved the following observation:\n{observation.text}\nAvailable actions: {available_actions}.\nChoosing the action: {action_id}"
-            )
-
-        return Action(action_id=action_id)
-        """except Exception as e:
             if self.transparent_reasoning:
                 print(
-                    f"RAP: MCTS threw an error: {e}. Likely, the internal depth limit was reached and no terminal state was found."
+                    f">>> RAP: Recieved the following observation:\n{observation.text}\nAvailable actions: {available_actions}.\nChoosing the action: {action_id}"
                 )
 
+            return Action(action_id=action_id)
+        except Exception as e:
+            if self.transparent_reasoning:
+                print(f">>> RAP: MCTS threw an error: {e}. Returning random action.")
+
             actions = list(available_actions.predefined.keys())
-            return Action(action_id=random.choice(actions))"""
+            return Action(action_id=random.choice(actions))
 
     def init_state(self) -> GameState:
         if self.transparent_reasoning:
-            print("RAP: Retrieving initial state")
+            print(">>> RAP: Retrieving initial state")
 
         return self._init_state
 
@@ -269,7 +291,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         if self.transparent_reasoning:
             print(
-                f"RAP: Stepping from\n{state.observation}\nwith action {action}. New state looks like\n{nxt.observation}"
+                f">>> RAP: Stepping with state/action:\n{state.observation}\nAction: {action}. New state looks like\n{nxt.observation}"
             )
 
         return nxt, info
@@ -279,7 +301,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         if self.transparent_reasoning:
             print(
-                f"RAP: Determining if the follow state is terminal\n{state.observation}\nResult: {term}"
+                f">>> RAP: Determining if the follow state is terminal\n{state.observation}\nResult: {term}"
             )
 
         return term
@@ -289,7 +311,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         if self.transparent_reasoning:
             print(
-                f"RAP: Retreiving actions for the following state:\n{state.observation}\nActions: {actions}"
+                f">>> RAP: Retrieving actions for the following state:\n{state.observation}\nActions: {actions}"
             )
 
         return actions
@@ -305,7 +327,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         if self.transparent_reasoning:
             print(
-                f"RAP: Calculating fast reward for the following state:\n{state.observation}\nAction: {action}\nIntuition: {int}, Self-eval: {sev}, Reward: {rew}"
+                f">>> RAP: Calculating fast reward for the following state/action:\n{state.observation}\nAction: {action}\nIntuition: {int}, Self-eval: {sev}, Reward: {rew}"
             )
 
         return rew, info
@@ -323,7 +345,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         if self.transparent_reasoning:
             print(
-                f"RAP: Calculating fast reward for the following state:\n{state.observation}\nAction: {action}\nIntuition: {intuition}, Self-eval: {self_eval}, Win-probability: {win_probability}, Reward: {rew}"
+                f">>> RAP: Calculating regular reward for the following state/action:\n{state.observation}\nAction: {action}\nIntuition: {intuition}, Self-eval: {self_eval}, Win-probability: {win_probability}, Reward: {rew}"
             )
 
         return rew, info
