@@ -23,69 +23,75 @@ from agents.reasoners.algorithm import MCTS
 # * maybe caching results? It's possible the agent will accurately predict
 #   a future state, in which case it shouldn't recalculate rewards and all.
 
-openai_client = openai.Client(
-    api_key=util.load_json("credentials.json")["openai_api_key"]
-)
+CompletionsFunction = NewType("CompletionsFunction")
+ProbabilitiesFunction = NewType("ProbabilitiesFunction")
 
-context_templates = util.load_json("agents\context_templates.json")
+def expose_openai_api(rules: Rules) -> tuple[CompletionsFunction, ProbabilitiesFunction]:
+    openai_client = openai.Client(
+        api_key=util.load_json("credentials.json")["openai_api_key"]
+    )    
+    context_templates = util.load_json("agents\context_templates.json")
 
-def completion(context: list[dict[str, str]]) -> str:
-    """Regular chat completion."""
-    ret = (
-        openai_client.chat.completions.create(
-            model="gpt-3.5-turbo-1106", messages=context
-        )
-        .choices[0]
-        .message.content
-    )
-    return ret
-
-
-def probabilities(
-    context: list[dict[str, str]], tokens: list[str] = ["yes", "no"], n: int = 2
-) -> dict[str, float]:
-    """Prompt for exactly one token, and return probabilities of each token
-    in tokens."""
-    n = min(n, 5)  # OpenAI doesn't allow more than 5
-
-    top_logprobs = (
-        openai_client.chat.completions.create(
-            model="gpt-3.5-turbo-1106",
-            messages=context,
-            logprobs=True,
-            top_logprobs=n,
-            max_tokens=1,
-        )
-        .choices[0]
-        .logprobs.content[0]
-        .top_logprobs
-    )
-
-    def prior(token):
-        return math.exp(
-            next(
-                (
-                    tlp.logprob
-                    for tlp in top_logprobs
-                    if tlp.token.lower() == token.lower()
-                ),
-                -100,
-            )
-        )
-
-    p_total = sum(math.exp(tlp.logprob) for tlp in top_logprobs)
-    return {token: prior(token) / p_total for token in tokens}
-
-
-def make_context_builder() -> Callable:
     def context_builder(template, **kwargs):
         messages = context_templates["prefix"] + context_templates[template]
         return [
-            {"role": ("user" if i & 1 == 0 else "assistant"), "content": message.format(**kwargs)}
+            {
+                "role": ("user" if i & 1 == 0 else "assistant"),
+                "content": message.format(
+                    title=rules.title, summary=rules.summary, **kwargs
+                ),
+            }
             for i, message in enumerate(messages)
         ]
 
-    return context_builder
+    def completion(template, **kwargs):
+        context = context_builder(template, **kwargs)
+        ret = (
+            openai_client.chat.completions.create(
+                model="gpt-3.5-turbo-1106", messages=context
+            )
+            .choices[0]
+            .message.content
+        )
+        return ret
+
+    def probabilities(
+        template, tokens: list[str] = ["yes", "no"], n: int = 2, **kwargs
+    ) -> dict[str, float]:
+        """Prompt for exactly one token, and return probabilities of each token
+        in tokens."""
+        context = context_builder(template, **kwargs)
+        n = min(n, 5)  # OpenAI doesn't allow more than 5
+
+        top_logprobs = (
+            openai_client.chat.completions.create(
+                model="gpt-3.5-turbo-1106",
+                messages=context,
+                logprobs=True,
+                top_logprobs=n,
+                max_tokens=1,
+            )
+            .choices[0]
+            .logprobs.content[0]
+            .top_logprobs
+        )
+
+        def prior(token):
+            return math.exp(
+                next(
+                    (
+                        tlp.logprob
+                        for tlp in top_logprobs
+                        if tlp.token.lower() == token.lower()
+                    ),
+                    -100,
+                )
+            )
+
+        p_total = sum(math.exp(tlp.logprob) for tlp in top_logprobs)
+        return {token: prior(token) / p_total for token in tokens}
+
+    return completion, probabilities
 
 
 @dataclass
@@ -118,11 +124,11 @@ def is_terminal(state: GameState) -> bool:
 
 
 @cache
-def get_actions(state: GameState) -> list[str]:
+def get_actions(state: GameState, context_builder: Callable) -> list[str]:
     if state.actions:
         return state.actions
 
-    prompt = build_context(
+    prompt = context_builder(
         "actions",
         observation=state.observation,
     )
@@ -141,7 +147,7 @@ def calculate_reward(
 
 
 @cache
-def intuitions(state: GameState) -> dict[str, float]:
+def intuitions(state: GameState, context_builder: Callable) -> dict[str, float]:
     prompt = self.context_builder(
         "action_select",
         observation=state.observation,
@@ -155,7 +161,8 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     agent_type_id: str = "rap"
     transparent_reasoning: bool = False
 
-    context_builder: Callable = None
+    completions: CompletionsFunction = None
+    probabilities: ProbabilitiesFunction = None
     _init_state: GameState = None
 
     def take_action(
@@ -165,7 +172,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         available_actions: AvailableActions,
         show_state: bool,
     ) -> Action:
-        self.context_builder = make_context_builder(rules)
+        self.completions, self.probabilities = expose_openai_api(rules)
         self._init_state = GameState(
             observation=observation.text,
             depth=0,
@@ -175,46 +182,52 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     def init_state(self) -> GameState:
         if self.transparent_reasoning:
             print("RAP: Retrieving initial state")
-        
+
         return self._init_state
 
-    def step(
-        self, state: GameState, action: str
-    ) -> tuple[GameState, dict[str, float]]:
-        next = step(state, action, self.context_builder)
-        goal = win_probability(next, self.context_builder)
+    def step(self, state: GameState, action: str) -> tuple[GameState, dict[str, float]]:
+        next = step(state, action, self.completions)
+        goal = win_probability(next, self.probabilities)
         info = {"goal_reached": goal}
 
         if self.transparent_reasoning:
-            print(f"RAP: Stepping from\n{state.observation}\nwith action {action}. New state looks like\n{next.observation}")
+            print(
+                f"RAP: Stepping from\n{state.observation}\nwith action {action}. New state looks like\n{next.observation}"
+            )
 
         return next, info
 
     def is_terminal(self, state: GameWrapper.State) -> bool:
-        term = is_terminal(state, self.context_builder)
+        term = is_terminal(state))
 
         if self.transparent_reasoning:
-            print(f"RAP: Determining if the follow state is terminal\n{state.observation}\nResult: {term}")
+            print(
+                f"RAP: Determining if the follow state is terminal\n{state.observation}\nResult: {term}"
+            )
 
         return term
 
     def get_actions(self, state: GameWrapper.State) -> list[str]:
-        actions = get_actions(state, self.context_builder)
+        actions = get_actions(state, self.completions)
 
         if self.transparent_reasoning:
-            print(f"RAP: Retreiving actions for the following state:\n{state.observation}\nActions: {actions}")
+            print(
+                f"RAP: Retreiving actions for the following state:\n{state.observation}\nActions: {actions}"
+            )
 
         return actions
 
     def fast_reward(
         self, state: GameState, action: str
     ) -> tuple[float, dict[str, float]]:
-        int = intuitions(state, self.context_builder)[action]
-        sev = self_eval(state, action, self.context_builder)
+        int = intuitions(state, self.probabilities)[action]
+        sev = self_eval(state, action, self.probabilities)
         rew = calculate_reward(int, sev, goal_reached)
 
         if self.transparent_reasoning:
-            print(f"RAP: Calculating fast reward for the following state:\n{state.observation}\nAction: {action}\nIntuition: {int}, Self-eval: {sev}, Reward: {reward}")
+            print(
+                f"RAP: Calculating fast reward for the following state:\n{state.observation}\nAction: {action}\nIntuition: {int}, Self-eval: {sev}, Reward: {reward}"
+            )
 
         return rew
 
@@ -230,6 +243,8 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         info = {"intuition": intuition, "goal_reached": goal_reached}
 
         if self.transparent_reasoning:
-            print(f"RAP: Calculating fast reward for the following state:\n{state.observation}\nAction: {action}\nIntuition: {int}, Self-eval: {sev}, Goal-reached: {goal_reached}, Reward: {reward}")
+            print(
+                f"RAP: Calculating fast reward for the following state:\n{state.observation}\nAction: {action}\nIntuition: {int}, Self-eval: {sev}, Goal-reached: {goal_reached}, Reward: {reward}"
+            )
 
         return rew, info
