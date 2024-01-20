@@ -173,22 +173,37 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         )
 
     def init_state(self) -> GameState:
+        if self.transparent_reasoning:
+            print("RAP: Retrieving initial state")
+        
         return self._init_state
 
     def step(
-        self, state: GameWrapper.State, action: GameWrapper.Action
+        self, state: GameState, action: str
     ) -> tuple[GameState, dict[str, float]]:
         next = step(state, action, self.context_builder)
         goal = win_probability(next, self.context_builder)
         info = {"goal_reached": goal}
+
+        if self.transparent_reasoning:
+            print(f"RAP: Stepping from\n{state.observation}\nwith action {action}. New state looks like\n{next.observation}")
+
         return next, info
 
     def is_terminal(self, state: GameWrapper.State) -> bool:
         term = is_terminal(state, self.context_builder)
+
+        if self.transparent_reasoning:
+            print(f"RAP: Determining if the follow state is terminal\n{state.observation}\nResult: {term}")
+
         return term
 
     def get_actions(self, state: GameWrapper.State) -> list[str]:
         actions = get_actions(state, self.context_builder)
+
+        if self.transparent_reasoning:
+            print(f"RAP: Retreiving actions for the following state:\n{state.observation}\nActions: {actions}")
+
         return actions
 
     def fast_reward(
@@ -197,6 +212,10 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         int = intuitions(state, self.context_builder)[action]
         sev = self_eval(state, action, self.context_builder)
         rew = calculate_reward(int, sev, goal_reached)
+
+        if self.transparent_reasoning:
+            print(f"RAP: Calculating fast reward for the following state:\n{state.observation}\nAction: {action}\nIntuition: {int}, Self-eval: {sev}, Reward: {reward}")
+
         return rew
 
     def reward(
@@ -209,4 +228,8 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     ) -> tuple[float, dict[str, float]]:
         rew = calculate_reward(intuition, self_eval, goal_reached)
         info = {"intuition": intuition, "goal_reached": goal_reached}
+
+        if self.transparent_reasoning:
+            print(f"RAP: Calculating fast reward for the following state:\n{state.observation}\nAction: {action}\nIntuition: {int}, Self-eval: {sev}, Goal-reached: {goal_reached}, Reward: {reward}")
+
         return rew, info
