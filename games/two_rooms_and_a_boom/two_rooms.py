@@ -61,9 +61,9 @@ class TwoRoomsAndaBoom(Game):
     def display_rooms(self): 
         # for human purposes, not used by agents
         for index,room in enumerate(self.rooms):
-            print(f"Room {index}: {room.show_cards()}")
+            if self.show_state: print(f"Room {index}: {room.show_cards()}")
 
-    def init_game(self, agent1 : Agent, agent2 : Agent):        
+    def init_game(self, agent1 : Agent, agent2 : Agent, show_state : bool):        
         self.states = [{
             "turn" : 0
         }]
@@ -75,6 +75,8 @@ class TwoRoomsAndaBoom(Game):
         }
         
         self.agents = [agent1(team_id = 0, agent_id = 0), agent2(team_id = 1, agent_id = 1)]
+
+        self.show_state = show_state
 
         ###############################################################
         ### assign cards to rooms, special chars, and shuffle rooms ###
@@ -170,9 +172,9 @@ class TwoRoomsAndaBoom(Game):
 
             winning_score = (0,1) if bomber_location == pres_location else (1,0) 
             if winning_score == (0,1):
-                print("Red won!")
+                if self.show_state: print("Red won!")
             else:
-                print("Blue won!")
+                if self.show_state: print("Blue won!")
             return winning_score
 
         #############################
@@ -185,10 +187,10 @@ class TwoRoomsAndaBoom(Game):
         leader_0.context += f"I am the Leader of room 0. " 
         leader_1.context += f"I am the Leader of room 1. "
 
-        print("Begin game")
+        if self.show_state: print("Begin game")
         self.display_rooms()
         for i in range(3): # always only three rounds, right?
-            print(f"""
+            if self.show_state: print(f"""
 \t\t\t\t\t             ###################
 \t\t\t\t\t             ##### Round {i+1} #####
 \t\t\t\t\t             ###################
@@ -199,7 +201,7 @@ class TwoRoomsAndaBoom(Game):
             #################################
 
             for room_index in range(2):
-                print(f"\nRoom {room_index} turn")
+                if self.show_state: print(f"\nRoom {room_index} turn")
 
                 # current_leader for adding discussion_context
                 if room_index == 0:
@@ -244,8 +246,8 @@ class TwoRoomsAndaBoom(Game):
                     # playerA updates self with their response
                     card.context += f"They responded with '{answer}' "
                     discussion_context += f"They responded with '{answer}' "
-                    print(f"\n\tPlayer {card.identifier}:")
-                    print("\t" + card.context)
+                    if self.show_state: print(f"\n\tPlayer {card.identifier}:")
+                    if self.show_state: print("\t" + card.context)
 
 
                     # Leader of room gets updated context
@@ -267,7 +269,7 @@ class TwoRoomsAndaBoom(Game):
             
             room_0_trade = room_0_ids[action.action_id]
             leader_0.context += f"I decided to trade card {room_0_trade.identifier}.\n"
-            print(f"\n\tLEADER_0 CONTEXT: \n\t{leader_0.context}") 
+            if self.show_state: print(f"\n\tLEADER_0 CONTEXT: \n\t{leader_0.context}") 
 
             
             # Room 1
@@ -276,7 +278,7 @@ class TwoRoomsAndaBoom(Game):
             
             room_1_trade = room_1_ids[action.action_id]
             leader_1.context += f"I decided to trade card {room_1_trade.identifier}.\n"
-            print(f"\n\tLEADER_1 CONTEXT: \n\t{leader_1.context}") 
+            if self.show_state: print(f"\n\tLEADER_1 CONTEXT: \n\t{leader_1.context}") 
 
 
             # Action
