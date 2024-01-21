@@ -11,10 +11,6 @@ PLAYERS_PER_TEAM = 3
 N_PLAYERS = 2 * PLAYERS_PER_TEAM
 BOARD_SIZE = (24, 24)
 
-# maybe generate image?
-# in actions, maybe say what coordinates they will end up at
-# maybe say something like: last turn you were at xy, chose this action, and etc happened as result
-
 @dataclass
 class Location:
     position : complex
@@ -129,7 +125,8 @@ class SeaBattle(Game):
         observation = Observation(text=s)
 
         if self.show_state:
-            print(s)
+            tabbed = "\n\t".join(s.split("\n"))
+            print(f"Sea Battle: Showing observation for agent {agent.agent_id}:\n\t{tabbed}")
 
         available_actions = AvailableActions(
             instructions="Choose your action for the next turn.",
@@ -151,7 +148,13 @@ class SeaBattle(Game):
     def update(self, action : Action, available_actions : AvailableActions, agent : Agent):
         # Choose a random action if an invalid action was chosen
         action = action.action_id
+
+        if self.show_state:
+            print(f"Sea battle: agent {agent.agent_id} chose action: {action}")
+
         if action not in available_actions.predefined:
+            if self.show_state:
+                print(f"Sea battle: this action is invalid. Choosing a random action.")
             action = random.choice(list(available_actions.predefined.keys()))
 
         # Queue this agent's plan, and return if not every agent has finishing planning yet.
@@ -159,29 +162,45 @@ class SeaBattle(Game):
         if any(p.plan is None for p in self.players):
             return
 
+        if self.show_state:
+            print("Sea battle: all live agents have chosen an action. Here are their statuses:")
+            for player in self.players:
+                print(player)
+            print("Sea battle: beginning movement phase now.")
         self.move_ships()
+
+        if self.show_state:
+            print("Sea battle: movement phase has ended. Beginning shooting phase now.")
         self.fire_cannons()
 
         for player in self.players:
             player.reset()
 
     def move_ships(self):
-        for player in self.players:
-            print("Player", player.agent.agent_id, player.plan[0])
         # 1. For all ships that are moving, claim the forward spot.
         for player in self.players:
             if player.plan[0] in ["move left", "move forward", "move right"]:
+                if self.show_state:
+                    print(f"Sea battle: Agent {player.agent.agent_id} is claiming the forward spot.")
+
                 player.claim = player.location.forward()
             else:
+                if self.show_state:
+                    print(f"Sea battle: Agent {player.agent.agent_id} is staying still.")
+
                 player.claim = player.location
 
         # 2. Resolve collisions
         for player in self.players:
             if player.claim in self.rocks:
-                print("Ram rock!", player.agent.agent_id)
+                if self.show_state:
+                    print(f"Sea battle: Agent {player.agent.agent_id} is attempting to move into a rock. They will not move and instead sustain damage.")
+
                 player.damage.rock()
             elif any(player.will_collide(t) for t in self.players if t != player):
-                print("Collision!", player.agent.agent_id)
+                if self.show_state:
+                    print(f"Sea battle: Agent {player.agent.agent_id} is attempting to move into the same space as another ship. They will not move and instead sustain damage.")
+
                 player.damage.ram()
             else:
                 player.location = player.claim
@@ -191,39 +210,65 @@ class SeaBattle(Game):
             direction = {"move left": 1j, "move right": -1j, "move forward": 1, "don't move": 1}
             player.location = player.location.turn(direction[player.plan[0]])
 
+        if self.show_state:
+            print("Sea battle: After ships have rotated, updated locations and headings are:")
+            for player in self.players:
+                print(f"Agent {player.agent.agent_id}: {player.location}")
+
         # 4. For all turning ships, claim the forward spot
         for player in self.players:
             if player.plan[0] in ["move left", "move right"]:
+                if self.show_state:
+                    print(f"Sea battle: Agent {player.agent.agent_id} is claiming the forward spot.")
+
                 player.claim = player.location.forward()
             else:
+                if self.show_state:
+                    print(f"Sea battle: Agent {player.agent.agent_id} is staying still.")
+
                 player.claim = player.location
 
         # 5. Resolve collisions again, with slightly different rules.
         for player in self.players:
             if player.claim in self.rocks:
-                print("Ram rock!", player.agent.agent_id)
+                if self.show_state:
+                    print(f"Sea battle: Agent {player.agent.agent_id} is attempting to move into a rock. They will not move and instead sustain damage.")
+
                 player.damage.rock()
 
             elif not any(player.will_collide(t) for t in self.players if t != player):
+                if self.show_state:
+                    print(f"Sea battle: Agent {player.agent.agent_id} is attempting to move into the same space as another ship. They will not move, but sustain no damage.")
+
                 player.location = player.claim
 
     def fire_cannons(self):
         for player in self.players:
-            print("Player", player.agent.agent_id, player.plan[1])
+            if self.show_state:
+                print(f"Sea battle: Agent {player.agent.agent_id} is shooting now.")
+
             direction = 1j if player.plan[1] == "shoot left" else -1j
 
             target = player.location
             for _ in range(3):
                 target = target.adjacent(direction)
+                if self.show_state:
+                    print(f"Sea battle: Checking if {target} is occupied.")
 
                 if target in self.rocks:
+                    if self.show_state:
+                        print("Sea battle: Is a rock. Cannonball is halted.")
                     break
 
                 hit = next((p for p in self.players if target == p.location), False)
                 if hit:
-                    print("Cannon hit!", hit.agent.agent_id)
+                    if self.show_state:
+                        print(f"Sea battle: Is agent {hit.agent.agent_id}. Issuing damage, cannonball is halted.")
                     hit.damage.cannon()
                     break
+            else:
+                if self.show_state:
+                    print("Sea battle: Cannonball did not collide with anything is will now halt.")
 
     def play(self) -> Tuple[float, float]:
         while True:
