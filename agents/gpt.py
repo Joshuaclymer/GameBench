@@ -192,7 +192,7 @@ class ChainOfThought(Agent):
         if result == None:
             if self.transparent_reasoning:
                 print(f"CoT: GPT returned an a random action after {self.max_retries} tries.")
-            
+
             return Action(action_id=None)
 
         return Action(action_id=result["action"], openended_response=result.get("openended_response"))
@@ -209,6 +209,7 @@ class BabbleAndPrune(Agent):
     agent_type_id : str = "bap"
     system_message : str = "You are an agent playing a game. Select the action that maximizes your probability of winning."
     max_retries : int = 3
+    transparent_reasoning : bool = False
 
     def take_action(self, rules: Rules, observation: Observation, available_actions: AvailableActions, show_state : bool):
         valid_actions = []
@@ -239,7 +240,8 @@ class BabbleAndPrune(Agent):
         if any([available_actions.predefined[action] != None for action in list(available_actions.predefined.keys()) + list(available_actions.openended.keys())]):
             prompt += "Return the action Explain(<action>) to receive additional info about what any of the above actions do.\n"
 
-        prompt += "\nTo summarize, you must return json with an 'action' key which contains one of the following valid actions:\n"
+
+        prompt += "\nList your top three choices of actions. Each action should be different. Below are valid actions:"
         prompt += str(list(valid_actions))
 
         messages = [
@@ -249,35 +251,45 @@ class BabbleAndPrune(Agent):
 
         result = None
         for _ in range(self.max_retries):
-            while True:
-                response = openai_client.chat.completions.create(
-                    model=self.openai_model,
-                    response_format={ "type": "json_object" },
-                    messages=messages
-                ).choices[0].message.content
-                messages.append({"role": "assistant", "content": response})
-                messages.append({"role": "user", "content": "Evaluate this action. If you agree it is a good action, respond with exactly 'yes'. If you don't agree, respond with exactly 'no'"})
-                critique = openai_client.chat.completions.create(
-                    model=self.openai_model,
-                    messages=messages
-                ).choices[0].message.content
-                messages.append({"role": "assistant", "content": critique})
+            response = openai_client.chat.completions.create(
+                model=self.openai_model,
+                messages=messages
+            ).choices[0].message.content
+            messages.append({"role": "assistant", "content": response})
 
-                if critique == "yes":
-                    break
+            if self.transparent_reasoning:
+                print(f"B&P: Agent listed the following actions as possibilities: {response}")
 
-            action = ast.literal_eval(response)
+            messages.append({"role": "user", "content": "Now, from your list, choose which action you think is the best. Respond in the json format, create a key called 'action' and assign your chosen action to this key."})
+            best = openai_client.chat.completions.create(
+                model=self.openai_model,
+                response_format={ "type": "json_object" },
+                messages=messages
+            ).choices[0].message.content
+            messages.append({"role": "assistant", "content": best})
+
+            action = ast.literal_eval(best)
+
+            if self.transparent_reasoning:
+                print(f"B&P: Agent responded with:\n{best}\nAction: {action}")
+
             if action["action"] in valid_actions:
+                if self.transparent_reasoning:
+                    print("B&P: This action is valid.")
+
                 result = action
                 break
             else:
+                if self.transparent_reasoning:
+                    print("B&P: This action is invalid.")
                 error_message = f"{action['action']} is not one of the valid actions. "
                 error_message += "As a reminder, the valid actions are as follows:\n"
                 error_message += f"{str(list(valid_actions))}\n"
                 error_message += "Please return a json with the key 'action' with the action you choose and (optionally) the key 'openended_response' if you select openended response action."
                 messages.append({"role": "user", "content": error_message})
         if result == None:
-            print(f"WARNING: GPT returned an a random action after {self.max_retries} tries")
+            if self.transparent_reasoning:
+                print(f"B&P: GPT returned an a random action after {self.max_retries} tries")
             return Action(action_id=None)
 
         return Action(action_id=result["action"], openended_response=result.get("openended_response"))
