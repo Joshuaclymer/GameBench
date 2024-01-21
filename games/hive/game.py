@@ -102,11 +102,35 @@ class HiveBoard:
         return len(visited) == len(self.board)
     
     def move_piece(self, from_hex, to_hex):
-        if from_hex not in self.board:
+        """
+        Move a piece from from_hex to to_hex, accounting for stacks of pieces.
+        """
+        if from_hex not in self.board or not self.board[from_hex]:
             raise ValueError("There is no piece at the starting position")
-        if to_hex in self.board:
-            raise ValueError("There is already a piece at the destination")
-        self.board[to_hex] = self.board.pop(from_hex)
+
+        moving_piece = self.board[from_hex][-1]  # Get the top piece from the stack
+        if not self.board.get(to_hex):
+            self.board[to_hex] = []
+
+        self.board[to_hex].append(moving_piece)  # Move it to the top of the destination stack
+        self.board[from_hex].pop()  # Remove it from the original stack
+
+        if not self.board[from_hex]:  # Clean up empty stack
+            del self.board[from_hex]
+
+        self.last_moved_piece = moving_piece
+
+    def is_piece_covered(self, hex):
+        """
+        Check if the piece at the given hex is covered by another piece.
+        """
+        return len(self.board.get(hex, [])) > 1
+
+    def get_piece_at(self, hex):
+        """
+        Return the top piece at the given hex.
+        """
+        return self.board.get(hex, [])[-1] if self.board.get(hex) else None
 
     def get_adjacent_pieces(self, hex):
         """
