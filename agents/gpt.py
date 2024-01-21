@@ -153,6 +153,9 @@ class ChainOfThought(Agent):
         ).choices[0].message.content
         messages.append({"role": "assistant", "content": response})
 
+        if self.transparent_reasoning:
+            print("CoT: LLM reasoned out loud with: " + response)
+
         prompt = "Now, choose your action. To summarize, you must return json with an 'action' key which contains one of the following valid actions:\n"
         prompt += str(list(valid_actions))
         messages.append({"role": "user", "content": prompt})
@@ -166,17 +169,30 @@ class ChainOfThought(Agent):
             ).choices[0].message.content
             messages.append({"role": "assistant", "content": response})
             action = ast.literal_eval(response)
+
+            if self.transparent_reasoning:
+                print(f"CoT: LLM responded with: {response}\nAction: {action}")
+
             if action["action"] in valid_actions:
+
+                if self.transparent_reasoning:
+                    print("CoT: This action is valid.")
+
                 result = action
                 break
             else:
+                if self.transparent_reasoning:
+                    print("CoT: This action is invalid.")
+
                 error_message = f"{action['action']} is not one of the valid actions. "
                 error_message += "As a reminder, the valid actions are as follows:\n"
                 error_message += f"{str(list(valid_actions))}\n"
                 error_message += "Please return a json with the key 'action' with the action you choose and (optionally) the key 'openended_response' if you select openended response action."
                 messages.append({"role": "user", "content": error_message})
         if result == None:
-            print(f"WARNING: GPT returned an a random action after {self.max_retries} tries")
+            if self.transparent_reasoning:
+                print(f"CoT: GPT returned an a random action after {self.max_retries} tries.")
+            
             return Action(action_id=None)
 
         return Action(action_id=result["action"], openended_response=result.get("openended_response"))
