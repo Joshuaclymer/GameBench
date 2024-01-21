@@ -169,17 +169,16 @@ class ChainOfThought(Agent):
             ).choices[0].message.content
             messages.append({"role": "assistant", "content": response})
 
+            if self.transparent_reasoning:
+                print(f"CoT: GPT responded with: {response}")
+
             try:
                 action = ast.literal_eval(response)
             except:
                 print(f"CoT: GPT responded with invalid JSON.")
                 continue
 
-            if self.transparent_reasoning:
-                print(f"CoT: GPT responded with: {response}\nAction: {action}")
-
             if action["action"] in valid_actions:
-
                 if self.transparent_reasoning:
                     print("CoT: This action is valid.")
 
@@ -273,14 +272,14 @@ class BabbleAndPrune(Agent):
             ).choices[0].message.content
             messages.append({"role": "assistant", "content": best})
 
+            if self.transparent_reasoning:
+                print(f"B&P: GPT responded with:\n{best}")
+
             try:
                 action = ast.literal_eval(best)
             except:
                 print("B&P: GPT responded with invalid JSON.")
                 continue
-
-            if self.transparent_reasoning:
-                print(f"B&P: GPT responded with:\n{best}\nAction: {action}")
 
             if action["action"] in valid_actions:
                 if self.transparent_reasoning:
