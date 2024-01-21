@@ -154,7 +154,7 @@ class ChainOfThought(Agent):
         messages.append({"role": "assistant", "content": response})
 
         if self.transparent_reasoning:
-            print("CoT: LLM reasoned out loud with: " + response)
+            print("CoT: GPT reasoned out loud with: " + response)
 
         prompt = "Now, choose your action. To summarize, you must return json with an 'action' key which contains one of the following valid actions:\n"
         prompt += str(list(valid_actions))
@@ -168,10 +168,15 @@ class ChainOfThought(Agent):
                 messages=messages
             ).choices[0].message.content
             messages.append({"role": "assistant", "content": response})
-            action = ast.literal_eval(response)
+
+            try:
+                action = ast.literal_eval(response)
+            except:
+                print(f"CoT: GPT responded with invalid JSON.")
+                continue
 
             if self.transparent_reasoning:
-                print(f"CoT: LLM responded with: {response}\nAction: {action}")
+                print(f"CoT: GPT responded with: {response}\nAction: {action}")
 
             if action["action"] in valid_actions:
 
@@ -258,7 +263,7 @@ class BabbleAndPrune(Agent):
             messages.append({"role": "assistant", "content": response})
 
             if self.transparent_reasoning:
-                print(f"B&P: Agent listed the following actions as possibilities: {response}")
+                print(f"B&P: GPT listed the following actions as possibilities: {response}")
 
             messages.append({"role": "user", "content": "Now, from your list, choose which action you think is the best. Respond in the json format, create a key called 'action' and assign your chosen action to this key."})
             best = openai_client.chat.completions.create(
@@ -268,10 +273,14 @@ class BabbleAndPrune(Agent):
             ).choices[0].message.content
             messages.append({"role": "assistant", "content": best})
 
-            action = ast.literal_eval(best)
+            try:
+                action = ast.literal_eval(best)
+            except:
+                print("B&P: GPT responded with invalid JSON.")
+                continue
 
             if self.transparent_reasoning:
-                print(f"B&P: Agent responded with:\n{best}\nAction: {action}")
+                print(f"B&P: GPT responded with:\n{best}\nAction: {action}")
 
             if action["action"] in valid_actions:
                 if self.transparent_reasoning:
