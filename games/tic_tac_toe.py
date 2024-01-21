@@ -37,7 +37,7 @@ class TicTacToe(Game):
         row_strings = [", ".join(row) for row in board]
         board_string = "\n".join(row_strings)
         return board_string
-        
+
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
         board_string = self.get_board_string()
         observation = Observation(text=board_string)
@@ -58,8 +58,8 @@ class TicTacToe(Game):
 
         # Select a random action if no valid actions are provided
         if action not in available_actions.predefined:
-            action = random.choice(list(available_actions.keys()))
-        
+            action = random.choice(list(available_actions.predefined.keys()))
+
         x, y = ast.literal_eval(action)
 
         marker = self.agent_data[agent.agent_id]["marker"]
@@ -90,13 +90,13 @@ class TicTacToe(Game):
             player_won = True
         if board[0][2] == board[1][1] == board[2][0] == marker:
             player_won = True
-        
+
         if player_won:
             self.winning_team = agent.team_id
             self.game_is_over = True
             if self.show_state:
                 print(f"Game over: {marker} won")
-        
+
         # check if there is a tie
         if not player_won and '-' not in [board[i][j] for i in range(3) for j in range(3)]:
             self.winning_team = None
@@ -104,7 +104,7 @@ class TicTacToe(Game):
             if self.show_state:
                 print("Game over: tie")
 
-        
+
 
     def play(self):
         player_1 = self.agents[0]
