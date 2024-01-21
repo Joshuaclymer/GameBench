@@ -9,7 +9,6 @@ from pprint import pprint
 
 PLAYERS_PER_TEAM = 3
 N_PLAYERS = 2 * PLAYERS_PER_TEAM
-BOARD_SIZE = (24, 24)
 
 @dataclass
 class Location:
@@ -73,7 +72,7 @@ class SeaBattle(Game):
     id : str = "sea_battle"
     rules : Rules = Rules(
         title="Sea Battle",
-        summary="Sink all of your opponent team's ships before they sink all of your team's ships. Players can be damaged in three ways: (1) by getting shot at by another player, (2) by sailing into a rock, (3) by colliding with another ship. After a player has sustained enough damage, they sink and cannot play the rest of the round. A team wins if they have at least one live ship when all of their opponents have sunken. The board is a 24x24 grid. Some squares are occupied by rocks and some are occupied by players' ships. Each turn, all players choose how they want to move and how they want to shoot. All players' choices are executed simultaneously. At the start of the game, there are three players on each team.",
+        summary="Sink all of your opponent team's ships before they sink all of your team's ships.",
         additional_details={
             "Damage": "Players can be damaged in three ways: (1) by getting shot at by another player, (2) by sailing into a rock, (3) by colliding with another ship.",
             "Sinking": "After a player has sustained enough damage, they sink and cannot play the rest of the round.",
