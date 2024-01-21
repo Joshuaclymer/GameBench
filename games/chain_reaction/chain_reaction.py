@@ -22,8 +22,9 @@ class ChainReaction(Game):
     )
     id : str = "chain_reaction"
 
-    ## At every location we have a identifier 'an' where 'p' is the id corresponding to the agent and 'n' is the number of orbs
+    ## At every location we have a 2 digit identifier '--' or 'AgentOrb' where 'Agent' is the id corresponding to the agent and 'Orbs' is the number of orbs
     def init_game(self, agent1 : Agent, agent2 : Agent):
+        ## default board is 11x6
         self.states = [{
             "board" : [
                 ['--','--','--','--','--','--'],
@@ -73,11 +74,12 @@ class ChainReaction(Game):
             instructions = f"Return your actions as tuples with zero-indexed (row, column) coordinates of where you'd like to place your orb. The origin (0,0) is the top left. Your orb is {orb}.",
             predefined = {
                 f"({row},{col})" : None for row in range(11) for col in range(6)
-                    if self.states[-1]["board"][row][col] == '-'
+                    if self.states[-1]["board"][row][col] == '--'
                 },
             openended = {}
         )
         return observation, available_actions
+
 
     def update(self, action : Action, available_actions : AvailableActions, agent : Agent):
         action = action.action_id
@@ -93,7 +95,7 @@ class ChainReaction(Game):
 
         orb = self.agent_data[agent.agent_id]["orb"]
         board = self.states[-1]["board"]
-        board[x][y] = orb
+        board[x][y][0] = orb
 
         # Show the board
         if self.show_state:
@@ -101,30 +103,23 @@ class ChainReaction(Game):
             print(self.get_board_string())
             print("")
 
-        # Check if player has won
+        # Check if player has won the game by having orbs of only their color on the board
         if (turncount_player1*turncount_player2)>0:
             player_won = False
-            ## Write in a way that is agnostic to whether it's player 0 or 1
-            ## Do it in a way that doesn't depend on the id of the other agent
 
-            ## Check if there are any orbs of other team
-            ## If yes, no win yet
+            rows = len(board) ## default is 11
+            cols = len(board[0]) ## default is 6
+            unique_colors = set()
 
-            # # Check rows
-            # for i in range(3):
-            #     if board[i][0] == board[i][1] == board[i][2] == marker:
-            #         player_won = True
-            #
-            # # Check columns
-            # for i in range(3):
-            #     if board[0][i] == board[1][i] == board[2][i] == marker:
-            #         player_won = True
-            #
-            # # Check diagonals
-            # if board[0][0] == board[1][1] == board[2][2] == marker:
-            #     player_won = True
-            # if board[0][2] == board[1][1] == board[2][0] == marker:
-            #     player_won = True
+            for r in range(rows):
+                for c in range(cols):
+                    cell_state = board[r][c]
+
+                    if cell_state != '--':
+                        unique_colors.add(cell_state[0])
+
+            if len(unique_colors) == 1:
+                player_won = True
 
             if player_won:
                 self.winning_team = agent.team_id
@@ -137,6 +132,7 @@ class ChainReaction(Game):
     def play(self):
         player_1 = self.agents[0]
         player_2 = self.agents[1]
+
         while True:
             # Player 1 moves
             observation, available_actions = self.get_observation(player_1)
