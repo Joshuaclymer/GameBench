@@ -24,6 +24,7 @@ class ChainReaction(Game):
 
     ## At every location we have a 2 digit identifier '--' or 'AgentOrb' where 'Agent' is the id corresponding to the agent and 'Orbs' is the number of orbs
     def init_game(self, agent1 : Agent, agent2 : Agent):
+
         ## default board is 11x6
         self.states = [{
             "board" : [
@@ -55,7 +56,9 @@ class ChainReaction(Game):
             0: {"orb": "red"},
             1: {"orb": "green"}
         }
+
         self.winning_team = None
+
         if self.show_state:
             print(f"Agent {self.agents[0].agent_type_id} is red and agent {self.agents[1].agent_type_id} is green")
 
@@ -69,33 +72,42 @@ class ChainReaction(Game):
         board_string = self.get_board_string()
         observation = Observation(text=board_string)
 
-        orb = self.agent_data[agent.agent_id]["orb"]
-        available_actions = AvailableActions(
-            instructions = f"Return your actions as tuples with zero-indexed (row, column) coordinates of where you'd like to place your orb. The origin (0,0) is the top left. Your orb is {orb}.",
-            predefined = {
-                f"({row},{col})" : None for row in range(11) for col in range(6)
-                    if self.states[-1]["board"][row][col] == '--'
-                },
-            openended = {}
-        )
-        return observation, available_actions
+        ## Initialize number of rows and columns being used
+        rows = len(board) ## default is 11
+        cols = len(board[0]) ## default is 6
 
+        agent_id = agent.agent_id
+        orb = self.agent_data[agent.agent_id]["orb"]
+
+        available_actions = []
+        for r in range(rows):
+        for c in range(cols):
+            cell_state = board[r][c]
+            # Check if the cell is empty or has orbs of the player's color
+            if cell_state == '--' or cell_state[0] == str(agent_id):
+                available_actions.append((r,c))
+
+        return observation, available_actions
 
     def update(self, action : Action, available_actions : AvailableActions, agent : Agent):
         action = action.action_id
         turncount_player0 = self.turncount_player0
         turncount_player1 = self.turncount_player1
 
+        orb = self.agent_data[agent.agent_id]["orb"]
+        board = self.states[-1]["board"]
+
+        ## Initialize number of rows and columns being used
+        rows = len(board) ## default is 11
+        cols = len(board[0]) ## default is 6
 
         # Select a random action if no valid actions are provided
         if action not in available_actions.predefined:
             action = random.choice(list(available_actions.keys()))
 
-        x, y = ast.literal_eval(action)
-
-        orb = self.agent_data[agent.agent_id]["orb"]
-        board = self.states[-1]["board"]
-        board[x][y][0] = orb
+        ## HOLD PLACE!!! Make edit to board update logic
+        # x, y = ast.literal_eval(action)
+        # board[x][y][0] = orb
 
         # Show the board
         if self.show_state:
@@ -107,8 +119,6 @@ class ChainReaction(Game):
         if (turncount_player1*turncount_player2)>0:
             player_won = False
 
-            rows = len(board) ## default is 11
-            cols = len(board[0]) ## default is 6
             unique_colors = set()
 
             for r in range(rows):
@@ -128,12 +138,12 @@ class ChainReaction(Game):
                     print(f"Game over: {orb} won")
 
 
-
     def play(self):
         player_1 = self.agents[0]
         player_2 = self.agents[1]
 
         while True:
+
             # Player 1 moves
             observation, available_actions = self.get_observation(player_1)
             action = player_1.take_action(self.rules, observation, available_actions, show_state=self.show_state)
