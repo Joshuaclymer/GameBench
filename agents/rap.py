@@ -44,8 +44,13 @@ def context_builder_factory(rules: Rules) -> Callable[[str, str], ContextType]:
 
     def context_builder(template: str, **kwargs: str) -> ContextType:
         messages = context_templates["prefix"] + context_templates[template]
-        topics = context_templates["additional_topics"]
-        topics = topics.format(topics=", ".join(list(rules.additional_details)) if rules.additional_details else "none")
+
+        if rules.additional_details:
+            topics = context_templates["additional_topics"]
+            topics = topics.format(topics=", ".join(list(rules.additional_details)) if rules.additional_details else "none")
+        else:
+            topics = ""
+        
         return [
             {
                 "role": ("user" if i & 1 == 0 else "assistant"),
