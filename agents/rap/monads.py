@@ -7,8 +7,8 @@ def lookup_monad(completions: CompletionsFunction, rules: Rules) -> CompletionsF
     for a rules description."""
     rules_lookup_re = re.compile(r"rule\((\w+)\)")
 
-    def new_completions(context) -> str:
-        def request(ctx):
+    def new_completions(context: ContextType) -> str:
+        def request(ctx: ContextType):
             ret = completions(ctx)
 
             if re.match(rules_lookup_re, ret):
@@ -31,3 +31,19 @@ def lookup_monad(completions: CompletionsFunction, rules: Rules) -> CompletionsF
 def cot_monad(completions: CompletionsFunction) -> CompletionsFunction:
     """Asks for CoT."""
     pass
+
+
+def log_monad(
+    fn: CompletionsFunction | ProbabilitiesFunction,
+) -> CompletionsFunction | ProbabilitiesFunction:
+    """Prints context and response."""
+
+    def new_fn(context, *args, **kwargs):
+        for message in context:
+            print(f"{message['role']}: {message['content']}")
+
+        ret = fn(context, *args, **kwargs)
+        print(">>> " + str(ret))
+        return ret
+
+    return new_fn

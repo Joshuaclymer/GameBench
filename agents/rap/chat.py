@@ -9,6 +9,10 @@ from PIL import Image
 import base64
 from io import BytesIO
 
+openai_client = openai.Client(
+    api_key=util.load_json("credentials.json")["openai_api_key"]
+)
+
 
 def context_builder_factory(rules: Rules) -> ContextBuilder:
     """Makes a context builder with substitutions for game rules."""
@@ -81,7 +85,7 @@ def openai_api() -> tuple[CompletionsFunction, ProbabilitiesFunction]:
                     (
                         tlp.logprob
                         for tlp in top_logprobs
-                        if tlp.token.lower() == token.lower()
+                        if tlp.token.lower() == str(token).lower()
                     ),
                     -100,
                 )

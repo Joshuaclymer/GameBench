@@ -49,6 +49,9 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         # Maybe make monad composition an agent kwarg.
         self._completions = lookup_monad(self._completions, rules)
+        if self.transparent_reasoning:
+            self._completions = log_monad(self._completions)
+            self._probabilities = log_monad(self._probabilities)
 
         self.completions = (self.context_builder, self._completions)
         self.probabilities = (self.context_builder, self._probabilities)
