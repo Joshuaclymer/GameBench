@@ -55,26 +55,34 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         self.log(f"Warning: using {['random', 'human', 'OpenAI'][self.agent_type]} API")
 
+        # Construct observation string: combine text description with image description
         obs = observation.text
         if observation.image is not None:
             self.log("Recieved image observation. Requesting text description.")
             obs += "\n" + image_description(observation.image, rules)
 
+        # Construct available actions: turn image observations into text descriptions
+        predefined = tuple(Action(k) for k in available_actions.predefined.keys())
+        openended = []
+        for action in available_actions.openended.keys():
+            context = self.context_builder("openended", observation=obs, action=action)
+            c = self._completions(context)
+            action = Action(action, openended_response=c)
+            openended.append(action)
+        openended = tuple(openended)
+
         self._init_state = GameState(
-            observation=observation.text,
-            depth=0,
-            actions=tuple(available_actions.predefined.keys())
-            + tuple("OPENENDED" + a for a in available_actions.openended.keys()),
+            observation=obs, depth=0, actions=predefined + openended
         )
 
         # try:
-        action_id = self.reasoner(None).trace[1][0]
+        action = self.reasoner(None).trace[1][0]
 
         self.log(
-            f"Recieved the following observation:\n{observation.text}\nAvailable actions: {available_actions}.\nChoosing the action: {action_id}"
+            f"Recieved the following observation:\n{observation.text}\nAvailable actions: {available_actions}.\nChoosing the action: {action}"
         )
 
-        return Action(action_id=action_id)
+        return action
         # except Exception as e:
         #    self.log(f"MCTS threw an error: {e}. Returning random action.")
 
@@ -88,7 +96,9 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         return self._init_state
 
-    def step(self, state: GameState, action: str) -> tuple[GameState, dict[str, float]]:
+    def step(
+        self, state: GameState, action: Action
+    ) -> tuple[GameState, dict[str, float]]:
         """From WorldModel; called by MCTS."""
         oth = others_actions(state, *self.completions)
         nxt = step(state, action, oth, *self.completions)
@@ -111,7 +121,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         return term
 
-    def get_actions(self, state: GameState) -> list[str]:
+    def get_actions(self, state: GameState) -> tuple[Action]:
         """From WorldModel; called by MCTS."""
         actions = get_actions(state, *self.completions)
 
@@ -122,7 +132,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         return actions
 
     def fast_reward(
-        self, state: GameState, action: str
+        self, state: GameState, action: Action
     ) -> tuple[float, dict[str, float]]:
         """From SearchConfig; called by MCTS."""
         actions = get_actions(state, *self.completions)
@@ -141,7 +151,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     def reward(
         self,
         state: GameState,
-        action: str,
+        action: Action,
         intuition: float,
         self_eval: float,
         win_probability: float,

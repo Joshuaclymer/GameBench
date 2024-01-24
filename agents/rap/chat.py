@@ -105,7 +105,7 @@ def random_api() -> tuple[CompletionsFunction, ProbabilitiesFunction]:
         )
 
     def completions(context: ContextType) -> str:
-        return f"<state>{randstr()}</state><actions>0 {randstr()}\n1 {randstr()}\n2 {randstr()}*</actions>"
+        return f"<state>{randstr()}</state><actions>0 {randstr()}\n1 {randstr()}\n2 {randstr()}</actions>"
 
     def probabilities(
         context: ContextType, tokens: list[str, str] = ["yes", "no"]

@@ -1,12 +1,13 @@
 from functools import cache
 from .definitions import *
 import math
+from api.classes import Action
 
 
 @cache
 def step(
     state: GameState,
-    action: str,
+    action: Action,
     others: str,
     context_builder: ContextBuilder,
     completions: CompletionsFunction,
@@ -46,29 +47,20 @@ def is_terminal(state: GameState) -> bool:
 @cache
 def get_actions(
     state: GameState, context_builder: ContextBuilder, completions: CompletionsFunction
-) -> tuple[str]:
+) -> tuple[Action]:
     """Determine available actions in a state."""
     # The first state will have preset actions.
     if state.actions:
-        new_actions = []
-        for action in state.actions:
-            if not action.startswith("OPENENDED"):
-                new_actions.append(action)
-                continue
-
-            # Turn openended actions into predefined by determining response now.
-            action = action[len("OPENENDED"):]
-            context = context_builder("openended", observation=state.observation, action=action)
-            c = completions(context)
-            new_actions.append(action + ": " + c)
-
-        return tuple(new_actions)
+        return state.actions
 
     context = context_builder("actions", observation=state.observation)
     c = completions(context)
     try:
         c = re.findall(r"<actions>(.*)</actions>", c, re.S)[0]
-        actions = c.strip().split("\n")
+        actions = []
+        for action in c.strip().split("\n"):
+            action = Action(action_id=action)
+            actions.append(action)
         return tuple(actions)
     except:
         return tuple()
@@ -96,7 +88,7 @@ def calculate_reward(
 @cache
 def intuitions(
     state: GameState,
-    actions: tuple[str],
+    actions: tuple[Action],
     context_builder: ContextBuilder,
     probabilities: ProbabilitiesFunction,
 ) -> dict[str, float]:
@@ -104,7 +96,7 @@ def intuitions(
     context = context_builder(
         "action_select",
         observation=state.observation,
-        actions="\n".join(str(i) + a for i, a in enumerate(actions)),
+        actions="\n".join(f"{i}{a}" for i, a in enumerate(actions)),
     )
     ps = probabilities(context, range(len(actions)))
     return ps
@@ -118,8 +110,6 @@ def self_eval(
     probabilities: ProbabilitiesFunction,
 ):
     """Determines probability agent says action is good."""
-    context = context_builder(
-        "self_eval", observation=state.observation, action=f"{action}"
-    )
+    context = context_builder("self_eval", observation=state.observation, action=action)
     ps = probabilities(context)
     return ps["yes"]
