@@ -1,6 +1,7 @@
 from .chat import *
 import re
 
+
 def lookup_monad(completions: CompletionsFunction, rules: Rules) -> CompletionsFunction:
     """Repeatedly asks for a completion until the response is not asking
     for a rules description."""

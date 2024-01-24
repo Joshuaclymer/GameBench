@@ -3,6 +3,8 @@ import api.util as util
 import openai
 import random
 from .definitions import *
+import math
+
 
 def context_builder_factory(rules: Rules) -> ContextBuilder:
     """Makes a context builder with substitutions for game rules."""
@@ -13,7 +15,11 @@ def context_builder_factory(rules: Rules) -> ContextBuilder:
 
         if rules.additional_details:
             topics = context_templates["additional_topics"]
-            topics = topics.format(topics=", ".join(list(rules.additional_details)) if rules.additional_details else "none")
+            topics = topics.format(
+                topics=", ".join(list(rules.additional_details))
+                if rules.additional_details
+                else "none"
+            )
         else:
             topics = ""
 
@@ -31,6 +37,7 @@ def context_builder_factory(rules: Rules) -> ContextBuilder:
         ]
 
     return context_builder
+
 
 def openai_api() -> tuple[CompletionsFunction, ProbabilitiesFunction]:
     """Returns a CompletionsFunction and a ProbabilitiesFunction that
@@ -50,10 +57,9 @@ def openai_api() -> tuple[CompletionsFunction, ProbabilitiesFunction]:
         )
 
     def probabilities(
-        context: ContextType, tokens: list[str] = ["yes", "no"], n: int = 2
+        context: ContextType, tokens: list[str] = ["yes", "no"]
     ) -> dict[str, float]:
-        context = context_builder(template, **kwargs)
-        n = min(n, 5) # OpenAI doesn't allow more than 5
+        n = min(len(tokens), 5)  # OpenAI doesn't allow more than 5
 
         top_logprobs = (
             openai_client.chat.completions.create(
@@ -99,10 +105,10 @@ def random_api() -> tuple[CompletionsFunction, ProbabilitiesFunction]:
         )
 
     def completions(context: ContextType) -> str:
-        return f"<state>{randstr()}</state><actions>{randstr()}\n{randstr()}\n{randstr()}</actions>"
+        return f"<state>{randstr()}</state><actions>0 {randstr()}\n1 {randstr()}\n2 {randstr()}*</actions>"
 
     def probabilities(
-        context: ContextType, tokens: list[str, str] = ["yes", "no"], n: int = 0
+        context: ContextType, tokens: list[str, str] = ["yes", "no"]
     ) -> dict[str, float]:
         return {token: random.random() for token in tokens}
 

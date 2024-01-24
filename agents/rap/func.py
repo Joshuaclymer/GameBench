@@ -2,6 +2,7 @@ from functools import cache
 from .definitions import *
 import math
 
+
 @cache
 def step(
     state: GameState,
@@ -47,8 +48,21 @@ def get_actions(
     state: GameState, context_builder: ContextBuilder, completions: CompletionsFunction
 ) -> tuple[str]:
     """Determine available actions in a state."""
+    # The first state will have preset actions.
     if state.actions:
-        return state.actions
+        new_actions = []
+        for action in state.actions:
+            if not action.startswith("OPENENDED"):
+                new_actions.append(action)
+                continue
+
+            # Turn openended actions into predefined by determining response now.
+            action = action[len("OPENENDED"):]
+            context = context_builder("openended", observation=state.observation, action=action)
+            c = completions(context)
+            new_actions.append(action + ": " + c)
+
+        return tuple(new_actions)
 
     context = context_builder("actions", observation=state.observation)
     c = completions(context)
@@ -90,10 +104,11 @@ def intuitions(
     context = context_builder(
         "action_select",
         observation=state.observation,
-        actions="\n".join(actions),
+        actions="\n".join(str(i) + a for i, a in enumerate(actions)),
     )
-    ps = probabilities(context, actions, len(actions))
+    ps = probabilities(context, range(len(actions)))
     return ps
+
 
 @cache
 def self_eval(

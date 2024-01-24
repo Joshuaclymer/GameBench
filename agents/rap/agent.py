@@ -8,13 +8,6 @@ from .monads import *
 from .func import *
 from .definitions import *
 
-# To-do:
-# * add support for openeded actions
-# * add support for image observations
-# * maybe caching results between calls to take_action? It's possible the agent
-#   will accurately predict a future state, in which case it shouldn't
-#   recalculate rewards and all.
-# * add support for looking up more info about the rules.
 
 @dataclass
 class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
@@ -65,7 +58,8 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         self._init_state = GameState(
             observation=observation.text,
             depth=0,
-            actions=tuple(available_actions.predefined.keys()),
+            actions=tuple(available_actions.predefined.keys())
+            + tuple("OPENENDED" + a for a in available_actions.openended.keys()),
         )
 
         # try:
@@ -128,7 +122,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         """From SearchConfig; called by MCTS."""
         actions = get_actions(state, *self.completions)
         int = intuitions(state, actions, *self.probabilities)
-        int = int[action]
+        int = int[actions.index(action)]
         sev = self_eval(state, action, *self.probabilities)
         rew = calculate_reward(int, sev)
         info = {"intuition": int, "self_eval": sev}

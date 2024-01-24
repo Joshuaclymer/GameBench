@@ -12,11 +12,12 @@ CompletionsFunction = NewType("CompletionsFunction", Callable[ContextType, str])
 """Determines the probability of tokens appearing next after a context."""
 ProbabilitiesFunction = NewType(
     "ProbabilitiesFunction",
-    Callable[[ContextType, list[str], int], dict[str, float]],
+    Callable[[ContextType, list[str]], dict[str, float]],
 )
 
 """A function that builds a context from a context template and substituions."""
 ContextBuilder = NewType("ContextBuilder", Callable[[str, str], ContextType])
+
 
 @dataclass(frozen=True)
 class GameState:
