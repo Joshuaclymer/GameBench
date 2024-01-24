@@ -55,6 +55,11 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         self.log(f"Warning: using {['random', 'human', 'OpenAI'][self.agent_type]} API")
 
+        obs = observation.text
+        if observation.image is not None:
+            self.log("Recieved image observation. Requesting text description.")
+            obs += "\n" + image_description(observation.image, rules)
+
         self._init_state = GameState(
             observation=observation.text,
             depth=0,

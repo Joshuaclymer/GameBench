@@ -5,6 +5,10 @@ import random
 from .definitions import *
 import math
 
+from PIL import Image
+import base64
+from io import BytesIO
+
 
 def context_builder_factory(rules: Rules) -> ContextBuilder:
     """Makes a context builder with substitutions for game rules."""
@@ -42,10 +46,6 @@ def context_builder_factory(rules: Rules) -> ContextBuilder:
 def openai_api() -> tuple[CompletionsFunction, ProbabilitiesFunction]:
     """Returns a CompletionsFunction and a ProbabilitiesFunction that
     interacts with GPT3.5."""
-
-    openai_client = openai.Client(
-        api_key=util.load_json("credentials.json")["openai_api_key"]
-    )
 
     def completions(context: ContextType) -> str:
         return (
@@ -131,3 +131,32 @@ def human_api() -> tuple[CompletionsFunction, ProbabilitiesFunction]:
         return c
 
     return completions, probabilities
+
+
+def image_description(image: Image, rules: Rules) -> str:
+    """Gets GPT4 description of image. Doesn't need to fit with rest of code
+    so it's kinda a standalone function."""
+    buffered = BytesIO()
+    image.save(buffered, format="JPEG")
+    base64_image = base64.b64encode(buffered.getvalue())
+
+    c = openai_client.chat.completions.create(
+        model="gpt-4-vision-preview",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "You are playing a game called {rules.title}. The rules are as follows: {rules.summary}.\nThis image is your observation of the game. Describe what's going on in the image.",
+                    },
+                    {
+                        "type": "image",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                    },
+                ],
+            }
+        ],
+    )
+
+    return c.choices[0].message.content

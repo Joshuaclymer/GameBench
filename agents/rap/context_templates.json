@@ -15,15 +15,17 @@
     "others": [
         "To the best of your ability, predict what actions other players might take between <others> and </others>:"
     ],
-    "_state": [
+    "state": [
         "Write your action below:",
         "{action}",
         "Write other players's actions below:",
         "{others}",
         "To the best of your ability, predict your new observation of the game based on your actions and others' actions between <state> and </state>:"
     ],
-    "state": [
-        "You are doing this action:\n{action}\nOther players are doing the following actions\n{others}\nTo the best of your ability, predict your new observation of the game based on your actions and others' actions between <state> and </state>:"
+    "openended": [
+        "Write your action below:",
+        "{action}",
+        "This is an opendended action. Write a description of what you're going to do."
     ],
     "goal": [
         "Will you eventually win from this position? yes/no"
