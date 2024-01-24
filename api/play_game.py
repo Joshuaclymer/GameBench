@@ -20,7 +20,8 @@ def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_resul
     player_1_total = 0
     player_2_total = 0
     all_ratings = util.load_json("elo_ratings.json")
-    game_elos = all_ratings[game_class.id]
+
+    game_elos = all_ratings.get(game_class.id, {})
 
     if agent_1_id not in game_elos:
         game_elos[agent_1_id] = 1500
@@ -37,7 +38,7 @@ def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_resul
     agent_1_total = 0
     total_matches = 0
     for m in matches:
-        if agent_1_id in m and agent_2_id in m:
+        if m["game"] == game_class.id and agent_1_id in m and agent_2_id in m:
             agent_1_total += m[agent_1_id]
             total_matches += 1
 
