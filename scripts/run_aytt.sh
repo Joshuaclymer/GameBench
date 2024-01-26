@@ -4,3 +4,4 @@ python api/play_game.py \
     --game_path games.are_you_the_traitor.aytt.AreYouTheTraitor \
     --save_results False \
     --show_state True
+#GPT4Text 

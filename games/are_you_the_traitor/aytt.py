@@ -61,7 +61,6 @@ class AreYouTheTraitor(Game):
         In my role as a Guard for the good team, I am vigilantly searching for the hidden Traitor among us. Protecting the identity of the KeyHolder is paramount, and I might even distract the Evil Wizard by falsely claiming to be the KeyHolder. Determining the true identities of the Wizards is key to guiding the KeyHolder and thwarting the Evil Wizard's plans. My primary focus, though, remains on uncovering and pointing out the Traitor before they can cause harm.
         """
 
-
         # I'm starting with Evil in case I need to add, the good agents increase first
         self.list_all_players.append(self.Player(0, self.agents[0], "evil", "traitor", f"{traitor_context}", 0))
         self.list_all_players.append(self.Player(1, self.agents[0], "evil", "evil_wizard", f"{evil_wizard_context}", 0))
@@ -69,8 +68,8 @@ class AreYouTheTraitor(Game):
         self.list_all_players.append(self.Player(3, self.agents[1], "good", "key_holder", f"{key_holder_context}", 0))
         self.list_all_players.append(self.Player(4, self.agents[1], "good", "guard", f"{guard_context}", 0))
     
-        for i in self.list_all_players:
-            print(i.context)
+#        for i in self.list_all_players:
+#            print(i.context)
 
     def get_observation(self, agent : Agent): 
         return
