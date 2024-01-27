@@ -114,8 +114,8 @@ class TwoRoomsAndaBoom(Game):
         available_actions = AvailableActions(
              instructions = f"Return your actions as tuples where each integer is between 0 and {self.cards_per_room}-1. Do not pick your own integer.", # placeholder
              predefined = {
-                 f"{a}": None for a in identifiers 
-                 },
+                 f"{a}": f"{a}" for a in identifiers 
+             },
              openended = {}
         )
         return observation, available_actions
@@ -128,9 +128,9 @@ class TwoRoomsAndaBoom(Game):
         available_actions = AvailableActions(
              instructions = f"Return your actions as tuples.",
              predefined = {
-                 "What team are you on?": None, 
-                 "Who is the bomber?": None, 
-                 "Who is the president?": None
+                 "What team are you on?": "What team are you on?", 
+                 "Who is the bomber?": "Who is the bomber?", 
+                 "Who is the president?": "Who is the president?"
                  }, # This could use openended responses
              openended = {}
         )
@@ -143,7 +143,7 @@ class TwoRoomsAndaBoom(Game):
 
         available_actions = AvailableActions(
              instructions = f"Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
-             predefined = {"Hello. ": None}, # This is a placeholder for getting openended responses
+             predefined = {"Cooperate": "Hello.", "Object": "I won't tell you." }, # This is a placeholder for getting openended responses
              openended = {} 
         )
         return observation, available_actions
@@ -222,22 +222,24 @@ class TwoRoomsAndaBoom(Game):
                     discussion_context += f"In round {i+1} I am in room {room_index} and need to talk with one of the following players with the following players: {room_ids}. " 
 
                     observation, available_actions = self.observation_get_target(card.agent, self.rooms[room_index], card.context, room_ids) 
-                    target_player_id = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
+                    target_player_id = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
                     card.context += f"I decided to talk to player {target_player_id}. "
                     discussion_context += f"I decided to talk to player {target_player_id}. " 
 
 
                     # playerA generates question
                     observation, available_actions = self.observation_get_question(card.agent, self.rooms[room_index], card.context) 
-                    question_to_ask = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
+                    question_to_ask = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
                     card.context += f"I asked them '{question_to_ask}'. "
                     discussion_context += f"I asked them '{question_to_ask}'. "
 
 
                     # playerB decides response
+                    print("hi mat")
+                    print(target_player_id)
                     target_player = [card for card in self.rooms[room_index].cards if card.identifier == target_player_id][0]
                     observation, available_actions = self.observation_give_answer(target_player.agent, self.rooms[room_index], target_player.context) 
-                    answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
+                    answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
 
                     target_player.context += f"Player {card.identifier} asked me the question, '{question_to_ask}' I responded "
                     target_player.context += f"'{answer}'"
@@ -267,7 +269,7 @@ class TwoRoomsAndaBoom(Game):
             observation, available_actions = self.observation_get_target(leader_0.agent, self.rooms[0], leader_0.context, room_0_ids)
             action = leader_0.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
             
-            room_0_trade = room_0_ids[action.action_id]
+            room_0_trade = room_0_ids[action]
             leader_0.context += f"I decided to trade card {room_0_trade.identifier}.\n"
             if self.show_state: print(f"\n\tLEADER_0 CONTEXT: \n\t{leader_0.context}") 
 
@@ -276,7 +278,7 @@ class TwoRoomsAndaBoom(Game):
             observation, available_actions = self.observation_get_target(leader_1.agent, self.rooms[1], leader_1.context, room_1_ids)
             action = leader_1.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
             
-            room_1_trade = room_1_ids[action.action_id]
+            room_1_trade = room_1_ids[action]
             leader_1.context += f"I decided to trade card {room_1_trade.identifier}.\n"
             if self.show_state: print(f"\n\tLEADER_1 CONTEXT: \n\t{leader_1.context}") 
 
