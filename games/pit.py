@@ -56,7 +56,7 @@ class PitGame(Game):
             else:
                 print(f"No more {chosen_commodity} in stock pile.")
         else:
-            print("Invalid action.")
+            action = random.choice(list(available_actions.keys()))
 
     def play(self) -> Tuple[float, float]:
         while not self.game_is_over:
@@ -78,8 +78,18 @@ agent1 = Agent(team_id=0, agent_id=1, agent_type_id="Trader1")
 agent2 = Agent(team_id=0, agent_id=2, agent_type_id="Trader2")
 
 pit_game = PitGame(
-    id="PitGame1",
-    rules=Rules(title="Pit Game Rules", summary="Simple commodity trading game"),
+    id="Pit",
+    rules=Rules(
+        title="Pit Game Rules",
+        summary="""
+        Pit is a commodity trading game where players engage in trading to accumulate points and emerge as the winner. 
+        The game involves commodity cards representing various goods, with each card holding a specific point value. 
+        Players shout out their trade offers, attempting to negotiate deals with others to acquire valuable commodities. 
+        Additionally, Bull and Bear cards periodically influence the market conditions, either boosting or decreasing commodity values. 
+        The game continues with trading phases, market fluctuations, and scoring until a player or team reaches the agreed-upon point total, 
+        declaring them the victor in the spirited world of commodity trading."
+        """,
+    ),
 )
 pit_game.init_game(agent_1=agent1, agent_2=agent2)
 scores = pit_game.play()
