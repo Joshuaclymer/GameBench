@@ -40,10 +40,12 @@ def log_monad(
 
     def new_fn(context, *args, **kwargs):
         for message in context:
-            print(f"{message['role']}: {message['content']}")
+            content = message["content"].replace("\n", "\n\t\t")
+            print(f"\t{message['role']}: {content}")
 
         ret = fn(context, *args, **kwargs)
-        print(">>> " + str(ret))
+        print("\t>>> " + str(ret).replace("\n", "\n\t\t"))
+        print("\n\n")
         return ret
 
     return new_fn
