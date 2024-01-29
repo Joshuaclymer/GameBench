@@ -2,7 +2,9 @@ from functools import cache
 from .definitions import *
 import math
 from api.classes import Action
+import re
 
+import sys
 
 @cache
 def step(
@@ -18,12 +20,8 @@ def step(
     )
     c = completions(context)
 
-    try:
-        new_state = re.findall(r"<state>(.*)</state>", c, re.S)[0]
-        return GameState(new_state, depth=state.depth + 1)
-    except:
-        # What to do in this position?
-        return GameState(None, depth=DEPTH_LIMIT)
+    new_state = re.findall(r"<state>(.*)</state>", c, re.S)[0]
+    return GameState(new_state, depth=state.depth + 1)
 
 
 @cache
@@ -53,26 +51,30 @@ def get_actions(
     if state.actions:
         return state.actions
 
+    print("\n\n\n\n")
+
     context = context_builder("actions", observation=state.observation)
     c = completions(context)
-    try:
-        c = re.findall(r"<actions>(.*)</actions>", c, re.S)[0]
-        actions = []
-        for action in c.strip().split("\n"):
-            action = Action(action_id=action)
-            actions.append(action)
-        return tuple(actions)
-    except:
-        return tuple()
+    c = re.findall(r"<actions>(.*)</actions>", c, re.S)[0]
+    actions = []
+    for action in c.strip().split("\n"):
+        action = Action(action_id=action)
+        actions.append(action)
+    return tuple(actions)
 
 
 @cache
 def others_actions(
     state: GameState, context_builder: ContextBuilder, completions: CompletionsFunction
 ) -> str:
-    """Determines other players' actions in a state."""
+    """Determines other players' actions in a state.
+
+    Notably, GPT4 seems to incorporate others' actions even when this function
+    fails parse anything (tested in tic-tac-toe)
+    """
     context = context_builder("others", observation=state.observation)
     c = completions(context)
+    c = re.findall(r"<others>(.*)</others>", c, re.S)[0]
     return c
 
 
@@ -96,7 +98,7 @@ def intuitions(
     context = context_builder(
         "action_select",
         observation=state.observation,
-        actions="\n".join(f"{i}{a}" for i, a in enumerate(actions)),
+        actions="\n".join(f"{i}. {a}" for i, a in enumerate(actions)),
     )
     ps = probabilities(context, range(len(actions)))
     return ps

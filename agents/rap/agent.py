@@ -49,9 +49,10 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
         # Maybe make monad composition an agent kwarg.
         self._completions = lookup_monad(self._completions, rules)
-        if self.transparent_reasoning:
-            self._completions = log_monad(self._completions)
-            self._probabilities = log_monad(self._probabilities)
+        #if self.transparent_reasoning:
+        self._completions = log_monad(self._completions)
+        #self._probabilities = log_monad(self._probabilities)
+        _, self._probabilities = random_api()
 
         self.completions = (self.context_builder, self._completions)
         self.probabilities = (self.context_builder, self._probabilities)
@@ -78,20 +79,19 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             observation=obs, depth=0, actions=predefined + openended
         )
 
-        # try:
-        action = self.reasoner(None).trace[1][0]
+        try:
+            action = self.reasoner(None).trace[1][0]
 
-        self.log(
-            f"Recieved the following observation:\n{observation.text}\nAvailable actions: {available_actions}.\nChoosing the action: {action}"
-        )
+            self.log(
+                f"Recieved the following observation:\n{observation.text}\nAvailable actions: {available_actions}.\nChoosing the action: {action}"
+            )
 
-        return action
-        # except Exception as e:
-        #    self.log(f"MCTS threw an error: {e}. Returning random action.")
+            return action
+        except Exception as e:
+            self.log(f"MCTS threw an error: {e=}. Returning random action.")
 
-    #
-    #            actions = list(available_actions.predefined.keys())
-    #            return Action(action_id=random.choice(actions))
+            actions = list(available_actions.predefined.keys
+            return Action(action_id=random.choice(actions))
 
     def init_state(self) -> GameState:
         """From WorldModel; called by MCTS."""
@@ -103,8 +103,18 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         self, state: GameState, action: Action
     ) -> tuple[GameState, dict[str, float]]:
         """From WorldModel; called by MCTS."""
-        oth = others_actions(state, *self.completions)
-        nxt = step(state, action, oth, *self.completions)
+        try:
+            oth = others_actions(state, *self.completions)
+        except Exception as e:
+            self.log(f"Failed to parse others' actions: {e=}")
+            oth = "no information about others' actions"
+
+        try:
+            nxt = step(state, action, oth, *self.completions)
+        except Exception as e:
+            self.log(f"Failed to parse new state: {e=}")
+            nxt = GameState("no information about current state", state.depth+1)
+
         win = win_probability(nxt, *self.probabilities)
         info = {"win_probability": win}
 
@@ -126,7 +136,11 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
     def get_actions(self, state: GameState) -> tuple[Action]:
         """From WorldModel; called by MCTS."""
-        actions = get_actions(state, *self.completions)
+        try:
+            actions = get_actions(state, *self.completions)
+        except Exception as e:
+            self.log(f"Failed to parse actions: {e=}")
+            actions = Action(action_id="do a random action"),
 
         self.log(
             f"Retrieving actions for the following state:\n{state.observation}\nActions: {actions}"
