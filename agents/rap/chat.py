@@ -4,6 +4,7 @@ import openai
 import random
 from .definitions import *
 import math
+from functools import partial
 
 from PIL import Image
 import base64
@@ -18,8 +19,10 @@ def context_builder_factory(rules: Rules) -> ContextBuilder:
     """Makes a context builder with substitutions for game rules."""
     context_templates = util.load_json("agents/rap/context_templates.json")
 
-    def context_builder(template: str, **kwargs: str) -> ContextType:
-        messages = context_templates["prefix"] + context_templates[template]
+    def context_builder(template: str, observation: str, **kwargs: str) -> ContextType:
+        example = context_templates["example"]
+        prefix = context_templates["prefix"]
+        messages = context_templates[template]
 
         if rules.additional_details:
             topics = context_templates["additional_topics"]
@@ -31,13 +34,14 @@ def context_builder_factory(rules: Rules) -> ContextBuilder:
         else:
             topics = ""
 
+        prefix = prefix.format(title=rules.title, summary=rules.summary, observation=observation, topics=topics)
+
         return [
             {
                 "role": ("user" if i & 1 == 0 else "assistant"),
                 "content": message.format(
-                    title=rules.title,
-                    summary=rules.summary,
-                    topics=topics,
+                    example=example,
+                    prefix=prefix,
                     **kwargs,
                 ),
             }
@@ -47,14 +51,14 @@ def context_builder_factory(rules: Rules) -> ContextBuilder:
     return context_builder
 
 
-def openai_api() -> tuple[CompletionsFunction, ProbabilitiesFunction]:
+def openai_api(model="gpt-4-1106-preview") -> tuple[CompletionsFunction, ProbabilitiesFunction]:
     """Returns a CompletionsFunction and a ProbabilitiesFunction that
-    interacts with GPT3.5."""
+    interacts with GPT4."""
 
     def completions(context: ContextType) -> str:
         return (
             openai_client.chat.completions.create(
-                model="gpt-3.5-turbo-1106", messages=context
+                model=model, messages=context
             )
             .choices[0]
             .message.content
