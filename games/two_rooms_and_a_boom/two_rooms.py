@@ -226,7 +226,6 @@ class TwoRoomsAndaBoom(Game):
                     card.context += f"I decided to talk to player {target_player_id}. "
                     discussion_context += f"I decided to talk to player {target_player_id}. " 
 
-
                     # playerA generates question
                     observation, available_actions = self.observation_get_question(card.agent, self.rooms[room_index], card.context) 
                     question_to_ask = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
@@ -235,8 +234,6 @@ class TwoRoomsAndaBoom(Game):
 
 
                     # playerB decides response
-                    print("hi mat")
-                    print(target_player_id)
                     target_player = [card for card in self.rooms[room_index].cards if card.identifier == target_player_id][0]
                     observation, available_actions = self.observation_give_answer(target_player.agent, self.rooms[room_index], target_player.context) 
                     answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
