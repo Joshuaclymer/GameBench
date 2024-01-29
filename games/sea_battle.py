@@ -32,7 +32,7 @@ class Location:
     @property
     def cardinal(self):
         # Alternatively, maybe say "increasing X", "increasing Y", etc.
-        return {1: "direction of increasing X coordinates", 1j: "direction of increasing Y coordinates", -1: "direction of decreasing X coordinates", -1j: "direction of decreasing Y coordinates"}[self.heading]
+        return {1: "East", 1j: "North", -1: "West", -1j: "South"}[self.heading]
 
     def __eq__(self, t):
         return self.position == t.position
@@ -84,8 +84,8 @@ class SeaBattle(Game):
     )
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
-        team1 = [agent1(agent_id=i, team_id=0) for i in range(PLAYERS_PER_TEAM)]
-        team2 = [agent2(agent_id=i+PLAYERS_PER_TEAM, team_id=1) for i in range(PLAYERS_PER_TEAM)]
+        team1 = [agent1(agent_id=i, team_id=0, **self.agent_1_kwargs) for i in range(PLAYERS_PER_TEAM)]
+        team2 = [agent2(agent_id=i+PLAYERS_PER_TEAM, team_id=1, **self.agent_2_kwargs) for i in range(PLAYERS_PER_TEAM)]
         self.agents = team1 + team2
 
         all_locations = [Location(x+y*1j) for x in range(1, 23) for y in range(1, 23)]
