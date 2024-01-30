@@ -64,20 +64,12 @@ class TwoRoomsAndaBoom(Game):
         for index,room in enumerate(self.rooms):
             if self.show_state: print(f"Room {index}: {room.show_cards()}")
 
-    def init_game(self, agent1 : Agent, agent2 : Agent, show_state : bool):        
+    def init_game(self, agent1 : Agent, agent2 : Agent):        
         self.states = [{
             "turn" : 0
         }]
         
-        # currently isn't being used, can delete?
-        self.agent_data = {
-            0: {"team": "Blue"},
-            1: {"team": "Red"}
-        }
-        
         self.agents = [agent1(team_id = 0, agent_id = 0), agent2(team_id = 1, agent_id = 1)]
-
-        self.show_state = show_state
 
         ###############################################################
         ### assign cards to rooms, special chars, and shuffle rooms ###
