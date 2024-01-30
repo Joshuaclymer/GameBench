@@ -3,6 +3,7 @@ from api.classes import Observation, Action, Agent, AvailableActions, Game, Rule
 from typing import List, Dict, Optional, Tuple
 import random
 import pdb
+import re
 
 
 @dataclass
@@ -106,13 +107,13 @@ class TwoRoomsAndaBoom(Game):
     # for discussion and hostage trading #
     ######################################
 
-    def observation_get_target(self, agent: Agent, room_num, context, identifiers) -> Tuple[Observation, AvailableActions]:
+    def observation_get_target(self, room_num, context, identifiers) -> Tuple[Observation, AvailableActions]:
         # identifiers is used in `predefined` and referencing agent action answers; also prevents the Leader from trading themself.
         observation = Observation(text=context)    
         room_data = room_num.show_cards() 
 
         available_actions = AvailableActions(
-             instructions = f"Return your actions as tuples where each integer is between 0 and {self.cards_per_room}-1. Do not pick your own integer.", # placeholder
+             instructions = f"Return your actions as tuples.", # placeholder
              predefined = {
                  f"{a}": f"{a}" for a in identifiers 
              },
@@ -121,23 +122,21 @@ class TwoRoomsAndaBoom(Game):
         return observation, available_actions
 
     # deciding what to ask
-    def observation_get_question(self, agent: Agent, room_num, context) -> Tuple[Observation, AvailableActions]:
+    def observation_get_question(self, room_num, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         room_data = room_num.show_cards() 
 
         available_actions = AvailableActions(
              instructions = f"Return your actions as tuples.",
              predefined = {
-                 "What team are you on?": "What team are you on?", 
-                 "Who is the bomber?": "Who is the bomber?", 
-                 "Who is the president?": "Who is the president?"
+                 "What team are you on?": "What team are you on?"
                  }, # This could use openended responses
              openended = {}
         )
         return observation, available_actions
 
     # return answer
-    def observation_give_answer(self, agent: Agent, room_num, context) -> Tuple[Observation, AvailableActions]:
+    def observation_give_answer(self, room_num, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         room_data = room_num.show_cards() 
 
@@ -209,7 +208,7 @@ class TwoRoomsAndaBoom(Game):
                 else:
                     current_leader = leader_1
 
-                # currently allows all players a single opportunity to engage with another player
+                # currently allows *all* players a single opportunity to engage with another player
                 for card in self.rooms[room_index].cards:
 
                     discussion_context = "" # take agent's interaction, poss updates leader
@@ -221,21 +220,23 @@ class TwoRoomsAndaBoom(Game):
                     card.context += f"In round {i+1} I am in room {room_index} and need to talk with one of the following players with the following players: {room_ids}. "
                     discussion_context += f"In round {i+1} I am in room {room_index} and need to talk with one of the following players with the following players: {room_ids}. " 
 
-                    observation, available_actions = self.observation_get_target(card.agent, self.rooms[room_index], card.context, room_ids) 
+                    observation, available_actions = self.observation_get_target(self.rooms[room_index], card.context, room_ids) 
                     target_player_id = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                    if not isinstance(target_player_id, int):
+                        target_player_id = random.choice(room_ids) # this needs the room's list and then random choice
                     card.context += f"I decided to talk to player {target_player_id}. "
                     discussion_context += f"I decided to talk to player {target_player_id}. " 
 
-                    # playerA generates question
-                    observation, available_actions = self.observation_get_question(card.agent, self.rooms[room_index], card.context) 
+                   # playerA generates question
+                    observation, available_actions = self.observation_get_question(self.rooms[room_index], card.context) 
                     question_to_ask = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
                     card.context += f"I asked them '{question_to_ask}'. "
                     discussion_context += f"I asked them '{question_to_ask}'. "
 
 
-                    # playerB decides response
+                   # playerB decides response
                     target_player = [card for card in self.rooms[room_index].cards if card.identifier == target_player_id][0]
-                    observation, available_actions = self.observation_give_answer(target_player.agent, self.rooms[room_index], target_player.context) 
+                    observation, available_actions = self.observation_give_answer(self.rooms[room_index], target_player.context) 
                     answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
 
                     target_player.context += f"Player {card.identifier} asked me the question, '{question_to_ask}' I responded "
@@ -252,7 +253,7 @@ class TwoRoomsAndaBoom(Game):
                     # Leader of room gets updated context
                     if card.is_leader != "Leader":
                         if card.team == current_leader.team:
-                            current_leader.context += f"""During round {i+1} Player {card.identifier} gave the following info for me to make decisions with ""{discussion_context}""."""
+                            current_leader.context += f"""During round {i+1} Player {card.identifier} gave the following info for me to make decisions with ""{discussion_context}"". """
 
 
             ####################################
@@ -263,22 +264,26 @@ class TwoRoomsAndaBoom(Game):
             room_1_ids = {card.identifier: card for card in self.rooms[1].show_cards() if card != leader_1}
 
             ### Room 0 ###
-            observation, available_actions = self.observation_get_target(leader_0.agent, self.rooms[0], leader_0.context, room_0_ids)
-            action = leader_0.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+            observation, available_actions = self.observation_get_target(self.rooms[0], leader_0.context, room_0_ids)
+            card_to_trade = leader_0.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+            if not isinstance(card_to_trade, str) or not re.match(r'^\d$', card_to_trade):
+                items = list(room_0_ids.keys())
+                card_to_trade = random.choice(items)
             
-            room_0_trade = room_0_ids[action]
+            room_0_trade = room_0_ids[card_to_trade]
             leader_0.context += f"I decided to trade card {room_0_trade.identifier}.\n"
             if self.show_state: print(f"\n\tLEADER_0 CONTEXT: \n\t{leader_0.context}") 
-
             
             # Room 1
-            observation, available_actions = self.observation_get_target(leader_1.agent, self.rooms[1], leader_1.context, room_1_ids)
-            action = leader_1.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+            observation, available_actions = self.observation_get_target(self.rooms[1], leader_1.context, room_1_ids)
+            card_to_trade = leader_1.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+            if not isinstance(card_to_trade, str) or not re.match(r'^\d$', card_to_trade):
+                items = list(room_1_ids.keys())
+                card_to_trade = random.choice(items)
             
-            room_1_trade = room_1_ids[action]
+            room_1_trade = room_1_ids[card_to_trade]
             leader_1.context += f"I decided to trade card {room_1_trade.identifier}.\n"
             if self.show_state: print(f"\n\tLEADER_1 CONTEXT: \n\t{leader_1.context}") 
-
 
             # Action
             self.trade_card(room_0_trade, room_1_trade)
