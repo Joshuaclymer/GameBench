@@ -9,26 +9,27 @@ class AreYouTheTraitor(Game):
     ### Class definitions ###
     #########################
     class Player:
-        def __init__(self, identifier, agent, team, role, context, score):
+        def __init__(self, identifier, agent, team, role, target, context, cards, score):
             self.identifier = identifier
             self.agent = agent
             self.team = team
             self.role = role
+            self.target = target
             self.context = context
+            self.cards = cards
             self.score = score
 
         def __repr__(self):
-            return f"Player({self.identifier}, {self.team}, {self.score}, {self.agent}, {self.role})" # not including self.context for brevity
+            return f"Player({self.identifier}, {self.team}, {self.score}, {self.role}, {self.cards})" # not including self.context for brevity
 
     class TreasureCard:
-        def __init__(self, identifier, name, num_points, special_ability):
+        def __init__(self, identifier, name, num_points):
             self.identifier = identifier
             self.name = name
             self.num_points = num_points
-            self.special_ability = special_ability
 
         def __repr__(self):
-            return f"Treasure({self.identifier}, {self.name}, {self.num_points}, {self.special_ability})"
+            return f"Treasure({self.identifier}, {self.name}, {self.num_points})"
 
     #############################
     ### Attribute definitions ###
@@ -45,7 +46,8 @@ class AreYouTheTraitor(Game):
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
         self.agents = [agent1(team_id = 0, agent_id = 0), agent2(team_id = 1, agent_id = 1)]
-        self.winning_team = None
+        self.round_winner = None
+        self.game_winner = None
 
         ######################
         ### create players ###
@@ -72,11 +74,11 @@ class AreYouTheTraitor(Game):
         """
 
         # I'm starting with Evil in case I need to add, the good agents increase first
-        self.list_all_players.append(self.Player(0, self.agents[0], "evil", "traitor", f"{traitor_context}", 0))
-        self.list_all_players.append(self.Player(1, self.agents[0], "evil", "evil_wizard", f"{evil_wizard_context}", 0))
-        self.list_all_players.append(self.Player(2, self.agents[1], "good", "good_wizard", f"{good_wizard_context}", 0))
-        self.list_all_players.append(self.Player(3, self.agents[1], "good", "key_holder", f"{key_holder_context}", 0))
-        self.list_all_players.append(self.Player(4, self.agents[1], "good", "guard", f"{guard_context}", 0))
+        self.list_all_players.append(self.Player(0, self.agents[0], "evil", "traitor", "", f"{traitor_context}", [], 0))
+        self.list_all_players.append(self.Player(1, self.agents[0], "evil", "evil_wizard", "key_holder", f"{evil_wizard_context}", [], 0))
+        self.list_all_players.append(self.Player(2, self.agents[1], "good", "good_wizard", "traitor", f"{good_wizard_context}", [], 0))
+        self.list_all_players.append(self.Player(3, self.agents[1], "good", "key_holder", "good_wizard", f"{key_holder_context}", [], 0))
+        self.list_all_players.append(self.Player(4, self.agents[1], "good", "guard", "traitor", f"{guard_context}", [], 0))
 
         ### create Treasure cards ###
 
@@ -92,12 +94,12 @@ class AreYouTheTraitor(Game):
         }
 
         counter = 0
-
         for key in name_treasures.keys():
             for num_cards in range(name_treasures[key][0]):
-                self.list_all_treasures.append(self.TreasureCard(counter, key, name_treasures[key][1], "n/a"))
+                self.list_all_treasures.append(self.TreasureCard(counter, key, name_treasures[key][1]))
                 counter += 1
 
+        random.shuffle(self.list_all_treasures)
     
     def get_observation(self, agent : Agent): 
         return
@@ -106,12 +108,38 @@ class AreYouTheTraitor(Game):
         player_1 = self.agents[0]
         player_2 = self.agents[1]
         
-        def check_if_winner():
+        def check_round_winner(accuser, accused):
+            ## find winning team
+            if accuser.target == accused:
+                self.round_winner = accuser.team
+            else:
+                if accuser.team == "evil":
+                    self.round_winner = "good"
+                else:
+                    self.round_winner = "evil"
+            print(f"the {self.round_winner} team won!")
+
+            ## give them treasure cards
+            winning_team = [player for player in self.list_all_players if player.team == self.round_winner]
+
+            print("testing out the card transitions\n\n")
+            print(self.list_all_treasures)
+
+            for player in winning_team:
+                player.cards.append(self.list_all_treasures[0])
+                self.list_all_treasures.pop(0)
+                print(player)
+
+            print(self.list_all_treasures)
+
+
+
+        def check_game_winner():
             #print(self.list_all_players[1].score)
             for i in self.list_all_players:
                 if i.score >= 10:
                     if self.show_state: print("game done")
-                    self.winning_team = i.team
+                    self.game_winner = i.team
                     return True
                 else:
                     continue
@@ -122,16 +150,24 @@ class AreYouTheTraitor(Game):
         ####################
         while True: # runs until points >= 10
 
-            self.list_all_players[0].score += 4
-            print(self.list_all_players[0].score)
-            ## Assign roles ## or maybe this can just be the reseting of contexts...
+            ## reseting of contexts...
             ## conversations happen ##
             ## someone yells stop ##
-            if check_if_winner() == True:
+            #check_round_winner(self.list_all_players[1], self.list_all_players[2].role) # good
+            check_round_winner(self.list_all_players[1], self.list_all_players[3].role) # evil
+
+            ## award points ##
+            self.list_all_players[0].score += 4
+            print(self.list_all_players[0].score)
+
+            ## magic rings ##
+
+            ## check if winner ##
+            if check_game_winner() == True:
                 break
             else:
                 continue
 
-        print(f"The {self.winning_team} team is the winner")
+        print(f"The {self.game_winner} team is the winner")
 
-        return (1, 0) if self.winning_team == "good" else (0,1)
+        return (1, 0) if self.game_winner == "good" else (0,1)
