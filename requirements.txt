@@ -1,3 +1,5 @@
 fire
 Pillow
 openai
+santorinai
+colorama
