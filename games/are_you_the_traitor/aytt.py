@@ -18,7 +18,17 @@ class AreYouTheTraitor(Game):
             self.score = score
 
         def __repr__(self):
-            return f"Player({self.identifier}, {self.team}, {self.score}, {self.agent}, {self.role})" # not including self.context for brevity again
+            return f"Player({self.identifier}, {self.team}, {self.score}, {self.agent}, {self.role})" # not including self.context for brevity
+
+    class TreasureCard:
+        def __init__(self, identifier, name, num_points, special_ability):
+            self.identifier = identifier
+            self.name = name
+            self.num_points = num_points
+            self.special_ability = special_ability
+
+        def __repr__(self):
+            return f"Treasure({self.identifier}, {self.name}, {self.num_points}, {self.special_ability})"
 
     #############################
     ### Attribute definitions ###
@@ -30,12 +40,12 @@ class AreYouTheTraitor(Game):
     )
     id : str = "are_you_the_traitor"
     list_all_players : list = field(default_factory=list)
+    list_all_treasures: list = field(default_factory=list)
     players_per_team : int = 3
 
-    def init_game(self, agent1 : Agent, agent2 : Agent, show_state : bool):        
+    def init_game(self, agent1 : Agent, agent2 : Agent):
         self.agents = [agent1(team_id = 0, agent_id = 0), agent2(team_id = 1, agent_id = 1)]
         self.winning_team = None
-        self.show_state = show_state
 
         ######################
         ### create players ###
@@ -67,10 +77,28 @@ class AreYouTheTraitor(Game):
         self.list_all_players.append(self.Player(2, self.agents[1], "good", "good_wizard", f"{good_wizard_context}", 0))
         self.list_all_players.append(self.Player(3, self.agents[1], "good", "key_holder", f"{key_holder_context}", 0))
         self.list_all_players.append(self.Player(4, self.agents[1], "good", "guard", f"{guard_context}", 0))
-    
-#        for i in self.list_all_players:
-#            print(i.context)
 
+        ### create Treasure cards ###
+
+        # name, num_cards, points
+        name_treasures = {
+            "crown_jewels": [2, 5],
+            "platinum_pyramids": [5, 4],
+            "bags_of_gold": [12, 3],
+            "silver_goblets": [11, 2],
+            "chest_of_copper": [5, 1],
+            "magic_ring": [5, 1],
+            "gilded_statue": [2, 0]
+        }
+
+        counter = 0
+
+        for key in name_treasures.keys():
+            for num_cards in range(name_treasures[key][0]):
+                self.list_all_treasures.append(self.TreasureCard(counter, key, name_treasures[key][1], "n/a"))
+                counter += 1
+
+    
     def get_observation(self, agent : Agent): 
         return
 
@@ -96,7 +124,7 @@ class AreYouTheTraitor(Game):
 
             self.list_all_players[0].score += 4
             print(self.list_all_players[0].score)
-            ## Assign roles ##
+            ## Assign roles ## or maybe this can just be the reseting of contexts...
             ## conversations happen ##
             ## someone yells stop ##
             if check_if_winner() == True:
