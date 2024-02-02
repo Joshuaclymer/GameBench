@@ -47,12 +47,11 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             openai_api(),
         ][self.agent_type]
 
-        # Maybe make monad composition an agent kwarg.
         self._completions = lookup_monad(self._completions, rules)
-        #if self.transparent_reasoning:
-        self._completions = log_monad(self._completions)
-        #self._probabilities = log_monad(self._probabilities)
-        _, self._probabilities = random_api()
+
+        if self.transparent_reasoning:
+            self._completions = log_monad(self._completions)
+            self._probabilities = log_monad(self._probabilities)
 
         self.completions = (self.context_builder, self._completions)
         self.probabilities = (self.context_builder, self._probabilities)
@@ -64,12 +63,22 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
         if observation.image is not None:
             self.log("Recieved image observation. Requesting text description.")
             obs += "\n" + image_description(observation.image, rules)
+        obs += "\n" + available_actions.instructions
 
-        # Construct available actions: turn image observations into text descriptions
-        predefined = tuple(Action(k) for k in available_actions.predefined.keys())
+        # Add description as openended_response of predefined action. This has
+        # the effect of listing the description when showing to GPT, but will
+        # be ignored by the game since it's a predefined action.
+        predefined = tuple(
+            Action(action, openended_response=description)
+            for action, description in available_actions.predefined.items()
+        )
+
+        # Get openended responses now, and GPT will select from them as if they
+        # are a predefined action. TODO: maybe get several possible responses.
         openended = []
-        for action in available_actions.openended.keys():
-            context = self.context_builder("openended", observation=obs, action=action)
+        for action, description in available_actions.openended.items():
+            temp = Action(action, openended_response=description)
+            context = self.context_builder("openended", observation=obs, action=temp)
             c = self._completions(context)
             action = Action(action, openended_response=c)
             openended.append(action)
@@ -88,10 +97,9 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
             return action
         except Exception as e:
-            self.log(f"MCTS threw an error: {e=}. Returning random action.")
+            self.log(f"MCTS threw an error: {e=}. Returning default action.")
 
-            actions = list(available_actions.predefined.keys
-            return Action(action_id=random.choice(actions))
+            return Action(action_id=None)
 
     def init_state(self) -> GameState:
         """From WorldModel; called by MCTS."""
@@ -113,7 +121,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             nxt = step(state, action, oth, *self.completions)
         except Exception as e:
             self.log(f"Failed to parse new state: {e=}")
-            nxt = GameState("no information about current state", state.depth+1)
+            nxt = GameState("no information about current state", state.depth + 1)
 
         win = win_probability(nxt, *self.probabilities)
         info = {"win_probability": win}
@@ -140,7 +148,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
             actions = get_actions(state, *self.completions)
         except Exception as e:
             self.log(f"Failed to parse actions: {e=}")
-            actions = Action(action_id="do a random action"),
+            actions = (Action(action_id="do a random action"),)
 
         self.log(
             f"Retrieving actions for the following state:\n{state.observation}\nActions: {actions}"
