@@ -88,8 +88,8 @@ class SeaBattle(Game):
             print("Sea battle:", message)
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
-        team1 = [agent1(agent_id=i, team_id=0) for i in range(PLAYERS_PER_TEAM)]
-        team2 = [agent2(agent_id=i+PLAYERS_PER_TEAM, team_id=1) for i in range(PLAYERS_PER_TEAM)]
+        team1 = [agent1(agent_id=i, team_id=0, **self.agent_1_kwargs) for i in range(PLAYERS_PER_TEAM)]
+        team2 = [agent2(agent_id=i+PLAYERS_PER_TEAM, team_id=1, **self.agent_2_kwargs) for i in range(PLAYERS_PER_TEAM)]
         self.agents = team1 + team2
 
         all_locations = [Location(x+y*1j) for x in range(1, 23) for y in range(1, 23)]
