@@ -131,7 +131,7 @@ class SeaBattle(Game):
         self.log(f"Showing observation for agent {agent.agent_id}:\n\t{tabbed}")
 
         available_actions = AvailableActions(
-            instructions="Choose your action for the next turn.",
+            instructions="Decide how you will move and shoot this turn.",
             predefined={
                 "move left then shoot left"    : "Move forward one square, rotate left, move forward another square, then shoot to your left.",
                 "move left then shoot right"   : "Move forward one square, rotate left, move forward another square, then shoot to your right.",
