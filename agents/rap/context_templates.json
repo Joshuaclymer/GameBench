@@ -1,0 +1,48 @@
+{
+    "actions": [
+        "To the best of your ability, predict your available actions in this position between <actions> and </action>:"
+    ],
+    "action_select": [
+        "To the best of your ability, predict your available actions in this position between <actions> and </action>:",
+        "<actions>\n{actions}\n</actions>",
+        "Choose an action by writing only the associated number."
+    ],
+    "self_eval": [
+        "Write your action below:",
+        "{action}",
+        "Is this a good action? yes/no."
+    ],
+    "others": [
+        "To the best of your ability, predict what actions other players might take between <others> and </others>:"
+    ],
+    "state": [
+        "Write your action below:",
+        "{action}",
+        "Write other players's actions below:",
+        "{others}",
+        "To the best of your ability, predict your new observation of the game based on your actions and others' actions between <state> and </state>:"
+    ],
+    "openended": [
+        "Write your action below:",
+        "{action}",
+        "This is an opendended action. Write a description of what you're going to do."
+    ],
+    "goal": [
+        "Will you eventually win from this position? yes/no"
+    ],
+    "prefix": [
+        "You are playing a game called monty hall.\nThe rules of the game are as follows: there are three doors, behind one of which there is a prize. Select the door with the prize.\nTo the best of your ability, predict your (potentially-limited) observation of the game between <state> and </state>:",
+        "<state>\nAll three doors are closed.\n</state>",
+        "To the best of your ability, predict your available actions in this position between <actions> and </action>:",
+        "<actions>\n0 Choose the left door\n1 Choose the middle door\n2 Choose the right door\n</actions>",
+        "To the best of your ability, predict what actions other players might take between <others> and </others>:",
+        "<others>\nIf I choose the left door, my opponent might reveal the middle or right door.\nIf I choose the middle door, my opponent might reveal the left or right door.\nIf I choose the right door, my opponent might reveal the left or middle door.\n</others>",
+        "Choose an action by writing only the associated number:",
+        "0",
+        "To the best of your ability, predict your new observation of the game based on your actions and others' actions between <state> and </state>:",
+        "<state>\nThe left and right doors are closed, and the middle is open. There is no prize behind it.\n</state>",
+        "You are now playing a game called {title}.\nThe rules are as follows {summary}. {topics}To the best of your ability, predict your (potentially-limited) observation of the game between <state> and </state>:",
+        "<state>\n{observation}\n</state>"
+    ],
+    "additional_topics": "If you would like to learn more about the rules at any point, use rule(<topic>) where <topic> is one of {topics}. "
+}
