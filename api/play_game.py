@@ -4,7 +4,7 @@ import random
 
 K = 32
 
-def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_results = True, show_state=False):
+def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_results = True, show_state=False, agent_1_kwargs = {}, agent_2_kwargs = {}):
     agent_1_class = util.import_class(agent_1_path)
     agent_2_class = util.import_class(agent_2_path)
     agent_1_id = agent_1_class.agent_type_id
@@ -27,7 +27,7 @@ def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_resul
         game_elos[agent_1_id] = 1500
     if agent_2_id not in game_elos:
         game_elos[agent_2_id] = 1500
-    
+
     agent_1_rating = game_elos[agent_1_id]
     agent_2_rating = game_elos[agent_2_id]
     print(f"{agent_1_id} elo: ", agent_1_rating)
@@ -46,7 +46,7 @@ def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_resul
         print(f"Historical average scores for these two agents across {num_matches} matches:")
         print(f'{agent_1_id} avg score: ', agent_1_total/num_matches)
         print(f'{agent_2_id} avg score: ', 1 - agent_1_total / num_matches)
-    
+
     Q1 = 10**(agent_1_rating / 400)
     Q2 = 10**(agent_2_rating / 400)
 
@@ -54,14 +54,15 @@ def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_resul
     agent_2_expected_score = Q2 / (Q1 + Q2)
 
     for _ in range(num_matches):
-        game = game_class(show_state=show_state)
         if random.choice([0,1]):
+            game = game_class(show_state=show_state, agent_1_kwargs=agent_1_kwargs, agent_2_kwargs=agent_2_kwargs)
             game.init_game(agent_1_class, agent_2_class)
             player_1_score, player_2_score = game.play()
         else:
+            game = game_class(show_state=show_state, agent_1_kwargs=agent_2_kwargs, agent_2_kwargs=agent_1_kwargs)
             game.init_game(agent_2_class, agent_1_class)
             player_2_score, player_1_score = game.play()
-        
+
         print(f"{agent_1_id} score: ", player_1_score)
         print(f"{agent_2_id} score: ", player_2_score)
 
@@ -80,15 +81,15 @@ def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_resul
             util.save_json(matches, "matches.json")
             print("Saved match information")
 
-            agent_1_rating = agent_1_rating + K * (player_1_score - agent_1_expected_score) 
-            agent_2_rating = agent_2_rating + K * (player_2_score - agent_2_expected_score) 
+            agent_1_rating = agent_1_rating + K * (player_1_score - agent_1_expected_score)
+            agent_2_rating = agent_2_rating + K * (player_2_score - agent_2_expected_score)
             all_ratings[game_class.id][agent_1_id] = agent_1_rating
             all_ratings[game_class.id][agent_2_id] = agent_2_rating
             print("Updated elos:")
             print(f"{agent_1_id}: ", agent_1_rating)
             print(f"{agent_2_id}: ", agent_2_rating)
             util.save_json(all_ratings, "elo_ratings.json")
-    
+
     print("")
     print(f"Agent 1 ({agent_1_id}) average score: ", player_1_total/num_matches)
     print(f"Agent 2 ({agent_2_id}) average score: ", player_2_total/num_matches)
