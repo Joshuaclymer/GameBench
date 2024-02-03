@@ -64,12 +64,8 @@ class TwoRoomsAndaBoom(Game):
         for index,room in enumerate(self.rooms):
             if self.show_state: print(f"Room {index}: {room.show_cards()}")
 
-    def init_game(self, agent1 : Agent, agent2 : Agent):        
-        self.states = [{
-            "turn" : 0
-        }]
-        
-        self.agents = [agent1(team_id = 0, agent_id = 0), agent2(team_id = 1, agent_id = 1)]
+    def init_game(self, agent1 : Agent, agent2 : Agent):
+        self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_1_kwargs)]
 
         ###############################################################
         ### assign cards to rooms, special chars, and shuffle rooms ###
@@ -121,7 +117,7 @@ class TwoRoomsAndaBoom(Game):
         available_actions = AvailableActions(
              instructions = f"Return your actions as tuples.",
              predefined = {
-                 "What team are you on?": "What team are you on?"
+                 "Team": "What team are you on?"
                  }, # This could use openended responses
              openended = {}
         )
@@ -214,6 +210,7 @@ class TwoRoomsAndaBoom(Game):
 
                     observation, available_actions = self.observation_get_target(self.rooms[room_index], card.context, room_ids) 
                     target_player_id = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+
                     if not isinstance(target_player_id, int):
                         target_player_id = random.choice(room_ids) # this needs the room's list and then random choice
                     card.context += f"I decided to talk to player {target_player_id}. "
@@ -222,6 +219,11 @@ class TwoRoomsAndaBoom(Game):
                    # playerA generates question
                     observation, available_actions = self.observation_get_question(self.rooms[room_index], card.context) 
                     question_to_ask = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+
+                    if question_to_ask not in available_actions.predefined or available_actions.openended:
+                        choice = random.choice(list(available_actions.predefined.keys()))
+                        question_to_ask = available_actions.predefined[choice]
+
                     card.context += f"I asked them '{question_to_ask}'. "
                     discussion_context += f"I asked them '{question_to_ask}'. "
 
@@ -230,6 +232,10 @@ class TwoRoomsAndaBoom(Game):
                     target_player = [card for card in self.rooms[room_index].cards if card.identifier == target_player_id][0]
                     observation, available_actions = self.observation_give_answer(self.rooms[room_index], target_player.context) 
                     answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+
+                    if answer not in available_actions.predefined or available_actions.openended:
+                        choice = random.choice(list(available_actions.predefined.keys()))
+                        answer = available_actions.predefined[choice]
 
                     target_player.context += f"Player {card.identifier} asked me the question, '{question_to_ask}' I responded "
                     target_player.context += f"'{answer}'"

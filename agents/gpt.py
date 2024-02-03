@@ -120,9 +120,6 @@ class ChatGPTText(OpenAITextAgent):
 class GPT4Text(OpenAITextAgent):
     openai_model : str = "gpt-4-1106-preview"
     agent_type_id : str = "gpt-4"
-<<<<<<< HEAD
-=======
-
 
 @dataclass
 class ChainOfThought(Agent):
@@ -323,4 +320,3 @@ class BabbleAndPrune(Agent):
             return Action(action_id=None)
 
         return Action(action_id=result["action"], openended_response=result.get("openended_response"))
->>>>>>> 9cab7531c667aac187447d11a30a349b59f481dd
