@@ -112,17 +112,21 @@ class AreYouTheTraitor(Game):
         
         def check_round_winner(accuser, accused):
             ## find winning team
-            if accuser.target == accused:
-                self.round_winner = accuser.team
-            else:
-                if accuser.team == "evil":
-                    self.round_winner = "good"
-                else:
-                    self.round_winner = "evil"
-            print(f"the {self.round_winner} team won!")
+#            if accuser.target == accused:
+#                self.round_winner = accuser.team
+#            else:
+#                if accuser.team == "evil":
+#                    self.round_winner = "good"
+#                else:
+#                    self.round_winner = "evil"
+            teams = ["evil", "good"] 
+            round_winner = random.choice(teams)
+            #print(f"the {self.round_winner} team won!")
+            print(f"the {round_winner} team won!")
 
             ## give them treasure cards
-            winning_team = [player for player in self.list_all_players if player.team == self.round_winner]
+            #winning_team = [player for player in self.list_all_players if player.team == self.round_winner]
+            winning_team = [player for player in self.list_all_players if player.team == round_winner]
 
             for player in winning_team:
                 player.cards.append(self.list_all_treasures[0])
@@ -145,6 +149,31 @@ class AreYouTheTraitor(Game):
                     continue
             return False
 
+        def check_special_cards(card_type):
+            players_with_cards = [player for player in self.list_all_players if len(player.cards) != 0]
+            players_with_special = []
+            for player in players_with_cards:
+                for card in player.cards:
+                    if card.name == card_type and player not in players_with_special:
+                        players_with_special.append(player)
+            return players_with_special
+
+        def use_magic_ring(card_player, gs_owner):
+            self_team = card_player.team
+            players_with_cards = [player for player in self.list_all_players if len(player.cards) != 0 and player.team != self_team]
+            print(f"player to magic ring: {card_player}")
+            print("avail cards")
+            print(players_with_cards) 
+            rand_player = random.choice(players_with_cards)
+            if rand_player in gs_owner: 
+                print("giev gs, remove gs?")
+                print(rand_player)
+            else:
+                rand_card = random.choice(rand_player.cards)
+                print(rand_card)
+            
+
+
         ####################
         ### rounds start ###
         ####################
@@ -153,20 +182,25 @@ class AreYouTheTraitor(Game):
             ## reseting of contexts... ##
             ## conversations happen ##
             ## someone yells stop ##
-            check_round_winner(self.list_all_players[1], self.list_all_players[2].role) # good
-            #check_round_winner(self.list_all_players[1], self.list_all_players[3].role) # evil
+            #check_round_winner(self.list_all_players[1], self.list_all_players[2].role) # good
 
-            ## magic rings ##
+            ## magic rings / gilded statue check##
+            magic_ring_players = check_special_cards("magic_ring")
+            gilded_statue_players = check_special_cards("gilded_statue")
+            #use_magic_ring(self.list_all_players[3], gilded_statue_players)
+            
+            print("\n\n\t begin the outputs")
 
-            players_with_cards = [player for player in self.list_all_players if len(player.cards) != 0]
-            magic_ring_players = []
-            for player in players_with_cards:
-                print(player.cards)
-                for card in player.cards:
-                    if card.name == "magic_ring" and player not in magic_ring_players:
-                        magic_ring_players.append(player)
-            print("here are magic ring ppl")
-            print(magic_ring_players)
+            check_round_winner(self.list_all_players[1], self.list_all_players[3].role) # evil
+            for i in self.list_all_players:
+                print(i)
+
+            print("\n\n\t\t magic ring players")
+            print(magic_ring_players) 
+
+            print("\n\n\t\t GS players")
+            print(gilded_statue_players )
+            
 
             ## check if winner ##
             if check_game_winner() == True:
