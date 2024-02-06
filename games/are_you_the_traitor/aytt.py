@@ -161,16 +161,30 @@ class AreYouTheTraitor(Game):
         def use_magic_ring(card_player, gs_owner):
             self_team = card_player.team
             players_with_cards = [player for player in self.list_all_players if len(player.cards) != 0 and player.team != self_team]
+
             print(f"player to magic ring: {card_player}")
             print("avail cards")
             print(players_with_cards) 
+
+            if len(players_with_cards) == 0:
+                return
+
             rand_player = random.choice(players_with_cards)
-            if rand_player in gs_owner: 
-                print("giev gs, remove gs?")
-                print(rand_player)
-            else:
-                rand_card = random.choice(rand_player.cards)
-                print(rand_card)
+            rand_card = random.choice(rand_player.cards)
+
+            card_player.cards.append(rand_card)
+            rand_player.cards.remove(rand_card)
+
+#            if rand_player in gs_owner: 
+#                print("giev gs, remove gs?")
+#                print(rand_player)
+#            else:
+#                rand_card = random.choice(rand_player.cards)
+#                print(rand_card)
+
+            ## take card
+
+            
             
 
 
@@ -200,6 +214,10 @@ class AreYouTheTraitor(Game):
 
             print("\n\n\t\t GS players")
             print(gilded_statue_players )
+
+            for i in magic_ring_players:
+                print("\n\n\tbegin the magic ring")
+                use_magic_ring(i, gilded_statue_players)
             
 
             ## check if winner ##
