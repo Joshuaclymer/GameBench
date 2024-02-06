@@ -159,30 +159,33 @@ class AreYouTheTraitor(Game):
             return players_with_special
 
         def use_magic_ring(card_player, gs_owner):
-            self_team = card_player.team
-            players_with_cards = [player for player in self.list_all_players if len(player.cards) != 0 and player.team != self_team]
-
-            print(f"player to magic ring: {card_player}")
-            print("avail cards")
-            print(players_with_cards) 
-
+            # get avail players
+            players_with_cards = [player for player in self.list_all_players if len(player.cards) != 0 and player.team != card_player.team]
             if len(players_with_cards) == 0:
                 return
 
+            # pick player to take from
             rand_player = random.choice(players_with_cards)
-            rand_card = random.choice(rand_player.cards)
+            #print(f"rand_player === {rand_player}")
+            if rand_player in gs_owner: 
+                gs_card = [card for card in rand_player.cards if card.name == "gilded_statue"][0]
+                #print("got gs")
+                card_player.cards.append(gs_card)
+                rand_player.cards.remove(gs_card)
+            else:
+                rand_card = random.choice(rand_player.cards)
+                card_player.cards.append(rand_card)
+                rand_player.cards.remove(rand_card)
+                #print("getting rand card")
+                #print(rand_card)
+            #print(rand_player)
 
-            card_player.cards.append(rand_card)
-            rand_player.cards.remove(rand_card)
-
-#            if rand_player in gs_owner: 
-#                print("giev gs, remove gs?")
-#                print(rand_player)
-#            else:
-#                rand_card = random.choice(rand_player.cards)
-#                print(rand_card)
-
-            ## take card
+            ## needs to drop the magic ring
+            magic_ring = [card for card in card_player.cards if card.name == "magic_ring"][0]
+            #print(f"magic ring player: {card_player}")
+            card_player.cards.remove(magic_ring)
+            #print(f"magic ring player: {card_player}")
+            if self.show_state == True: print("Used a magic ring")
 
             
             
@@ -203,20 +206,20 @@ class AreYouTheTraitor(Game):
             gilded_statue_players = check_special_cards("gilded_statue")
             #use_magic_ring(self.list_all_players[3], gilded_statue_players)
             
-            print("\n\n\t begin the outputs")
+            print("\n\n\t ###### begin the outputs ######")
 
             check_round_winner(self.list_all_players[1], self.list_all_players[3].role) # evil
-            for i in self.list_all_players:
-                print(i)
+#            for i in self.list_all_players:
+#                print(i)
 
-            print("\n\n\t\t magic ring players")
-            print(magic_ring_players) 
-
-            print("\n\n\t\t GS players")
-            print(gilded_statue_players )
+#            if len(magic_ring_players) > 0:
+#                print("\n\n\t\t magic ring players")
+#                print(magic_ring_players)
+#                if len(gilded_statue_players) > 0:
+#                    print("\n\n\t\t GS players")
+#                    print(gilded_statue_players)
 
             for i in magic_ring_players:
-                print("\n\n\tbegin the magic ring")
                 use_magic_ring(i, gilded_statue_players)
             
 
