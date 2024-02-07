@@ -30,14 +30,13 @@ class OpenAITextAgent(Agent):
     agent_type_id : str
     system_message : str = "You are an agent playing a game. Select the action that maximizes your probability of winning."
     max_retries : int = 3
-    show_thought_process : bool = False
 
     def take_action(self, rules: Rules, observation: Observation, available_actions: AvailableActions, show_state : bool):
         valid_actions = []
         prompt = f"You are playing a game called {rules.title}. The rules are as follows:\n{rules.summary}\n"
         if rules.additional_details != None:
             prompt += "The following are headings with additional information about the rules that you can expand by taking the action Explain(<heading key>).\n"
-            details_dict = {f"H{i+1}": topic + " - " + description for i, (topic, description) in enumerate(rules.additional_details)}
+            details_dict = {f"H{i+1}": topic for i, topic in rules.additional_details}
             prompt += json.dumps(details_dict, indent=4)
             valid_actions.extend(f"Explain({h})" for h in list(details_dict.keys()))
 
@@ -45,9 +44,6 @@ class OpenAITextAgent(Agent):
         assert available_actions.predefined != {} or available_actions.openended != {}
         prompt += f"\n# Actions\n"
         prompt += f"{available_actions.instructions}\n"
-
-        if show_state:
-            print(f"\n# Observation\nThe following describes the current state of the game:\n{observation.text}\n")
 
         if len(list(available_actions.openended.keys())) > 0:
             prompt += action_format_instructions_with_openended
@@ -69,13 +65,11 @@ class OpenAITextAgent(Agent):
         prompt += "\nTo summarize, you must return json with an 'action' key which contains one of the following valid actions:\n"
         prompt += str(list(valid_actions))
 
-        if self.show_thought_process:
-            prompt += "\nPlease also include a key 'debug' with a detailed expalanation of your thought process. This will not be seen by other players but will be used to improve the agent.\n"
-
         messages = [
             {"role": "system", "content": self.system_message},
             {"role": "user", "content": prompt},
         ]
+
         result = None
         for _ in range(self.max_retries):
             response = openai_client.chat.completions.create(
@@ -97,19 +91,7 @@ class OpenAITextAgent(Agent):
         if result == None:
             print(f"WARNING: GPT returned an a random action after {self.max_retries} tries")
             return Action(action_id=None)
-        action_id = result["action"]
-        if self.show_thought_process:
-            print("Thought Process: ", result.get("debug"))
-        if action_id in available_actions.predefined:
-            if show_state:
-                print(f"Selected predefined action {available_actions.predefined[action_id]}")
-            return available_actions.predefined[action_id]
-        elif action_id in available_actions.openended:
-            if show_state:
-                print(f"Selected openended action {result.get('openended_response')}")
-            return Action(action_id=available_actions.openended[action_id].action_id, openended_response=result.get("openended_response"))
-        else:
-            raise ValueError(f"Invalid action {action_id}")
+        return Action(action_id=result["action"], openended_response=result.get("openended_response"))
 
 @dataclass
 class ChatGPTText(OpenAITextAgent):
