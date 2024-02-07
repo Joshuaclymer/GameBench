@@ -186,3 +186,82 @@ class Mosquito(HivePiece):
             valid_moves.extend(adjacent_piece.valid_moves(board))
 
         return list(set(valid_moves))
+
+
+class Pillbug(HivePiece):
+    def __init__(self, owner):
+        super().__init__("Pillbug", owner)
+
+    def valid_moves(self, board):
+        current_hex = self.find_current_hex(board)
+        if current_hex is None:
+            return []
+
+        valid_moves = []
+        for direction in range(6):
+            adjacent_hex = current_hex.neighbor(direction)
+            piece = board.get_piece_at(adjacent_hex)
+            if piece and not self.is_covered(board, adjacent_hex):
+                for target_direction in range(6):
+                    target_hex = current_hex.neighbor(target_direction)
+                    if self.can_move_other_piece(board, adjacent_hex, target_hex):
+                        valid_moves.append((adjacent_hex, target_hex))
+
+        return valid_moves
+
+    def can_move_other_piece(self, board, from_hex, to_hex):
+        if from_hex == to_hex or board.get_piece_at(to_hex) is not None:
+            return False
+
+        if not board.is_adjacent(from_hex, to_hex) or self.is_covered(board, to_hex):
+            return False
+
+        if not board.is_one_hive_if_removed(from_hex):
+            return False
+
+        if board.has_recently_moved(from_hex) or self.has_recently_moved(board, self.find_current_hex(board)):
+            return False
+
+        if board.is_beetle_gate_present(from_hex, to_hex):
+            return False
+
+        return True
+
+    def is_covered(self, board, hex):
+        return board.is_piece_covered(hex)
+
+
+    def find_current_hex(self, board):
+        for hex, piece in board.board.items():
+            if piece is self:
+                return hex
+        return None
+
+
+class Ladybug(HivePiece):
+    def __init__(self, owner):
+        super().__init__("Ladybug", owner)
+
+    def valid_moves(self, board):
+        current_hex = self.find_current_hex(board)
+        if current_hex is None:
+            return []
+
+        return self.find_moves(current_hex, board, 3)
+
+    def find_moves(self, current_hex, board, steps_remaining):
+        """
+        Recursively find all valid moves for the Ladybug.
+        """
+        if steps_remaining == 0:
+            return [current_hex] if board.get_piece_at(current_hex) is None else []
+
+        moves = []
+        for direction in range(6):
+            neighbor_hex = current_hex.neighbor(direction)
+            if steps_remaining > 1 or board.get_piece_at(neighbor_hex) is None:
+                if board.can_move_piece(current_hex, neighbor_hex):  # Check for climb up/down
+                    further_moves = self.find_moves(neighbor_hex, board, steps_remaining - 1)
+                    moves.extend(further_moves)
+
+        return list(set(moves))
