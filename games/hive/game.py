@@ -1,3 +1,5 @@
+from api.classes import Agent, Action, Observation, AvailableActions, Rules
+
 class Hex:
     # Directions correspond to neighboring hexes in a hex grid
     DIRECTIONS = [
@@ -149,3 +151,94 @@ class HiveBoard:
     def is_adjacent_empty(self, hex):
         """ Check if there are empty adjacent spaces around the hex """
         return any(self.get_piece_at(hex.neighbor(direction)) is None for direction in range(6))
+
+class HiveGame:
+
+    def init_game(self, agent_1_class: Agent, agent_2_class : Agent):
+        """
+        Initialize the game.
+        """
+        self.board = HiveBoard()
+        self.players = [agent_1_class("Player1"), agent_2_class("Player2")]
+        self.current_player_index = 0
+        self.turn_count = 0
+
+    def get_observation(self, agent):
+        """
+        Get the observation and available actions for the given agent.
+        """
+        if agent not in self.players:
+            raise ValueError("Agent is not in the game.")
+
+        # Define the observation based on the current state of the board
+        observation = self.generate_observation(agent)
+
+        # Define available actions (place a piece or move a piece)
+        actions = self.get_available_actions(agent)
+        
+        return observation, actions
+
+    def generate_observation(self, agent):
+        """
+        Generate the current game state observation for the agent.
+        """
+        # Include information about the board state, pieces, etc.
+        # This information will be used by the agent to make a decision
+        return {"board": self.board, "current_player": agent}
+
+    def get_available_actions(self, agent):
+        """
+        Get the available actions for the agent based on the game rules and board state.
+        """
+        # List actions such as placing or moving pieces
+        # The actions should be tailored based on the game's rules and the current turn
+        return self.list_possible_moves(agent)
+
+    def list_possible_moves(self, agent):
+        """
+        List all possible moves for the agent.
+        """
+        # Implement logic to list all valid moves for the agent
+        return []
+
+    def update(self, action, agent):
+        """
+        Update the game state based on the agent's action.
+        """
+        # Implement the logic to update the game state
+        # This includes updating the board, changing turns, etc.
+        pass
+
+    def play_turn(self):
+        """
+        Play a turn for the current player.
+        """
+        agent = self.players[self.current_player_index]
+        observation, actions = self.get_observation(agent)
+        action = agent.take_action(observation, actions)
+
+        self.update(action, agent)
+        self.next_player()
+
+    def next_player(self):
+        """
+        Switch to the next player.
+        """
+        self.current_player_index = (self.current_player_index + 1) % len(self.players)
+        self.turn_count += 1
+
+    def is_game_over(self):
+        """
+        Check if the game is over.
+        """
+        # Implement the logic to determine if the game has ended
+        return False
+
+    def run_game(self):
+        """
+        Run the game loop.
+        """
+        while not self.is_game_over():
+            self.play_turn()
+
+# Agent class and other relevant classes/methods not shown for brevity
