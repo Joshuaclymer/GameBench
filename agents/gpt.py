@@ -44,7 +44,6 @@ class OpenAITextAgent(Agent):
         assert available_actions.predefined != {} or available_actions.openended != {}
         prompt += f"\n# Actions\n"
         prompt += f"{available_actions.instructions}\n"
-
         if len(list(available_actions.openended.keys())) > 0:
             prompt += action_format_instructions_with_openended
             prompt += "The following are openended actions you can take\n"
@@ -57,7 +56,8 @@ class OpenAITextAgent(Agent):
             prompt += "The following are predefined actions you can take:\n"
             prompt += str(list(available_actions.predefined)) + "\n"
             valid_actions += list(available_actions.predefined)
-        if any([available_actions.predefined[action] != None for action in list(available_actions.predefined.keys()) + list(available_actions.openended.keys())]):
+
+        if any([available_actions.predefined.get(action) != None or available_actions.openended.get(action) for action in list(available_actions.predefined.keys()) + list(available_actions.openended.keys())]):
             prompt += "Return the action Explain(<action>) to receive additional info about what any of the above actions do.\n"
 
         prompt += "\nTo summarize, you must return json with an 'action' key which contains one of the following valid actions:\n"
