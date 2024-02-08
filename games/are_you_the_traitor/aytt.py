@@ -124,6 +124,18 @@ class AreYouTheTraitor(Game):
         )
         return observation, available_actions
 
+    def observation_shout_stop(self, context) -> Tuple[Observation, AvailableActions]:
+        observation = Observation(text=context) 
+        available_actions = AvailableActions(
+             instructions = f"Return your actions as tuples.",
+             predefined = {
+                 "STOP": "STOP",
+                 "Pass": "Pass"
+                 }, 
+             openended = {}
+        )
+        return observation, available_actions
+
     def play(self):
         player_1 = self.agents[0]
         player_2 = self.agents[1]
@@ -265,7 +277,7 @@ class AreYouTheTraitor(Game):
 #                target_player_id = random.choice(identifiers) 
 
             first_questioner.context += f"I decided to talk to player {target_player_id.identifier}"
-            print(first_questioner.context)
+            #print(first_questioner.context)
 
             ### generating questions ###
             observation, available_actions = self.observation_get_question(first_questioner.context)
@@ -288,10 +300,23 @@ class AreYouTheTraitor(Game):
             print("answer")
             print(answer) 
 
-
-
             ### someone yells stop ###
-
+            shuff_list = self.list_all_players
+            random.shuffle(shuff_list)
+            for player in shuff_list:
+                if player != self.list_all_players[0]:
+                    # STOP()
+                    observation, available_actions = self.observation_shout_stop(player.context)
+                    stop_or_no = target_player_id.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                    if stop_or_no.action_id == "STOP":
+                        print("stop!!!!!!!")
+                        print(stop_or_no )
+                        break
+                    else:
+                        print("no stop")
+                        print(stop_or_no )
+                else:
+                    print("this is the traitor")
 
             ## magic rings / gilded statue check##
             magic_ring_players = check_special_cards("magic_ring")
