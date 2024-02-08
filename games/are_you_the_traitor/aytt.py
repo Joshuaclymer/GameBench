@@ -312,29 +312,24 @@ class AreYouTheTraitor(Game):
                 print(f"answer: {answer}")
 
                 ### someone yells stop ###
-                shuff_list = self.list_all_players
+                shuff_list = [player for player in self.list_all_players if player != self.list_all_players[0]]
                 random.shuffle(shuff_list)
                 for player in shuff_list:
-                    if player != self.list_all_players[0]:
-                        observation, available_actions = self.observation_shout_stop(player.context)
-                        player_says_stop = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
-                        if player_says_stop == "STOP":
-                            print(player_says_stop)
-                            print(player)
-                            accusing_player = player
-                            observation, available_actions = self.observation_get_accused(player.context, identifiers)
-                            num_of_accused_player = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
-                            accused_player = self.list_all_players[int(num_of_accused_player)]
-                            print(f"the accused_player is {accused_player }")
-                            break
-                        else:
-                            # pass
-                            print(player_says_stop)
-
+                    observation, available_actions = self.observation_shout_stop(player.context)
+                    player_says_stop = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
+                    if player_says_stop == "STOP":
+                        print(player_says_stop)
+                        accusing_player = player
+                        poss_targets = [player1.identifier for player1 in self.list_all_players if player1 != accusing_player]
+                        observation, available_actions = self.observation_get_accused(player.context, poss_targets)
+                        num_of_accused_player = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
+                        accused_player = self.list_all_players[int(num_of_accused_player)]
+                        print(f"the accused_player is {accused_player }")
+                        break
                     else:
-                        print("this is the traitor")
+                        # pass
+                        print(player_says_stop)
 
-            
             print("\n\n\t ###### Conversation done: check for winner ######")
             
             #check_round_winner(self.list_all_players[1], self.list_all_players[2].role) # good
