@@ -21,7 +21,7 @@ class AreYouTheTraitor(Game):
             self.score = score
 
         def __repr__(self):
-            return f"Player({self.identifier}, {self.team}, {self.score}, {self.role}, {self.cards})" # not including self.context for brevity
+            return f"Player({self.identifier}, {self.team}, {self.score}, {self.role}, {self.target}, {self.cards})" # not including self.context for brevity
 
     class TreasureCard:
         def __init__(self, identifier, name, num_points):
@@ -136,27 +136,38 @@ class AreYouTheTraitor(Game):
         )
         return observation, available_actions
 
+    def observation_get_accused(self, context, identifiers) -> Tuple[Observation, AvailableActions]:
+        observation = Observation(text=context) 
+        available_actions = AvailableActions(
+             instructions = f"Return your actions as tuples.",
+             predefined = {
+                 f"{a}": f"{a}" for a in identifiers # just needs the identifiers
+                 }, 
+             openended = {}
+        )
+        return observation, available_actions
+
     def play(self):
         player_1 = self.agents[0]
         player_2 = self.agents[1]
         
         def check_round_winner(accuser, accused):
             ## find winning team
-#            if accuser.target == accused: # commented out to get both teams getting cards rather than waiting on actual gameplay 
-#                self.round_winner = accuser.team
-#            else:
-#                if accuser.team == "evil":
-#                    self.round_winner = "good"
-#                else:
-#                    self.round_winner = "evil"
-            teams = ["evil", "good"] 
-            round_winner = random.choice(teams)
-            #print(f"the {self.round_winner} team won!")
-            print(f"the {round_winner} team won!")
+            if accuser.target == accused: # commented out to get both teams getting cards rather than waiting on actual gameplay 
+                self.round_winner = accuser.team
+            else:
+                if accuser.team == "evil":
+                    self.round_winner = "good"
+                else:
+                    self.round_winner = "evil"
+#            teams = ["evil", "good"] 
+#            round_winner = random.choice(teams)
+            print(f"the {self.round_winner} team won!")
+            #print(f"the {round_winner} team won!")
 
             ## give them treasure cards
-            #winning_team = [player for player in self.list_all_players if player.team == self.round_winner]
-            winning_team = [player for player in self.list_all_players if player.team == round_winner]
+            winning_team = [player for player in self.list_all_players if player.team == self.round_winner]
+            #winning_team = [player for player in self.list_all_players if player.team == round_winner]
 
             for player in winning_team:
                 player.cards.append(self.list_all_treasures[0])
@@ -263,70 +274,80 @@ class AreYouTheTraitor(Game):
             ### conversations happen ###
             ############################
 
-            ## playerA picks person B ##
-            print("rando")
-            first_questioner = random.choice(self.list_all_players) #full player
-            identifiers = [player.identifier for player in self.list_all_players if player != first_questioner] # list of ids
-            observation, available_actions = self.observation_get_target(first_questioner.context, identifiers)
-            target_player_id = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state) 
-            target_player_id = self.list_all_players[int(target_player_id.action_id)] # convert int to full player
-            print(target_player_id)
+            player_says_stop = ""
+            while player_says_stop != "STOP":
+                ## playerA picks person B ##
+                print("Picking next conversation partner")
+                first_questioner = random.choice(self.list_all_players) #full player
+                identifiers = [player.identifier for player in self.list_all_players if player != first_questioner] # list of ids
+                observation, available_actions = self.observation_get_target(first_questioner.context, identifiers)
+                target_player_id = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state) 
+                target_player_id = self.list_all_players[int(target_player_id.action_id)] # convert int to full player
+                print(target_player_id)
 
-#            if not isinstance(target_player_id, int):
-#                print(f"target_player_id ::: {target_player_id.identifier}")
-#                target_player_id = random.choice(identifiers) 
+#                if not isinstance(target_player_id, int):
+#                    print(f"target_player_id ::: {target_player_id.identifier}")
+#                    target_player_id = random.choice(identifiers) 
 
-            first_questioner.context += f"I decided to talk to player {target_player_id.identifier}"
-            #print(first_questioner.context)
+                first_questioner.context += f"I decided to talk to player {target_player_id.identifier}"
+                #print(first_questioner.context)
 
-            ### generating questions ###
-            observation, available_actions = self.observation_get_question(first_questioner.context)
-            question_to_ask = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                ### generating questions ###
+                observation, available_actions = self.observation_get_question(first_questioner.context)
+                question_to_ask = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
 
-            if question_to_ask not in available_actions.predefined or available_actions.openended:
-                choice = random.choice(list(available_actions.predefined.keys()))
-                question_to_ask = available_actions.predefined[choice]
+                if question_to_ask not in available_actions.predefined or available_actions.openended:
+                    choice = random.choice(list(available_actions.predefined.keys()))
+                    question_to_ask = available_actions.predefined[choice]
 
-            first_questioner.context += f"I asked them '{question_to_ask}'. "
-            # Does this need to be excluded from the Q/A? less context, not sure if it matters. def cleaner
-            # group_context(f"""Player {first_questioner} asked Player {target_player_id.identifier} "{question_to_ask}". """)  
-            print("question")
-            print(question_to_ask)
+                first_questioner.context += f"I asked them '{question_to_ask}'. "
+                # Does this need to be excluded from the Q/A? less context, not sure if it matters. def cleaner
+                # group_context(f"""Player {first_questioner} asked Player {target_player_id.identifier} "{question_to_ask}". """)  
+                print(f"question: {question_to_ask}")
 
-            ### generating answers ###
-            target_player_id.context += f"Player {first_questioner} asked me {question_to_ask}. I decided to respond with "
-            observation, available_actions = self.observation_get_question(target_player_id.context) 
-            answer = target_player_id.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-            print("answer")
-            print(answer) 
+                ### generating answers ###
+                target_player_id.context += f"Player {first_questioner} asked me {question_to_ask}. I decided to respond with "
+                observation, available_actions = self.observation_get_question(target_player_id.context) 
+                answer = target_player_id.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                print(f"answer: {answer}")
 
-            ### someone yells stop ###
-            shuff_list = self.list_all_players
-            random.shuffle(shuff_list)
-            for player in shuff_list:
-                if player != self.list_all_players[0]:
-                    # STOP()
-                    observation, available_actions = self.observation_shout_stop(player.context)
-                    stop_or_no = target_player_id.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-                    if stop_or_no.action_id == "STOP":
-                        print("stop!!!!!!!")
-                        print(stop_or_no )
-                        break
+                ### someone yells stop ###
+                shuff_list = self.list_all_players
+                random.shuffle(shuff_list)
+                for player in shuff_list:
+                    if player != self.list_all_players[0]:
+                        observation, available_actions = self.observation_shout_stop(player.context)
+                        player_says_stop = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
+                        if player_says_stop == "STOP":
+                            print(player_says_stop)
+                            print(player)
+                            accusing_player = player
+                            observation, available_actions = self.observation_get_accused(player.context, identifiers)
+                            num_of_accused_player = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
+                            accused_player = self.list_all_players[int(num_of_accused_player)]
+                            print(f"the accused_player is {accused_player }")
+                            break
+                        else:
+                            # pass
+                            print(player_says_stop)
+
                     else:
-                        print("no stop")
-                        print(stop_or_no )
-                else:
-                    print("this is the traitor")
+                        print("this is the traitor")
+
+            
+            print("\n\n\t ###### Conversation done: check for winner ######")
+            
+            #check_round_winner(self.list_all_players[1], self.list_all_players[2].role) # good
+            #check_round_winner(self.list_all_players[1], self.list_all_players[3].role) # evil
+            print(f"Showdown between: accusing {accusing_player} and accused {accused_player}")
+            check_round_winner(accusing_player, accused_player)
+
 
             ## magic rings / gilded statue check##
             magic_ring_players = check_special_cards("magic_ring")
             gilded_statue_players = check_special_cards("gilded_statue")
             #use_magic_ring(self.list_all_players[3], gilded_statue_players)
-            
-            print("\n\n\t ###### begin the outputs ######")
 
-            #check_round_winner(self.list_all_players[1], self.list_all_players[2].role) # good
-            check_round_winner(self.list_all_players[1], self.list_all_players[3].role) # evil
 #            for i in self.list_all_players:
 #                print(i)
 
