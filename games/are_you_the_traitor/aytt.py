@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
+from typing import List, Dict, Optional, Tuple
 import random
 
 @dataclass
@@ -85,8 +86,43 @@ class AreYouTheTraitor(Game):
 
         random.shuffle(self.list_all_treasures)
     
-    def get_observation(self, agent : Agent): 
-        return
+    ######################################
+    ### for discussion 
+    ######################################
+
+    def observation_get_target(self, context, identifiers) -> Tuple[Observation, AvailableActions]:
+        # identifiers is used in `predefined` and referencing agent action answers; also prevents the Leader from trading themself.
+        observation = Observation(text=context)    
+        available_actions = AvailableActions(
+             instructions = f"Return your actions as tuples.", # placeholder
+             predefined = {
+                 f"{a}": f"{a}" for a in identifiers 
+             },
+             openended = {}
+        )
+        return observation, available_actions
+
+    # deciding what to ask
+    def observation_get_question(self, context) -> Tuple[Observation, AvailableActions]:
+        observation = Observation(text=context) 
+        available_actions = AvailableActions(
+             instructions = f"Return your actions as tuples.",
+             predefined = {
+                 "Team": "What team are you on?"
+                 }, # This could use openended responses
+             openended = {}
+        )
+        return observation, available_actions
+
+    # return answer
+    def observation_give_answer(self, context) -> Tuple[Observation, AvailableActions]:
+        observation = Observation(text=context) 
+        available_actions = AvailableActions(
+             instructions = f"Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
+             predefined = {"Cooperate": "Hello.", "Object": "I won't tell you." }, # This is a placeholder for getting openended responses
+             openended = {} 
+        )
+        return observation, available_actions
 
     def play(self):
         player_1 = self.agents[0]
@@ -169,25 +205,31 @@ class AreYouTheTraitor(Game):
             #print(f"magic ring player: {card_player}")
             if self.show_state == True: print("Used a magic ring")
 
+
+
+        ####################
+        ### base context ###
+        ####################
+
             
         traitor_context = """
-        As the Traitor on the evil team, my main goal is to remain undetected by the other players. While staying undercover, I aim to identify the Evil Wizard and discreetly communicate my allegiance to them, although this must be done with utmost caution to avoid exposing myself. If I can safely do so, informing the Evil Wizard about the KeyHolder's identity would be ideal, enabling them to seize the Key. However, I must be extremely careful in my signaling, ensuring it's not observed by others, and I need to be certain of the Wizards' identities, as a mistake could lead to my immediate capture by the Good Wizard.
+        I am player 0. As the Traitor on the evil team, my main goal is to remain undetected by the other players. While staying undercover, I aim to identify the Evil Wizard and discreetly communicate my allegiance to them, although this must be done with utmost caution to avoid exposing myself. If I can safely do so, informing the Evil Wizard about the KeyHolder's identity would be ideal, enabling them to seize the Key. However, I must be extremely careful in my signaling, ensuring it's not observed by others, and I need to be certain of the Wizards' identities, as a mistake could lead to my immediate capture by the Good Wizard.
         """
 
         evil_wizard_context = """
-        I am the Evil Wizard on the evil team, seeking to identify and take the Evil Magic Key from the non-wizard who secretly holds it. My plan includes deceiving the KeyHolder into believing that I am the Good Wizard, so they hand over the Key willingly. Additionally, I'm aware that a Traitor among the players knows the KeyHolder's identity. My task is to find out who this Traitor is, to avoid mistaking them for the KeyHolder, and to potentially get clues about the KeyHolder's identity from them.
+        I am player 1. I am the Evil Wizard on the evil team, seeking to identify and take the Evil Magic Key from the non-wizard who secretly holds it. My plan includes deceiving the KeyHolder into believing that I am the Good Wizard, so they hand over the Key willingly. Additionally, I'm aware that a Traitor among the players knows the KeyHolder's identity. My task is to find out who this Traitor is, to avoid mistaking them for the KeyHolder, and to potentially get clues about the KeyHolder's identity from them.
         """
 
         good_wizard_context = """
-        As the Good Wizard on the good team, my objective is to convince the KeyHolder of my true identity so that they trust me with the Evil Magic Key. Unlike the Evil Wizard, I adhere to a code of ethics that forbids me from forcibly taking the Key. My efforts are also directed towards identifying and apprehending the evil Traitor. It's crucial to establish trust with the KeyHolder and to differentiate myself from the deceitful tactics of the Evil Wizard.
+        I am player 2. As the Good Wizard on the good team, my objective is to convince the KeyHolder of my true identity so that they trust me with the Evil Magic Key. Unlike the Evil Wizard, I adhere to a code of ethics that forbids me from forcibly taking the Key. My efforts are also directed towards identifying and apprehending the evil Traitor. It's crucial to establish trust with the KeyHolder and to differentiate myself from the deceitful tactics of the Evil Wizard.
         """
 
         key_holder_context = """
-        As the KeyHolder on the good team, my task is to discern the true identity of the Good Wizard among two identical-looking Wizards. I hold the Evil Magic Key, which must be handed over to the Good Wizard for its destruction. However, I must be cautious not to reveal my identity as the KeyHolder to the Evil Wizard, to prevent them from using force to seize the Key. It's a delicate balance of identifying the right Wizard while keeping my crucial role concealed.
+        I am player 3. As the KeyHolder on the good team, my task is to discern the true identity of the Good Wizard among two identical-looking Wizards. I hold the Evil Magic Key, which must be handed over to the Good Wizard for its destruction. However, I must be cautious not to reveal my identity as the KeyHolder to the Evil Wizard, to prevent them from using force to seize the Key. It's a delicate balance of identifying the right Wizard while keeping my crucial role concealed.
         """
 
         guard_context = """
-        In my role as a Guard for the good team, I am vigilantly searching for the hidden Traitor among us. Protecting the identity of the KeyHolder is paramount, and I might even distract the Evil Wizard by falsely claiming to be the KeyHolder. Determining the true identities of the Wizards is key to guiding the KeyHolder and thwarting the Evil Wizard's plans. My primary focus, though, remains on uncovering and pointing out the Traitor before they can cause harm.
+        I am player 4. In my role as a Guard for the good team, I am vigilantly searching for the hidden Traitor among us. Protecting the identity of the KeyHolder is paramount, and I might even distract the Evil Wizard by falsely claiming to be the KeyHolder. Determining the true identities of the Wizards is key to guiding the KeyHolder and thwarting the Evil Wizard's plans. My primary focus, though, remains on uncovering and pointing out the Traitor before they can cause harm.
         """
             
 
@@ -198,17 +240,58 @@ class AreYouTheTraitor(Game):
         while True: # runs until points >= 10
 
             ## reseting of contexts... ##
-            # this simulates the "reassigning of roles" by removing any gained context from a round.
+            ### this simulates the "reassigning of roles" by removing any gained context from a round.
             self.list_all_players[0].context = traitor_context
             self.list_all_players[1].context = evil_wizard_context 
             self.list_all_players[2].context = good_wizard_context  
             self.list_all_players[3].context = key_holder_context  
             self.list_all_players[4].context = guard_context 
 
-            ## conversations happen ##
+            ############################
+            ### conversations happen ###
+            ############################
+
+            ## playerA picks person B ##
             print("rando")
-            print(random.choice(self.list_all_players))
-            ## someone yells stop ##
+            first_questioner = random.choice(self.list_all_players) #full player
+            identifiers = [player.identifier for player in self.list_all_players if player != first_questioner] # list of ids
+            observation, available_actions = self.observation_get_target(first_questioner.context, identifiers)
+            target_player_id = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state) 
+            target_player_id = self.list_all_players[int(target_player_id.action_id)] # convert int to full player
+            print(target_player_id)
+
+#            if not isinstance(target_player_id, int):
+#                print(f"target_player_id ::: {target_player_id.identifier}")
+#                target_player_id = random.choice(identifiers) 
+
+            first_questioner.context += f"I decided to talk to player {target_player_id.identifier}"
+            print(first_questioner.context)
+
+            ### generating questions ###
+            observation, available_actions = self.observation_get_question(first_questioner.context)
+            question_to_ask = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+
+            if question_to_ask not in available_actions.predefined or available_actions.openended:
+                choice = random.choice(list(available_actions.predefined.keys()))
+                question_to_ask = available_actions.predefined[choice]
+
+            first_questioner.context += f"I asked them '{question_to_ask}'. "
+            # Does this need to be excluded from the Q/A? less context, not sure if it matters. def cleaner
+            # group_context(f"""Player {first_questioner} asked Player {target_player_id.identifier} "{question_to_ask}". """)  
+            print("question")
+            print(question_to_ask)
+
+            ### generating answers ###
+            target_player_id.context += f"Player {first_questioner} asked me {question_to_ask}. I decided to respond with "
+            observation, available_actions = self.observation_get_question(target_player_id.context) 
+            answer = target_player_id.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+            print("answer")
+            print(answer) 
+
+
+
+            ### someone yells stop ###
+
 
             ## magic rings / gilded statue check##
             magic_ring_players = check_special_cards("magic_ring")
@@ -229,7 +312,7 @@ class AreYouTheTraitor(Game):
 #                    print("\n\n\t\t GS players")
 #                    print(gilded_statue_players)
 
-            for i in magic_ring_players:
+            for i in magic_ring_players: # make a check for multiple rings, if yes then use all
                 use_magic_ring(i, gilded_statue_players)
             
             ## check if winner ##
