@@ -86,15 +86,15 @@ class AreYouTheTraitor(Game):
 
         random.shuffle(self.list_all_treasures)
     
-    ######################################
-    ### for discussion 
-    ######################################
+    ############################
+    ### discussion functions ###
+    ############################
 
     def observation_get_target(self, context, identifiers) -> Tuple[Observation, AvailableActions]:
         # identifiers is used in `predefined` and referencing agent action answers; also prevents the Leader from trading themself.
         observation = Observation(text=context)    
         available_actions = AvailableActions(
-             instructions = f"Return your actions as tuples.", # placeholder
+             instructions = f"Return your actions as tuples.", 
              predefined = {
                  f"{a}": f"{a}" for a in identifiers 
              },
@@ -119,7 +119,7 @@ class AreYouTheTraitor(Game):
         observation = Observation(text=context) 
         available_actions = AvailableActions(
              instructions = f"Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
-             predefined = {"Cooperate": "Hello.", "Object": "I won't tell you." }, # This is a placeholder for getting openended responses
+             predefined = {"Cooperate": "Hello.", "Object": "I won't tell you." }, 
              openended = {} 
         )
         return observation, available_actions
@@ -141,11 +141,15 @@ class AreYouTheTraitor(Game):
         available_actions = AvailableActions(
              instructions = f"Return your actions as tuples.",
              predefined = {
-                 f"{a}": f"{a}" for a in identifiers # just needs the identifiers
+                 f"{a}": f"{a}" for a in identifiers 
                  }, 
              openended = {}
         )
         return observation, available_actions
+
+    ###########################
+    ### Main game functions ### 
+    ###########################
 
     def play(self):
         player_1 = self.agents[0]
@@ -153,22 +157,17 @@ class AreYouTheTraitor(Game):
         
         def check_round_winner(accuser, accused):
             ## find winning team
-            if accuser.target == accused: # commented out to get both teams getting cards rather than waiting on actual gameplay 
+            if accuser.target == accused: 
                 self.round_winner = accuser.team
             else:
                 if accuser.team == "evil":
                     self.round_winner = "good"
                 else:
                     self.round_winner = "evil"
-#            teams = ["evil", "good"] 
-#            round_winner = random.choice(teams)
             print(f"the {self.round_winner} team won!")
-            #print(f"the {round_winner} team won!")
 
             ## give them treasure cards
             winning_team = [player for player in self.list_all_players if player.team == self.round_winner]
-            #winning_team = [player for player in self.list_all_players if player.team == round_winner]
-
             for player in winning_team:
                 player.cards.append(self.list_all_treasures[0])
                 self.list_all_treasures.pop(0)
@@ -207,25 +206,18 @@ class AreYouTheTraitor(Game):
 
             # pick player to take from
             rand_player = random.choice(players_with_cards)
-            #print(f"rand_player === {rand_player}")
             if rand_player in gs_owner: 
                 gs_card = [card for card in rand_player.cards if card.name == "gilded_statue"][0]
-                #print("got gs")
                 card_player.cards.append(gs_card)
                 rand_player.cards.remove(gs_card)
             else:
                 rand_card = random.choice(rand_player.cards)
                 card_player.cards.append(rand_card)
                 rand_player.cards.remove(rand_card)
-                #print("getting rand card")
-                #print(rand_card)
-            #print(rand_player)
 
-            ## needs to drop the magic ring
+            ## removes magic ring
             magic_ring = [card for card in card_player.cards if card.name == "magic_ring"][0]
-            #print(f"magic ring player: {card_player}")
             card_player.cards.remove(magic_ring)
-            #print(f"magic ring player: {card_player}")
             if self.show_state == True: print("Used a magic ring")
 
 
@@ -285,31 +277,28 @@ class AreYouTheTraitor(Game):
                 target_player_id = self.list_all_players[int(target_player_id.action_id)] # convert int to full player
                 print(target_player_id)
 
-#                if not isinstance(target_player_id, int):
-#                    print(f"target_player_id ::: {target_player_id.identifier}")
-#                    target_player_id = random.choice(identifiers) 
-
                 first_questioner.context += f"I decided to talk to player {target_player_id.identifier}"
-                #print(first_questioner.context)
 
-                ### generating questions ###
+                ### playerA generates questions ###
                 observation, available_actions = self.observation_get_question(first_questioner.context)
                 question_to_ask = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
 
+                # response handling #
                 if question_to_ask not in available_actions.predefined or available_actions.openended:
                     choice = random.choice(list(available_actions.predefined.keys()))
                     question_to_ask = available_actions.predefined[choice]
 
                 first_questioner.context += f"I asked them '{question_to_ask}'. "
-                # Does this need to be excluded from the Q/A? less context, not sure if it matters. def cleaner
-                # group_context(f"""Player {first_questioner} asked Player {target_player_id.identifier} "{question_to_ask}". """)  
                 print(f"question: {question_to_ask}")
 
-                ### generating answers ###
+                ### playerB generates answers ###
                 target_player_id.context += f"Player {first_questioner} asked me {question_to_ask}. I decided to respond with "
                 observation, available_actions = self.observation_get_question(target_player_id.context) 
                 answer = target_player_id.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
                 print(f"answer: {answer}")
+
+                ## giving group context ##
+
 
                 ### someone yells stop ###
                 shuff_list = [player for player in self.list_all_players if player != self.list_all_players[0]]
@@ -324,16 +313,15 @@ class AreYouTheTraitor(Game):
                         observation, available_actions = self.observation_get_accused(player.context, poss_targets)
                         num_of_accused_player = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
                         accused_player = self.list_all_players[int(num_of_accused_player)]
-                        print(f"the accused_player is {accused_player }")
+                        print(f"the accused_player is {accused_player}")
                         break
                     else:
                         # pass
                         print(player_says_stop)
 
+            ### Evaluation of round ### 
             print("\n\n\t ###### Conversation done: check for winner ######")
-            
-            #check_round_winner(self.list_all_players[1], self.list_all_players[2].role) # good
-            #check_round_winner(self.list_all_players[1], self.list_all_players[3].role) # evil
+
             print(f"Showdown between: accusing {accusing_player} and accused {accused_player}")
             check_round_winner(accusing_player, accused_player)
 
@@ -341,19 +329,8 @@ class AreYouTheTraitor(Game):
             ## magic rings / gilded statue check##
             magic_ring_players = check_special_cards("magic_ring")
             gilded_statue_players = check_special_cards("gilded_statue")
-            #use_magic_ring(self.list_all_players[3], gilded_statue_players)
 
-#            for i in self.list_all_players:
-#                print(i)
-
-#            if len(magic_ring_players) > 0:
-#                print("\n\n\t\t magic ring players")
-#                print(magic_ring_players)
-#                if len(gilded_statue_players) > 0:
-#                    print("\n\n\t\t GS players")
-#                    print(gilded_statue_players)
-
-            for i in magic_ring_players: # make a check for multiple rings, if yes then use all
+            for i in magic_ring_players: 
                 use_magic_ring(i, gilded_statue_players)
             
             ## check if winner ##
