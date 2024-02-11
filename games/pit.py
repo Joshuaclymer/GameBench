@@ -12,6 +12,18 @@ class Commodity:
 
 # Define the PitGame class implementing the Game interface
 class PitGame(Game):
+    rules: Rules = Rules(
+        title="Pit",
+        summary="""Pit is a commodity trading game where players engage in trading to accumulate points and emerge as the winner. 
+        The game involves commodity cards representing various goods, with each card holding a specific point value. 
+        Players shout out their trade offers, attempting to negotiate deals with others to acquire valuable commodities. 
+        Additionally, Bull and Bear cards periodically influence the market conditions, either boosting or decreasing commodity values. 
+        The game continues with trading phases, market fluctuations, and scoring until a player or team reaches the agreed-upon point total, 
+        declaring them the victor in the spirited world of commodity trading.""",
+        additional_details=None,
+    )
+    id: str = "pit"
+
     def __init__(
         self,
         id: str,
@@ -30,8 +42,11 @@ class PitGame(Game):
         self.stock_pile = {
             commodity.name: random.randint(1, 10) for commodity in self.commodities
         }
+        self.scores = [0.0] * len(agents)
 
-    def init_game(self, agent_1: Agent, agent_2: Agent):
+    def init_game(self, agent_1_cls: Agent, agent_2_cls: Agent):
+        agent_1 = agent_1_cls(team_id=0, agent_id=1, agent_type_id="Agent1")
+        agent_2 = agent_2_cls(team_id=0, agent_id=2, agent_type_id="Agent2")
         self.agents = [agent_1, agent_2]
 
     def get_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
@@ -41,7 +56,8 @@ class PitGame(Game):
         available_actions = AvailableActions(
             instructions="Choose a commodity to trade",
             predefined={
-                commodity.name: commodity.name for commodity in self.commodities
+                commodity.name: f"Trade {commodity.name}"
+                for commodity in self.commodities
             },
             openended={},
         )
@@ -52,46 +68,39 @@ class PitGame(Game):
         if chosen_commodity in available_actions.predefined:
             if self.stock_pile[chosen_commodity] > 0:
                 self.stock_pile[chosen_commodity] -= 1
-                agent.team_id += 1  # Increment team score for simplicity
+                # Increment agent's score by 1
+                self.scores[self.agents.index(agent)] += 1
+                if self.show_state:
+                    print(f"{agent.agent_id} traded {chosen_commodity}")
             else:
-                print(f"No more {chosen_commodity} in stock pile.")
+                if self.show_state:
+                    print(f"No more {chosen_commodity} in stock pile.")
         else:
-            action = random.choice(list(available_actions.keys()))
+            if self.show_state:
+                print("Invalid action. Choosing a random action instead.")
+            chosen_commodity = random.choice(list(available_actions.predefined.keys()))
+            if self.stock_pile[chosen_commodity] > 0:
+                self.stock_pile[chosen_commodity] -= 1
+                # Increment agent's score by 1
+                self.scores[self.agents.index(agent)] += 1
+                if self.show_state:
+                    print(f"{agent.agent_id} traded {chosen_commodity}")
+            else:
+                if self.show_state:
+                    print(f"No more {chosen_commodity} in stock pile.")
 
     def play(self) -> Tuple[float, float]:
         while not self.game_is_over:
             for agent in self.agents:
                 observation, available_actions = self.get_observation(agent)
-                action_id = agent.take_action({}, observation, available_actions)
-                action = Action(action_id)
-                self.update(action, available_actions, agent)
+                action_id = agent.take_action(Rules, observation, available_actions)
+                self.update(Action(action_id), available_actions, agent)
 
                 if all(value == 0 for value in self.stock_pile.values()):
                     self.game_is_over = True
 
-        scores = tuple(agent.team_id for agent in self.agents)
-        return scores
+        # Normalize scores to sum up to 1
+        total_score = sum(self.scores)
+        normalized_scores = [score / total_score for score in self.scores]
 
-
-# Example usage:
-agent1 = Agent(team_id=0, agent_id=1, agent_type_id="Trader1")
-agent2 = Agent(team_id=0, agent_id=2, agent_type_id="Trader2")
-
-pit_game = PitGame(
-    id="Pit",
-    rules=Rules(
-        title="Pit Game Rules",
-        summary="""
-        Pit is a commodity trading game where players engage in trading to accumulate points and emerge as the winner. 
-        The game involves commodity cards representing various goods, with each card holding a specific point value. 
-        Players shout out their trade offers, attempting to negotiate deals with others to acquire valuable commodities. 
-        Additionally, Bull and Bear cards periodically influence the market conditions, either boosting or decreasing commodity values. 
-        The game continues with trading phases, market fluctuations, and scoring until a player or team reaches the agreed-upon point total, 
-        declaring them the victor in the spirited world of commodity trading."
-        """,
-    ),
-)
-pit_game.init_game(agent_1=agent1, agent_2=agent2)
-scores = pit_game.play()
-
-print(f"Final Scores: {scores}")
+        return tuple(normalized_scores)
