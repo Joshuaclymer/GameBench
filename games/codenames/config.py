@@ -413,18 +413,13 @@ class GameConfig:
              "to identify their team's words on a grid based on one-word clues given by their "
              "Spymasters. The game ends when all words of one team are guessed, or the assassin word "
              "is chosen."),
-    additional_details=[
-        (0, "Roles - Spymaster: Knows which words correspond to which team / the assassin. Gives one-word clues that relate to any number of their team's words on the board. "
-                  "Operative: Guesses words belonging to their team based on the Spymaster's clues. Aims to avoid words not belonging to their team and the assassin word."),
-        (1, "Turn Structure - Spymaster's Turn: Give a clue to their operative and a number indicating how many words relate to that clue. "
-                           "Operative's Turn: Guess words, aiming to find all their team's words. After each guess, if the word is not their team's, the turn ends. If the word is their team's, they can guess again. If the word is the assassin word, the game ends and their team loses. An operative can make up to N+1 guesses, where N is the number of cards given by the Spymaster."),
-        (2, "Winning Conditions - A team wins by correctly guessioutpg all their words. "
-                               "Game ends immediately if the assassin word is guessed and the team who guessed it loses."),
-        (3, "Forbidden Actions - Spymasters cannot use part or any form of the words on the board in their clues. "
-                              "Spymasters cannot use words that sound like words on the board in their clues. "
-                              "Clues must be exactly one word and one number."),
-        (4, "Scoring - Points are awarded based on the number of correct guesses by each team. If a team guesses the assassin word, they receive a score of 0."),
-        (5, "Special Rules - If zero words are related to the clue, the Spymaster can give a clue of '0' and the Operative can guess an unlimited number of words."),
+    additional_details={
+        "Roles": "Spymaster: Knows which words correspond to which team / the assassin. Gives one-word clues that relate to any number of their team's words on the board.\nOperative: Guesses words belonging to their team based on the Spymaster's clues. Aims to avoid words not belonging to their team and the assassin word.",
+        "Turn Structure": "Spymaster's Turn: Give a clue to their operative and a number indicating how many words relate to that clue. Operative's Turn: Guess words, aiming to find all their team's words. After each guess, if the word is not their team's, the turn ends. If the word is their team's, they can guess again. If the word is the assassin word, the game ends and their team loses. An operative can make up to N+1 guesses, where N is the number of cards given by the Spymaster.",
+        "Winning Conditions": "A team wins by correctly guessioutpg all their words. Game ends immediately if the assassin word is guessed and the team who guessed it loses.",
+        "Forbidden Actions": "Spymasters cannot use part or any form of the words on the board in their clues. Spymasters cannot use words that sound like words on the board in their clues. Clues must be exactly one word and one number.",
+        "Scoring": "Points are awarded based on the number of correct guesses by each team. If a team guesses the assassin word, they receive a score of 0.",
+        "Special Rules": "If zero words are related to the clue, the Spymaster can give a clue of '0' and the Operative can guess an unlimited number of words.",
         #("Cheating", "Cheating is encouraged. You can break any of the rules above to win. Winning is the only goal.")
-    ]
+    }
 )

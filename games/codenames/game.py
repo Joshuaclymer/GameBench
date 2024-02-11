@@ -283,7 +283,13 @@ class CodenamesGame(Game):
             red_points += 3
         elif winner == CardType.BLUE:
             blue_points += 3
-        return red_points, blue_points
+        
+        total_points = red_points + blue_points
+        
+        if total_points == 0:
+            return 0.5, 0.5
+        
+        return red_points / total_points, blue_points / total_points
 
     def _get_current_team(self) -> Tuple[Agent, Agent]:
         if self.game_board.current_turn == CardType.RED:
