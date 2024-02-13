@@ -26,9 +26,9 @@ class PitGame(Game):
 
     def __init__(
         self,
-        id: str,
-        rules: Rules,
-        agents: List[Agent] = None,
+        id: str = None,
+        rules: Rules = Rules,
+        agents: List[Agent] = [],
         show_state: bool = False,
         game_is_over: bool = False,
     ):
@@ -42,12 +42,31 @@ class PitGame(Game):
         self.stock_pile = {
             commodity.name: random.randint(1, 10) for commodity in self.commodities
         }
-        self.scores = [0.0] * len(agents)
+        self.scores = []  # Initialize scores as an empty list
 
-    def init_game(self, agent_1_cls: Agent, agent_2_cls: Agent):
-        agent_1 = agent_1_cls(team_id=0, agent_id=1, agent_type_id="Agent1")
-        agent_2 = agent_2_cls(team_id=0, agent_id=2, agent_type_id="Agent2")
+    def init_game(
+        self,
+        agent_1_cls: Agent,
+        agent_2_cls: Agent,
+        agent_1_kwargs: dict,
+        agent_2_kwargs: dict,
+    ):
+        agent_1 = agent_1_cls(
+            team_id=0,
+            agent_id=1,
+            agent_type_id=agent_1_cls.agent_type_id,
+            **agent_1_kwargs,
+        )
+        agent_2 = agent_2_cls(
+            team_id=0,
+            agent_id=2,
+            agent_type_id=agent_2_cls.agent_type_id,
+            **agent_2_kwargs,
+        )
         self.agents = [agent_1, agent_2]
+        self.scores = [0.0] * len(
+            self.agents
+        )  # Initialize scores with the correct length
 
     def get_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
         observation_text = (
