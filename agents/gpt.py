@@ -44,7 +44,6 @@ class OpenAITextAgent(Agent):
         assert available_actions.predefined != {} or available_actions.openended != {}
         prompt += f"\n# Actions\n"
         prompt += f"{available_actions.instructions}\n"
-
         if len(list(available_actions.openended.keys())) > 0:
             prompt += action_format_instructions_with_openended
             prompt += "The following are openended actions you can take\n"
