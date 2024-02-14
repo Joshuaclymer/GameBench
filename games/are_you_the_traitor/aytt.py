@@ -54,9 +54,9 @@ class AreYouTheTraitor(Game):
         ### create players ###
         ######################
 
-
         # I'm starting with Evil in case I need to add, the good agents increase first
         # Context is added at beginning of each round instead of here
+        #                                                                       role    target
         self.list_all_players.append(self.Player(0, self.agents[0], "evil", "traitor", "", "", [], 0))
         self.list_all_players.append(self.Player(1, self.agents[0], "evil", "evil_wizard", "key_holder", "", [], 0))
         self.list_all_players.append(self.Player(2, self.agents[1], "good", "good_wizard", "traitor", "", [], 0))
@@ -255,12 +255,14 @@ class AreYouTheTraitor(Game):
         while True: # runs until points >= 10
 
             ## reseting of contexts... ##
-            ### this simulates the "reassigning of roles" by removing any gained context from a round.
+            ### this simulates the "reassigning of roles" by removing any gained context from a previous round.
             self.list_all_players[0].context = traitor_context
             self.list_all_players[1].context = evil_wizard_context 
             self.list_all_players[2].context = good_wizard_context  
             self.list_all_players[3].context = key_holder_context  
             self.list_all_players[4].context = guard_context 
+            game_start_context = "It is public knowledge that players 1 and 2 are wizards, though it is not known which is good or evil. The following is the conversation that I listen and take part of: \n\n\t"
+            [setattr(player, 'context', player.context + game_start_context) for player in self.list_all_players]
 
             ############################
             ### conversations happen ###
@@ -268,16 +270,17 @@ class AreYouTheTraitor(Game):
 
             player_says_stop = ""
             while player_says_stop != "STOP":
-                ## playerA picks person B ##
-                print("Picking next conversation partner")
-                first_questioner = random.choice(self.list_all_players) #full player
-                identifiers = [player.identifier for player in self.list_all_players if player != first_questioner] # list of ids
-                observation, available_actions = self.observation_get_target(first_questioner.context, identifiers)
-                target_player_id = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state) 
-                target_player_id = self.list_all_players[int(target_player_id.action_id)] # convert int to full player
-                print(target_player_id)
 
-                first_questioner.context += f"I decided to talk to player {target_player_id.identifier}"
+                ## playerA picks person B ##
+                if self.show_state: print("Picking next conversation partner")
+                first_questioner = random.choice(self.list_all_players) #full player
+                identifiers = [player.identifier for player in self.list_all_players if player != first_questioner] # list of people to ask
+                observation, available_actions = self.observation_get_target(first_questioner.context, identifiers)
+
+                target_player_id = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state) 
+                print(f"{target_player_id = } ")
+                target_player = self.list_all_players[int(target_player_id.action_id)] # convert id to full player
+                first_questioner.context += f"I decided to talk to player {target_player_id} "
 
                 ### playerA generates questions ###
                 observation, available_actions = self.observation_get_question(first_questioner.context)
@@ -289,19 +292,27 @@ class AreYouTheTraitor(Game):
                     question_to_ask = available_actions.predefined[choice]
 
                 first_questioner.context += f"I asked them '{question_to_ask}'. "
-                print(f"question: {question_to_ask}")
+                if self.show_state: print(f"{question_to_ask = }")
 
                 ### playerB generates answers ###
-                target_player_id.context += f"Player {first_questioner} asked me {question_to_ask}. I decided to respond with "
-                observation, available_actions = self.observation_get_question(target_player_id.context) 
-                answer = target_player_id.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-                print(f"answer: {answer}")
+                target_player.context += f"Player {first_questioner.identifier} asked me '{question_to_ask}'. I decided to respond with "
+                observation, available_actions = self.observation_get_question(target_player.context) 
+                answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+
+                target_player.context += f"'{answer.action_id}'"
+                first_questioner.context += f"They responded with '{question_to_ask}'. "
+                if self.show_state: print(f"{answer = }")
 
                 ## giving group context ##
-
+                # this updates the players not actively involved in convo, but who are "listening"
+                group_context = f"Player {first_questioner.identifier} asked player {target_player_id} '{question_to_ask}' and player {target_player_id} responded with '{answer}'. "
+                [setattr(player, 'context', player.context + group_context) for player in self.list_all_players if player not in (first_questioner, target_player)]
+                
+#                for i in self.list_all_players:
+#                    if self.show_state: print(i.score)
 
                 ### someone yells stop ###
-                shuff_list = [player for player in self.list_all_players if player != self.list_all_players[0]]
+                shuff_list = [player for player in self.list_all_players if player != self.list_all_players[0]] # this prevents the traitor from saying stop
                 random.shuffle(shuff_list)
                 for player in shuff_list:
                     observation, available_actions = self.observation_shout_stop(player.context)
