@@ -62,8 +62,10 @@ class OpenAITextAgent(Agent):
         if any([combined_dictionaries[action] != None for action in list(available_actions.predefined.keys()) + list(available_actions.openended.keys())]):
             prompt += "Return the action Explain(<action>) to receive additional info about what any of the above actions do.\n"
 
-        prompt += "\nTo summarize, you must return json with an 'action' key which contains one of the following valid actions:\n"
-        prompt += str(list(valid_actions))
+        prompt += "\nTo summarize, if you choose a predefined action, you must return json with an 'action' key which contains one of the following valid actions:\n"
+        prompt += str(list(available_actions.predefined))
+        prompt += "\nOr if you choose an openended action, you must return json with an 'action' key which contains one of the following valid actions and an 'openeded_response' key which contains your reponse to the prompt:\n"
+        prompt += str(list(available_actions.openended))
 
         messages = [
             {"role": "system", "content": self.system_message},
@@ -79,6 +81,11 @@ class OpenAITextAgent(Agent):
             ).choices[0].message.content
             messages.append({"role": "assistant", "content": response})
             action = ast.literal_eval(response)
+            if action["action"] in available_actions.openended and "openended_response" not in action:
+                error_message = "You chose an openended action, and so your json must have an 'openended_response' key."
+                messages.append({"role": "user", "content": error_message})
+                continue
+
             if action["action"] in valid_actions:
                 result = action
                 break
