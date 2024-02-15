@@ -106,11 +106,12 @@ class AreYouTheTraitor(Game):
     def observation_get_question(self, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         available_actions = AvailableActions(
-             instructions = f"Return your actions as tuples.",
-             predefined = {
-                 "Team": "What team are you on?"
-                 }, # This could use openended responses
-             openended = {}
+             instructions = f"Choose an openended response, think of a question to ask.",
+             predefined = {"skip": "SKIP"},
+#             predefined = {
+#                 "Team": "What team are you on?"
+#                 }, # This could use openended responses
+            openended = {"openended": "ask them who their boss is"}
         )
         return observation, available_actions
 
@@ -118,7 +119,7 @@ class AreYouTheTraitor(Game):
     def observation_give_answer(self, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         available_actions = AvailableActions(
-             instructions = f"Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
+             instructions = f"Respond with a statement to the question you've been asked. Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
              predefined = {"Cooperate": "Hello.", "Object": "I won't tell you." }, 
              openended = {} 
         )
@@ -261,7 +262,7 @@ class AreYouTheTraitor(Game):
             self.list_all_players[2].context = good_wizard_context  
             self.list_all_players[3].context = key_holder_context  
             self.list_all_players[4].context = guard_context 
-            game_start_context = "It is public knowledge that players 1 and 2 are wizards, though it is not known which is good or evil. The following is the conversation that I listen and take part of: \n\n\t"
+            game_start_context = "It is public knowledge that Player 1 and 2 are wizards, though it is not known which is good or evil. The following is the conversation that I listen and take part of: \n\n\t"
             [setattr(player, 'context', player.context + game_start_context) for player in self.list_all_players]
 
             ############################
@@ -271,85 +272,85 @@ class AreYouTheTraitor(Game):
             player_says_stop = ""
             while player_says_stop != "STOP":
 
-                ## playerA picks person B ##
+                ##### playerA picks person B #####
                 if self.show_state: print("Picking next conversation partner")
                 first_questioner = random.choice(self.list_all_players) #full player
                 identifiers = [player.identifier for player in self.list_all_players if player != first_questioner] # list of people to ask
                 observation, available_actions = self.observation_get_target(first_questioner.context, identifiers)
 
                 target_player_id = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state) 
-                print(f"{target_player_id = } ")
                 target_player = self.list_all_players[int(target_player_id.action_id)] # convert id to full player
+
+                if self.show_state: print(f"{first_questioner = }")
+                if self.show_state: print(f"{target_player_id = } ")
                 first_questioner.context += f"I decided to talk to player {target_player_id} "
 
-                ### playerA generates questions ###
+
+                ##### playerA generates questions #####
                 observation, available_actions = self.observation_get_question(first_questioner.context)
                 question_to_ask = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-
-                # response handling #
-                if question_to_ask not in available_actions.predefined or available_actions.openended:
-                    choice = random.choice(list(available_actions.predefined.keys()))
-                    question_to_ask = available_actions.predefined[choice]
-
                 first_questioner.context += f"I asked them '{question_to_ask}'. "
-                if self.show_state: print(f"{question_to_ask = }")
+                if self.show_state: print(f"{question_to_ask.openended_response = }")
 
-                ### playerB generates answers ###
-                target_player.context += f"Player {first_questioner.identifier} asked me '{question_to_ask}'. I decided to respond with "
+
+                ##### playerB generates answers #####
+                target_player.context += f"Player {first_questioner.identifier} asked me '{question_to_ask}'. I decided to respond with the answer "
                 observation, available_actions = self.observation_get_question(target_player.context) 
                 answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
 
-                target_player.context += f"'{answer.action_id}'"
-                first_questioner.context += f"They responded with '{question_to_ask}'. "
-                if self.show_state: print(f"{answer = }")
+                target_player.context += f"'{answer.openended_response}'"
+                first_questioner.context += f"They responded with '{question_to_ask.openended_response }'. "
+                if self.show_state: print(f"{answer.openended_response = }")
 
-                ## giving group context ##
+
+                ##### giving group context #####
                 # this updates the players not actively involved in convo, but who are "listening"
-                group_context = f"Player {first_questioner.identifier} asked player {target_player_id} '{question_to_ask}' and player {target_player_id} responded with '{answer}'. "
+                group_context = f"Player {first_questioner.identifier} asked player {target_player_id} '{question_to_ask.openended_response}' and player {target_player_id} responded with '{answer.openended_response}'. "
                 [setattr(player, 'context', player.context + group_context) for player in self.list_all_players if player not in (first_questioner, target_player)]
                 
-#                for i in self.list_all_players:
-#                    if self.show_state: print(i.score)
 
-                ### someone yells stop ###
-                shuff_list = [player for player in self.list_all_players if player != self.list_all_players[0]] # this prevents the traitor from saying stop
+                ##### someone yells stop #####
+                shuff_list = [player for player in self.list_all_players if player != self.list_all_players[0]] # prevents traitor from saying stop
                 random.shuffle(shuff_list)
-                for player in shuff_list:
-                    observation, available_actions = self.observation_shout_stop(player.context)
-                    player_says_stop = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
+
+                for accusing_player in shuff_list:
+                    observation, available_actions = self.observation_shout_stop(accusing_player.context)
+                    player_says_stop = accusing_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
+
                     if player_says_stop == "STOP":
-                        print(player_says_stop)
-                        accusing_player = player
+                        if self.show_state: print(player_says_stop)
                         poss_targets = [player1.identifier for player1 in self.list_all_players if player1 != accusing_player]
                         observation, available_actions = self.observation_get_accused(player.context, poss_targets)
                         num_of_accused_player = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
+
                         accused_player = self.list_all_players[int(num_of_accused_player)]
-                        print(f"the accused_player is {accused_player}")
+                        if self.show_state: print(f"the accused_player is {accused_player}")
                         break
+
                     else:
                         # pass
-                        print(player_says_stop)
+                        if self.show_state: print(player_says_stop)
 
-            ### Evaluation of round ### 
+
+            ##### Evaluation of round #####
             print("\n\n\t ###### Conversation done: check for winner ######")
-
             print(f"Showdown between: accusing {accusing_player} and accused {accused_player}")
             check_round_winner(accusing_player, accused_player)
 
 
-            ## magic rings / gilded statue check##
+            ##### magic rings / gilded statue check #####
             magic_ring_players = check_special_cards("magic_ring")
             gilded_statue_players = check_special_cards("gilded_statue")
 
             for i in magic_ring_players: 
                 use_magic_ring(i, gilded_statue_players)
             
-            ## check if winner ##
+            ##### check if winner #####
             if check_game_winner() == True:
                 break
             else:
                 continue
 
-        print(f"The {self.game_winner} team is the winner")
 
+        print(f"The {self.game_winner} team is the winner")
         return (1, 0) if self.game_winner == "good" else (0,1)
