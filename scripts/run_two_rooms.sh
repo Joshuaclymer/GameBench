@@ -4,4 +4,4 @@ python api/play_game.py \
     --game_path games.two_rooms_and_a_boom.two_rooms.TwoRoomsAndaBoom \
     --save_results False \
     --show-state \
-    --num_matches 3
+    --num_matches 1

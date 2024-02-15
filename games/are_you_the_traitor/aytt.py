@@ -345,6 +345,7 @@ class AreYouTheTraitor(Game):
             for i in magic_ring_players: 
                 use_magic_ring(i, gilded_statue_players)
             
+
             ##### check if winner #####
             if check_game_winner() == True:
                 break
