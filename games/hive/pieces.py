@@ -171,7 +171,7 @@ class SoldierAnt(HivePiece):
 
         return list(set(moves))
     
-
+# expansion and not necessarily part of the core gmae. not using this for now
 class Mosquito(HivePiece):
     def __init__(self, owner):
         super().__init__("Mosquito", owner)
@@ -188,6 +188,7 @@ class Mosquito(HivePiece):
         return list(set(valid_moves))
 
 
+# expansion and not necessarily part of the core gmae. not using this for now
 class Pillbug(HivePiece):
     def __init__(self, owner):
         super().__init__("Pillbug", owner)
@@ -237,7 +238,7 @@ class Pillbug(HivePiece):
                 return hex
         return None
 
-
+# expansion and not necessarily part of the core gmae. not using this for now
 class Ladybug(HivePiece):
     def __init__(self, owner):
         super().__init__("Ladybug", owner)

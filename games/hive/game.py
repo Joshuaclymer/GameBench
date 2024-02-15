@@ -49,11 +49,17 @@ class HiveBoard:
             return False
 
         # Temporarily move the piece to check One-Hive Rule
-        piece = self.board.pop(from_hex)  # Remove the piece temporarily
-        self.board[to_hex] = piece  # Place it on the target
+        piece = self.board[from_hex].pop()  # Remove the top piece temporarily
+        if not self.board[from_hex]:  # If there are no more pieces on the hex, remove the hex from the board
+            del self.board[from_hex]
+        self.board.setdefault(to_hex, []).append(piece)  # Place it on the target
+
         one_hive = self.is_one_hive()
+
         # Move back after checking
-        self.board[from_hex] = self.board.pop(to_hex)
+        self.board.setdefault(from_hex, []).append(self.board[to_hex].pop())  # Move the piece back
+        if not self.board[to_hex]:  # If there are no more pieces on the hex, remove the hex from the board
+            del self.board[to_hex]
 
         return one_hive
     
