@@ -1,4 +1,8 @@
 from api.classes import Agent, Action, Observation, AvailableActions, Rules
+from pieces import HivePiece, QueenBee, Beetle, Grasshopper, Spider, SoldierAnt
+from .config import GameConfig as Config
+
+default_config = Config()
 
 class Hex:
     # Directions correspond to neighboring hexes in a hex grid
@@ -7,23 +11,20 @@ class Hex:
         (-1, 1, 0), (-1, 0, 1), (0, -1, 1)
     ]
 
-    def __init__(self, x, y, z):
-        if x + y + z != 0:
-            raise ValueError("x, y, z coordinates of a hex must sum to 0")
+    def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.z = z
 
     def __eq__(self, other):
-        return self.x == other.x and self.y == other.y and self.z == other.z
+        return self.x == other.x and self.y == other.y 
 
     def __hash__(self):
-        return hash((self.x, self.y, self.z))
+        return hash((self.x, self.y))
 
     def neighbor(self, direction):
         """ Returns the neighboring hex in the given direction """
-        dx, dy, dz = Hex.DIRECTIONS[direction]
-        return Hex(self.x + dx, self.y + dy, self.z + dz)
+        dx, dy = Hex.DIRECTIONS[direction]
+        return Hex(self.x + dx, self.y + dy)
     
 class HiveBoard:
     def __init__(self):
@@ -34,6 +35,49 @@ class HiveBoard:
         if hex in self.board:
             raise ValueError("There is already a piece at this position")
         self.board[hex] = piece
+
+    def is_adjacent_to_enemy_piece(self, hex, owner):
+        """
+        Check if the given hex is adjacent to a piece owned by the enemy player.
+        """
+        for direction in range(6):
+            neighbor_hex = hex.neighbor(direction)
+            if neighbor_hex in self.board and self.board[neighbor_hex].owner != owner:
+                return True
+        return False
+    
+    def is_one_hive_if_added(self, hex):
+        """
+        Check if the hive remains connected if a piece is temporarily added.
+        """
+        if hex in self.board:
+            return self.is_one_hive()
+        else:
+            temporary_piece = HivePiece("Temporary", 0)
+            self.board[hex] = temporary_piece
+            is_connected = self.is_one_hive()
+            del self.board[hex]
+
+    def can_place_piece(self, piece, hex):
+        """
+        Check if a piece can be placed at the given hex according to Hive rules.
+
+        It must be placed adjacent to another piece and not break the One-Hive Rule.
+
+        It cannot be adjacent to an enemy piece unless it is the first move.
+
+        It cannot be placed on top of another piece.
+        """
+        if hex in self.board:
+            return False
+
+        if len(self.board.board) != 1 and not self.is_adjacent_to_enemy_piece(hex, piece.owner):
+            return False
+
+        if not self.is_one_hive_if_added(hex):
+            return False
+
+        return True
 
     def can_move_piece(self, from_hex, to_hex):
         """
@@ -158,8 +202,11 @@ class HiveBoard:
         """ Check if there are empty adjacent spaces around the hex """
         return any(self.get_piece_at(hex.neighbor(direction)) is None for direction in range(6))
 
-class HiveGame:
+class HiveGame(Game):
 
+    config : Config = default_config
+    board : HiveBoard = None
+    
     def init_game(self, agent_1_class: Agent, agent_2_class : Agent):
         """
         Initialize the game.
@@ -168,6 +215,36 @@ class HiveGame:
         self.players = [agent_1_class("Player1"), agent_2_class("Player2")]
         self.current_player_index = 0
         self.turn_count = 0
+        self.pieces_remaining = set()
+
+        self.add_starting_pieces(0)
+        self.add_starting_pieces(1)
+
+
+    def add_starting_pieces(self, team_id):
+        """
+        Add the starting pieces to the board. 
+        Per the official rules without expansions this includes the following for each team:
+        - 1 Queen Bee
+        - 2 Spiders
+        - 2 Beetles
+        - 3 Grasshoppers
+        - 3 Soldier Ants
+        """
+        for _ in range(self.config.NUM_QUEENBEE_CARDS):
+            self.pieces_remaining.add(QueenBee(team_id))
+
+        for _ in range(self.config.NUM_SPIDER_CARDS):
+            self.pieces_remaining.add(Spider(team_id))
+
+        for _ in range(self.config.NUM_BEETLE_CARDS):
+            self.pieces_remaining.add(Beetle(team_id))
+
+        for _ in range(self.config.NUM_GRASSHOPPER_CARDS):
+            self.pieces_remaining.add(Grasshopper(team_id))
+        
+        for _ in range(self.config.NUM_SOLDIERANT_CARDS):
+            self.pieces_remaining.add(SoldierAnt(team_id))
 
     def get_observation(self, agent):
         """
@@ -198,13 +275,30 @@ class HiveGame:
         """
         # List actions such as placing or moving pieces
         # The actions should be tailored based on the game's rules and the current turn
-        return self.list_possible_moves(agent)
+        return self.list_possible_moves(self.current_player_index)
 
-    def list_possible_moves(self, agent):
+    def list_possible_moves(self, player_index):
         """
         List all possible moves for the agent.
+        THe possible moves are either to place a new piece or move an existing piece.
         """
-        # Implement logic to list all valid moves for the agent
+        possible_pieces_to_place = [piece for piece in self.pieces_remaining if piece.owner == player_index]
+        
+        possible_piece_places = [hex for hex in self.board.board if self.board.board[hex] is None and self.board.is_adjacent_empty(hex)]
+
+        possible_moves = []
+
+        for (x,y) in self.board.board:
+            pieces = self.board.board[(x, y)]
+
+            for piece in pieces:
+                if piece.owner == player_index:
+                    possible_moves += piece.valid_moves(self.board)
+
+        
+                    
+
+
         return []
 
     def update(self, action, agent):
