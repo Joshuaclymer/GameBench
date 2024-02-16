@@ -56,8 +56,8 @@ class AreYouTheTraitor(Game):
 
         # I'm starting with Evil in case I need to add, the good agents increase first
         # Context is added at beginning of each round instead of here
-        #                                                                       role    target
-        self.list_all_players.append(self.Player(0, self.agents[0], "evil", "traitor", "", "", [], 0))
+        #                                                                     role      target
+        self.list_all_players.append(self.Player(0, self.agents[0], "evil", "traitor", "n/a", "", [], 0))
         self.list_all_players.append(self.Player(1, self.agents[0], "evil", "evil_wizard", "key_holder", "", [], 0))
         self.list_all_players.append(self.Player(2, self.agents[1], "good", "good_wizard", "traitor", "", [], 0))
         self.list_all_players.append(self.Player(3, self.agents[1], "good", "key_holder", "good_wizard", "", [], 0))
@@ -90,6 +90,7 @@ class AreYouTheTraitor(Game):
     ### discussion functions ###
     ############################
 
+    # pick player
     def observation_get_target(self, context, identifiers) -> Tuple[Observation, AvailableActions]:
         # identifiers is used in `predefined` and referencing agent action answers; also prevents the Leader from trading themself.
         observation = Observation(text=context)    
@@ -110,7 +111,7 @@ class AreYouTheTraitor(Game):
              predefined = {"skip": "SKIP"},
 #             predefined = {
 #                 "Team": "What team are you on?"
-#                 }, # This could use openended responses
+#                 }, 
             openended = {"openended": "ask them who their boss is"}
         )
         return observation, available_actions
@@ -119,16 +120,17 @@ class AreYouTheTraitor(Game):
     def observation_give_answer(self, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         available_actions = AvailableActions(
-             instructions = f"Respond with a statement to the question you've been asked. Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
-             predefined = {"Cooperate": "Hello.", "Object": "I won't tell you." }, 
-             openended = {} 
+             instructions = f"Choose an openeded response to the question you've been asked. Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
+             predefined = {}, 
+             openended = {"openended": ""}
         )
         return observation, available_actions
 
+    # stop round
     def observation_shout_stop(self, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         available_actions = AvailableActions(
-             instructions = f"Return your actions as tuples.",
+             instructions = f"Return your actions as tuples. Remember, if I make the wrong accusation, the other team gets closer to victory so I need to be certain I guess the right target.",
              predefined = {
                  "STOP": "STOP",
                  "Pass": "Pass"
@@ -158,7 +160,7 @@ class AreYouTheTraitor(Game):
         
         def check_round_winner(accuser, accused):
             ## find winning team
-            if accuser.target == accused: 
+            if accuser.target == accused.role: 
                 self.round_winner = accuser.team
             else:
                 if accuser.team == "evil":
@@ -200,12 +202,12 @@ class AreYouTheTraitor(Game):
             return players_with_special
 
         def use_magic_ring(card_player, gs_owner):
-            # get avail players
+            ## get avail players
             players_with_cards = [player for player in self.list_all_players if len(player.cards) != 0 and player.team != card_player.team]
             if len(players_with_cards) == 0:
                 return
 
-            # pick player to take from
+            ## pick player to take from
             rand_player = random.choice(players_with_cards)
             if rand_player in gs_owner: 
                 gs_card = [card for card in rand_player.cards if card.name == "gilded_statue"][0]
@@ -255,7 +257,7 @@ class AreYouTheTraitor(Game):
         ####################
         while True: # runs until points >= 10
 
-            ## reseting of contexts... ##
+            ##### reseting of contexts... #####
             ### this simulates the "reassigning of roles" by removing any gained context from a previous round.
             self.list_all_players[0].context = traitor_context
             self.list_all_players[1].context = evil_wizard_context 
@@ -277,11 +279,16 @@ class AreYouTheTraitor(Game):
                 first_questioner = random.choice(self.list_all_players) #full player
                 identifiers = [player.identifier for player in self.list_all_players if player != first_questioner] # list of people to ask
                 observation, available_actions = self.observation_get_target(first_questioner.context, identifiers)
-
                 target_player_id = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state) 
-                target_player = self.list_all_players[int(target_player_id.action_id)] # convert id to full player
+
+                try:
+                    target_player_id.action_id.isdigit()
+                    target_player = self.list_all_players[int(target_player_id.action_id)] # convert id to full player
+                except:
+                    target_player = random.choice(identifiers)
 
                 if self.show_state: print(f"{first_questioner = }")
+                if self.show_state: print(f"{target_player = }")
                 if self.show_state: print(f"{target_player_id = } ")
                 first_questioner.context += f"I decided to talk to player {target_player_id} "
 
@@ -295,7 +302,7 @@ class AreYouTheTraitor(Game):
 
                 ##### playerB generates answers #####
                 target_player.context += f"Player {first_questioner.identifier} asked me '{question_to_ask}'. I decided to respond with the answer "
-                observation, available_actions = self.observation_get_question(target_player.context) 
+                observation, available_actions = self.observation_give_answer(target_player.context) 
                 answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
 
                 target_player.context += f"'{answer.openended_response}'"
@@ -317,13 +324,20 @@ class AreYouTheTraitor(Game):
                     observation, available_actions = self.observation_shout_stop(accusing_player.context)
                     player_says_stop = accusing_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
 
+                    if player_says_stop not in ("STOP", "pass"):
+                        player_says_stop = "pass"
+
                     if player_says_stop == "STOP":
                         if self.show_state: print(player_says_stop)
                         poss_targets = [player1.identifier for player1 in self.list_all_players if player1 != accusing_player]
-                        observation, available_actions = self.observation_get_accused(player.context, poss_targets)
-                        num_of_accused_player = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id 
+                        observation, available_actions = self.observation_get_accused(accusing_player.context, poss_targets)
+                        num_of_accused_player = accusing_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
 
-                        accused_player = self.list_all_players[int(num_of_accused_player)]
+                        try:
+                            num_of_accused_player.action_id.isdigit()
+                            accused_player = self.list_all_players[int(num_of_accused_player.action_id )]
+                        except:
+                            accused_player = random.choice(poss_targets)
                         if self.show_state: print(f"the accused_player is {accused_player}")
                         break
 
@@ -333,8 +347,9 @@ class AreYouTheTraitor(Game):
 
 
             ##### Evaluation of round #####
-            print("\n\n\t ###### Conversation done: check for winner ######")
-            print(f"Showdown between: accusing {accusing_player} and accused {accused_player}")
+            if self.show_state: print("\n\n\t ###### Conversation done: check for winner ######")
+            if self.show_state: print(f"Showdown between: accusing {accusing_player} and accused {accused_player}")
+            if self.show_state: print(f"Accuser is on the {accusing_player.team} team and is looking for {accusing_player.target} and they looked for the {accused_player.role}")
             check_round_winner(accusing_player, accused_player)
 
 
