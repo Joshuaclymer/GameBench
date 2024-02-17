@@ -14,11 +14,11 @@ class Commodity:
 class PitGame(Game):
     rules: Rules = Rules(
         title="Pit",
-        summary="""Pit is a commodity trading game where players engage in trading to accumulate points and emerge as the winner. 
-        The game involves commodity cards representing various goods, with each card holding a specific point value. 
-        Players shout out their trade offers, attempting to negotiate deals with others to acquire valuable commodities. 
-        Additionally, Bull and Bear cards periodically influence the market conditions, either boosting or decreasing commodity values. 
-        The game continues with trading phases, market fluctuations, and scoring until a player or team reaches the agreed-upon point total, 
+        summary="""Pit is a commodity trading game where players engage in trading to accumulate points and emerge as the winner.
+        The game involves commodity cards representing various goods, with each card holding a specific point value.
+        Players shout out their trade offers, attempting to negotiate deals with others to acquire valuable commodities.
+        Additionally, Bull and Bear cards periodically influence the market conditions, either boosting or decreasing commodity values.
+        The game continues with trading phases, market fluctuations, and scoring until a player or team reaches the agreed-upon point total,
         declaring them the victor in the spirited world of commodity trading.""",
         additional_details=None,
     )
@@ -48,8 +48,6 @@ class PitGame(Game):
         self,
         agent_1_cls: Agent,
         agent_2_cls: Agent,
-        agent_1_kwargs: dict,
-        agent_2_kwargs: dict,
     ):
         agent_1 = agent_1_cls(
             team_id=0,

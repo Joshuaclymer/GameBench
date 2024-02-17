@@ -118,5 +118,80 @@
         "game": "tic_tac_toe",
         "random": 1.0,
         "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
     }
 ]
