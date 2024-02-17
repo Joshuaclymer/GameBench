@@ -11,6 +11,7 @@ class Commodity:
 
 
 # Define the PitGame class implementing the Game interface
+@dataclass
 class PitGame(Game):
     rules: Rules = Rules(
         title="Pit",
@@ -24,7 +25,7 @@ class PitGame(Game):
     )
     id: str = "pit"
 
-    def __init__(
+    def __post_init__(
         self,
         id: str = None,
         rules: Rules = Rules,
@@ -32,7 +33,7 @@ class PitGame(Game):
         show_state: bool = False,
         game_is_over: bool = False,
     ):
-        super().__init__(id, rules, agents, show_state, game_is_over)
+        #super().__init__(id, rules, agents, show_state, game_is_over)
         self.commodities = [
             Commodity("Wheat"),
             Commodity("Corn"),
@@ -42,7 +43,7 @@ class PitGame(Game):
         self.stock_pile = {
             commodity.name: random.randint(1, 10) for commodity in self.commodities
         }
-        self.scores = []  # Initialize scores as an empty list
+        self.scores = []  # Initialize scores as an empty list"""
 
     def init_game(
         self,
@@ -53,13 +54,13 @@ class PitGame(Game):
             team_id=0,
             agent_id=1,
             agent_type_id=agent_1_cls.agent_type_id,
-            **agent_1_kwargs,
+            **self.agent_1_kwargs,
         )
         agent_2 = agent_2_cls(
             team_id=0,
             agent_id=2,
             agent_type_id=agent_2_cls.agent_type_id,
-            **agent_2_kwargs,
+            **self.agent_2_kwargs,
         )
         self.agents = [agent_1, agent_2]
         self.scores = [0.0] * len(
@@ -110,8 +111,8 @@ class PitGame(Game):
         while not self.game_is_over:
             for agent in self.agents:
                 observation, available_actions = self.get_observation(agent)
-                action_id = agent.take_action(Rules, observation, available_actions)
-                self.update(Action(action_id), available_actions, agent)
+                action = agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                self.update(action, available_actions, agent)
 
                 if all(value == 0 for value in self.stock_pile.values()):
                     self.game_is_over = True
