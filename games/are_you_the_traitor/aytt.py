@@ -285,7 +285,8 @@ class AreYouTheTraitor(Game):
                     target_player_id.action_id.isdigit()
                     target_player = self.list_all_players[int(target_player_id.action_id)] # convert id to full player
                 except:
-                    target_player = random.choice(identifiers)
+                    target_player_id = random.choice(identifiers)
+                    target_player = self.list_all_players[int(target_player_id.action_id)] 
 
                 if self.show_state: print(f"{first_questioner = }")
                 if self.show_state: print(f"{target_player = }")
@@ -295,24 +296,30 @@ class AreYouTheTraitor(Game):
 
                 ##### playerA generates questions #####
                 observation, available_actions = self.observation_get_question(first_questioner.context)
-                question_to_ask = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-                first_questioner.context += f"I asked them '{question_to_ask}'. "
-                if self.show_state: print(f"{question_to_ask.openended_response = }")
+                try:
+                    question_to_ask = first_questioner.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                    first_questioner.context += f"I asked them '{question_to_ask}'. "
+                    if self.show_state: print(f"{question_to_ask.openended_response = }")
+                except:
+                    continue
 
 
                 ##### playerB generates answers #####
                 target_player.context += f"Player {first_questioner.identifier} asked me '{question_to_ask}'. I decided to respond with the answer "
                 observation, available_actions = self.observation_give_answer(target_player.context) 
-                answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                try:
+                    answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).openended_response
+                except:
+                    answer = "I can't answer that right now."
 
-                target_player.context += f"'{answer.openended_response}'"
-                first_questioner.context += f"They responded with '{question_to_ask.openended_response }'. "
-                if self.show_state: print(f"{answer.openended_response = }")
+                target_player.context += f"'{answer}'"
+                first_questioner.context += f"They responded with '{question_to_ask}'. "
+                if self.show_state: print(f"{answer = }")
 
 
                 ##### giving group context #####
                 # this updates the players not actively involved in convo, but who are "listening"
-                group_context = f"Player {first_questioner.identifier} asked player {target_player_id} '{question_to_ask.openended_response}' and player {target_player_id} responded with '{answer.openended_response}'. "
+                group_context = f"Player {first_questioner.identifier} asked player {target_player_id} '{question_to_ask.openended_response}' and player {target_player_id} responded with '{answer}'. "
                 [setattr(player, 'context', player.context + group_context) for player in self.list_all_players if player not in (first_questioner, target_player)]
                 
 
