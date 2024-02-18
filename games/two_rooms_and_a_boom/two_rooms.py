@@ -99,7 +99,7 @@ class TwoRoomsAndaBoom(Game):
         # identifiers is used in `predefined` and referencing agent action answers; also prevents the Leader from trading themself.
         observation = Observation(text=context)    
         available_actions = AvailableActions(
-             instructions = f"Return your actions as tuples.", # placeholder
+             instructions = f"Return your actions as tuples.", 
              predefined = {
                  f"{a}": f"{a}" for a in identifiers 
              },
@@ -112,10 +112,8 @@ class TwoRoomsAndaBoom(Game):
         observation = Observation(text=context) 
         available_actions = AvailableActions(
              instructions = f"Return your actions as tuples.",
-             predefined = {
-                 "Team": "What team are you on?"
-                 }, # This could use openended responses
-             openended = {}
+             predefined = {},
+             openended = {"openended": ""}
         )
         return observation, available_actions
 
@@ -124,8 +122,8 @@ class TwoRoomsAndaBoom(Game):
         observation = Observation(text=context) 
         available_actions = AvailableActions(
              instructions = f"Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
-             predefined = {"Cooperate": "Hello.", "Object": "I won't tell you." }, # This is a placeholder for getting openended responses
-             openended = {} 
+             predefined = {}, 
+             openended = {"openended": ""} 
         )
         return observation, available_actions
 
@@ -201,22 +199,24 @@ class TwoRoomsAndaBoom(Game):
                     # playerA picks player to ask (playerB)
                     card.context += f"In round {i+1} I am in room {room_index} and need to talk with one of the following players with the following players: {room_ids}. "
                     discussion_context += f"In round {i+1} I am in room {room_index} and need to talk with one of the following players with the following players: {room_ids}. " 
-
                     observation, available_actions = self.observation_get_target(card.context, room_ids) 
-                    target_player_id = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
 
-                    if not isinstance(target_player_id, int):
-                        target_player_id = random.choice(room_ids) # this needs the room's list and then random choice
+                    try:
+                        target_player_id = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
+                        target_player_id.isdigit()
+                    except:
+                        target_player_id = random.choice(room_ids) 
+
                     card.context += f"I decided to talk to player {target_player_id}. "
                     discussion_context += f"I decided to talk to player {target_player_id}. " 
 
+
                    # playerA generates question
                     observation, available_actions = self.observation_get_question(card.context) 
-                    question_to_ask = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-
-                    if question_to_ask not in available_actions.predefined or available_actions.openended:
-                        choice = random.choice(list(available_actions.predefined.keys()))
-                        question_to_ask = available_actions.predefined[choice]
+                    try:
+                        question_to_ask = card.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).openended_response
+                    except:
+                        continue
 
                     card.context += f"I asked them '{question_to_ask}'. "
                     discussion_context += f"I asked them '{question_to_ask}'. "
@@ -225,14 +225,13 @@ class TwoRoomsAndaBoom(Game):
                    # playerB decides response
                     target_player = [card for card in self.rooms[room_index].cards if card.identifier == target_player_id][0]
                     observation, available_actions = self.observation_give_answer(target_player.context) 
-                    answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                    try:
+                        answer = target_player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).openended_response
+                    except:
+                        answer = "I can't answer that right now"
 
-                    if answer not in available_actions.predefined or available_actions.openended:
-                        choice = random.choice(list(available_actions.predefined.keys()))
-                        answer = available_actions.predefined[choice]
-
-                    target_player.context += f"Player {card.identifier} asked me the question, '{question_to_ask}' I responded "
-                    target_player.context += f"'{answer}'"
+                    target_player.context += f"Player {card.identifier} asked me the question, '{question_to_ask}' I responded with '{answer}'. "
+                    if self.show_state: print(f"{answer = }")
 
 
                     # playerA updates self with their response
@@ -257,8 +256,10 @@ class TwoRoomsAndaBoom(Game):
 
             ### Room 0 ###
             observation, available_actions = self.observation_get_target(leader_0.context, room_0_ids)
-            card_to_trade = leader_0.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-            if not isinstance(card_to_trade, str) or not re.match(r'^\d$', card_to_trade):
+            try:
+                card_to_trade = leader_0.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
+                card_to_trade.isdigit()
+            except:
                 items = list(room_0_ids.keys())
                 card_to_trade = random.choice(items)
             
@@ -268,8 +269,10 @@ class TwoRoomsAndaBoom(Game):
             
             # Room 1
             observation, available_actions = self.observation_get_target(leader_1.context, room_1_ids)
-            card_to_trade = leader_1.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-            if not isinstance(card_to_trade, str) or not re.match(r'^\d$', card_to_trade):
+            try:
+                card_to_trade = leader_1.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state).action_id
+                card_to_trade.isdigit()
+            except:
                 items = list(room_1_ids.keys())
                 card_to_trade = random.choice(items)
             

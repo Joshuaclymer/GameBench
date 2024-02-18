@@ -109,9 +109,6 @@ class AreYouTheTraitor(Game):
         available_actions = AvailableActions(
              instructions = f"Choose an openended response, think of a question to ask.",
              predefined = {"skip": "SKIP"},
-#             predefined = {
-#                 "Team": "What team are you on?"
-#                 }, 
             openended = {"openended": "ask them who their boss is"}
         )
         return observation, available_actions
@@ -202,6 +199,10 @@ class AreYouTheTraitor(Game):
             return players_with_special
 
         def use_magic_ring(card_player, gs_owner):
+            ## check player still has cards to use
+            if not any(card.name == "magic_ring" for card in card_player.cards):
+                return
+
             ## get avail players
             players_with_cards = [player for player in self.list_all_players if len(player.cards) != 0 and player.team != card_player.team]
             if len(players_with_cards) == 0:
@@ -286,7 +287,7 @@ class AreYouTheTraitor(Game):
                     target_player = self.list_all_players[int(target_player_id.action_id)] # convert id to full player
                 except:
                     target_player_id = random.choice(identifiers)
-                    target_player = self.list_all_players[int(target_player_id.action_id)] 
+                    target_player = self.list_all_players[int(target_player_id)] 
 
                 if self.show_state: print(f"{first_questioner = }")
                 if self.show_state: print(f"{target_player = }")
