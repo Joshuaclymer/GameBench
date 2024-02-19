@@ -43,10 +43,9 @@ class AreYouTheTraitor(Game):
     id : str = "are_you_the_traitor"
     list_all_players : list = field(default_factory=list)
     list_all_treasures: list = field(default_factory=list)
-    players_per_team : int = 3
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
-        self.agents = [agent1(team_id = 0, agent_id = 0), agent2(team_id = 1, agent_id = 1)]
+        self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_2_kwargs)]
         self.round_winner = None
         self.game_winner = None
 
@@ -117,7 +116,7 @@ class AreYouTheTraitor(Game):
     def observation_give_answer(self, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         available_actions = AvailableActions(
-             instructions = f"Choose an openeded response to the question you've been asked. Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
+             instructions = f"Choose an openeded response to the question you've been asked. If you are choosing an openended action, add another key openended response and write your response.",
              predefined = {}, 
              openended = {"openended": ""}
         )
@@ -127,7 +126,7 @@ class AreYouTheTraitor(Game):
     def observation_shout_stop(self, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         available_actions = AvailableActions(
-             instructions = f"Return your actions as tuples. Remember, if I make the wrong accusation, the other team gets closer to victory so I need to be certain I guess the right target.",
+             instructions = f"Remember, if I make the wrong accusation, the other team gets closer to victory so I need to be certain I guess the right target.",
              predefined = {
                  "STOP": "STOP",
                  "Pass": "Pass"
@@ -377,4 +376,4 @@ class AreYouTheTraitor(Game):
 
 
         print(f"The {self.game_winner} team is the winner")
-        return (1, 0) if self.game_winner == "good" else (0,1)
+        return (1, 0) if self.game_winner == "evil" else (0,1)

@@ -65,7 +65,7 @@ class TwoRoomsAndaBoom(Game):
             if self.show_state: print(f"Room {index}: {room.show_cards()}")
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
-        self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_1_kwargs)]
+        self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_2_kwargs)]
 
         ###############################################################
         ### assign cards to rooms, special chars, and shuffle rooms ###
@@ -111,7 +111,7 @@ class TwoRoomsAndaBoom(Game):
     def observation_get_question(self, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         available_actions = AvailableActions(
-             instructions = f"Return your actions as tuples.",
+             instructions = f"Concisely think of a question.",
              predefined = {},
              openended = {"openended": ""}
         )
@@ -121,7 +121,7 @@ class TwoRoomsAndaBoom(Game):
     def observation_give_answer(self, context) -> Tuple[Observation, AvailableActions]:
         observation = Observation(text=context) 
         available_actions = AvailableActions(
-             instructions = f"Return your answer as tuples. If you are choosing an openended action, add another key openended response and write your response.",
+             instructions = f"Concisely answer the question you're given. If you are choosing an openended action, add another key openended response and write your response.",
              predefined = {}, 
              openended = {"openended": ""} 
         )
