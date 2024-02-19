@@ -8,6 +8,10 @@ from api.classes import Observation, Action, Agent, AvailableActions, Game, Rule
 @dataclass
 class Commodity:
     name: str
+    base_value: float
+    price_fluctuation: Tuple[
+        float, float
+    ]  # Tuple representing min and max percentage fluctuation
 
 
 # Define the PitGame class implementing the Game interface
@@ -25,25 +29,18 @@ class PitGame(Game):
     )
     id: str = "pit"
 
-    def __post_init__(
-        self,
-        id: str = None,
-        rules: Rules = Rules,
-        agents: List[Agent] = [],
-        show_state: bool = False,
-        game_is_over: bool = False,
-    ):
-        #super().__init__(id, rules, agents, show_state, game_is_over)
+    def __post_init__(self):
         self.commodities = [
-            Commodity("Wheat"),
-            Commodity("Corn"),
-            Commodity("Barley"),
-            Commodity("Oats"),
+            Commodity("Wheat", 10.0, (0.9, 1.1)),
+            Commodity("Corn", 15.0, (0.8, 1.2)),
+            Commodity("Barley", 12.0, (0.85, 1.15)),
+            Commodity("Oats", 8.0, (0.95, 1.05)),
         ]
         self.stock_pile = {
             commodity.name: random.randint(1, 10) for commodity in self.commodities
         }
-        self.scores = []  # Initialize scores as an empty list"""
+        self.scores = []  # Initialize scores as an empty list
+        self.round_number = 0
 
     def init_game(
         self,
@@ -84,34 +81,85 @@ class PitGame(Game):
     def update(self, action: Action, available_actions: AvailableActions, agent: Agent):
         chosen_commodity = action.action_id
         if chosen_commodity in available_actions.predefined:
-            if self.stock_pile[chosen_commodity] > 0:
-                self.stock_pile[chosen_commodity] -= 1
-                # Increment agent's score by 1
-                self.scores[self.agents.index(agent)] += 1
-                if self.show_state:
-                    print(f"{agent.agent_id} traded {chosen_commodity}")
-            else:
-                if self.show_state:
-                    print(f"No more {chosen_commodity} in stock pile.")
+            commodity = next(
+                (c for c in self.commodities if c.name == chosen_commodity), None
+            )
+            if commodity:
+                if self.stock_pile[chosen_commodity] > 0:
+                    self.stock_pile[chosen_commodity] -= 1
+                    # Calculate fluctuated value based on the commodity's base value and price fluctuation
+                    fluctuated_value = commodity.base_value * random.uniform(
+                        *commodity.price_fluctuation
+                    )
+                    # Apply Bull or Bear effect
+                    if random.random() < 0.1:  # 10% chance of Bull or Bear effect
+                        if random.choice(["Bull", "Bear"]) == "Bull":
+                            fluctuated_value *= 1.2  # 20% increase for Bull
+                            if self.show_state:
+                                print(
+                                    f"Bull effect! {chosen_commodity} value increased by 20%."
+                                )
+                        else:
+                            fluctuated_value *= 0.8  # 20% decrease for Bear
+                            if self.show_state:
+                                print(
+                                    f"Bear effect! {chosen_commodity} value decreased by 20%."
+                                )
+                    # Increment agent's score by the fluctuated value
+                    self.scores[self.agents.index(agent)] += fluctuated_value
+                    if self.show_state:
+                        print(
+                            f"{agent.agent_id} traded {chosen_commodity} at {fluctuated_value}"
+                        )
+                else:
+                    if self.show_state:
+                        print(f"No more {chosen_commodity} in stock pile.")
         else:
             if self.show_state:
                 print("Invalid action. Choosing a random action instead.")
             chosen_commodity = random.choice(list(available_actions.predefined.keys()))
-            if self.stock_pile[chosen_commodity] > 0:
-                self.stock_pile[chosen_commodity] -= 1
-                # Increment agent's score by 1
-                self.scores[self.agents.index(agent)] += 1
-                if self.show_state:
-                    print(f"{agent.agent_id} traded {chosen_commodity}")
-            else:
-                if self.show_state:
-                    print(f"No more {chosen_commodity} in stock pile.")
+            commodity = next(
+                (c for c in self.commodities if c.name == chosen_commodity), None
+            )
+            if commodity:
+                if self.stock_pile[chosen_commodity] > 0:
+                    self.stock_pile[chosen_commodity] -= 1
+                    fluctuated_value = commodity.base_value * random.uniform(
+                        *commodity.price_fluctuation
+                    )
+                    if random.random() < 0.1:
+                        if random.choice(["Bull", "Bear"]) == "Bull":
+                            fluctuated_value *= 1.2
+                            if self.show_state:
+                                print(
+                                    f"Bull effect! {chosen_commodity} value increased by 20%."
+                                )
+                        else:
+                            fluctuated_value *= 0.8
+                            if self.show_state:
+                                print(
+                                    f"Bear effect! {chosen_commodity} value decreased by 20%."
+                                )
+                    self.scores[self.agents.index(agent)] += fluctuated_value
+                    if self.show_state:
+                        print(
+                            f"{agent.agent_id} traded {chosen_commodity} at {fluctuated_value}"
+                        )
+                else:
+                    if self.show_state:
+                        print(f"No more {chosen_commodity} in stock pile.")
 
     def play(self) -> Tuple[float, float]:
         while not self.game_is_over:
+            self.round_number += 1
             for agent in self.agents:
                 observation, available_actions = self.get_observation(agent)
-                action = agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+                action = agent.take_action(
+                    self.rules,
+                    observation,
+                    available_actions,
+                    show_state=self.show_state,
+                )
                 self.update(action, available_actions, agent)
 
                 if all(value == 0 for value in self.stock_pile.values()):
