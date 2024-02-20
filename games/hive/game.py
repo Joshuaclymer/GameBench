@@ -3,6 +3,7 @@ from api.classes import Agent, Action, Observation, AvailableActions, Rules
 from pieces import HivePiece, QueenBee, Beetle, Grasshopper, Spider, SoldierAnt
 from .config import GameConfig as Config
 from .board import HiveBoard, Hex
+import random
 
 default_config = Config()
 
@@ -63,6 +64,9 @@ class HiveGame(Game):
 
         # Define available actions (place a piece or move a piece)
         actions = self.get_available_actions(agent)
+        
+        if not actions:
+            actions = [Action("pass")]
         
         return observation, actions
 
@@ -220,9 +224,21 @@ class HiveGame(Game):
         Play a turn for the current player.
         """
         agent = self.players[self.current_player_index]
-        observation, actions = self.get_observation(agent)
-        action = agent.take_action(observation, actions)
-
+        observation, piece_actions = self.get_observation(agent)
+        if not piece_actions:
+            self.next_player()
+            return
+        action = agent.take_action(observation, piece_actions)
+        if action not in piece_actions:
+            action = random.choice(piece_actions)
+        output_actions = self.update(action, agent)
+        if output_actions:
+            action = agent.take_action(observation, output_actions)
+            if action not in output_actions:
+                action = random.choice(output_actions)
+        else:
+            self.next_player()
+            return
         self.update(action, agent)
         self.next_player()
 

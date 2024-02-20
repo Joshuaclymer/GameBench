@@ -1,8 +1,9 @@
+from .pieces import HivePiece
 class Hex:
     # Directions correspond to neighboring hexes in a hex grid
     DIRECTIONS = [
-        (1, -1, 0), (1, 0, -1), (0, 1, -1),
-        (-1, 1, 0), (-1, 0, 1), (0, -1, 1)
+        (1, -1), (1, 0), (0, 1),
+        (-1, 1), (-1, 0), (0, -1)
     ]
 
     def __init__(self, x, y):
@@ -20,10 +21,14 @@ class Hex:
         dx, dy = Hex.DIRECTIONS[direction]
         return Hex(self.x + dx, self.y + dy)
     
+    def __str__(self):
+        return f"({self.x},{self.y})"
+    
 class HiveBoard:
     def __init__(self):
         self.board = {}  # Dictionary to store pieces keyed by their Hex coordinates
         self.last_moved_piece = None
+        self.queen_bee_placed = False
 
     def add_piece(self, piece, hex):
         if hex in self.board:
@@ -77,6 +82,9 @@ class HiveBoard:
         """
         Check if a piece can move from from_hex to to_hex according to Hive rules.
         """
+        if self.is_piece_covered(from_hex):
+            return False
+        
         if self.get_piece_at(to_hex) is not None:
             return False
 
@@ -87,17 +95,15 @@ class HiveBoard:
             return False
 
         # Temporarily move the piece to check One-Hive Rule
-        piece = self.board[from_hex].pop()  # Remove the top piece temporarily
-        if not self.board[from_hex]:  # If there are no more pieces on the hex, remove the hex from the board
-            del self.board[from_hex]
-        self.board.setdefault(to_hex, []).append(piece)  # Place it on the target
+        piece = self.board[from_hex]  # Remove the top piece temporarily
+        del self.board[from_hex]
+        self.board[to_hex] = piece  # Move the piece to the destination
 
         one_hive = self.is_one_hive()
 
         # Move back after checking
-        self.board.setdefault(from_hex, []).append(self.board[to_hex].pop())  # Move the piece back
-        if not self.board[to_hex]:  # If there are no more pieces on the hex, remove the hex from the board
-            del self.board[to_hex]
+        self.board[from_hex] = piece  # Put the piece back
+        del self.board[to_hex]
 
         return one_hive
     
