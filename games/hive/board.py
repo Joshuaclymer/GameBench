@@ -46,9 +46,13 @@ class HiveBoard:
 
         for direction in range(6):
             neighbor_hex = queen_hex.neighbor(direction)
-            if neighbor_hex in self.board and self.board[neighbor_hex].owner != owner:
+            if neighbor_hex in self.board and self.board[neighbor_hex].owner == owner:
+                return False
+            elif neighbor_hex not in self.board:
                 return False
         return True
+    
+
     def is_adjacent_to_enemy_piece(self, hex, owner):
         """
         Check if the given hex is adjacent to a piece owned by the enemy player.
