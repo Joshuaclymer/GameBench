@@ -35,6 +35,20 @@ class HiveBoard:
             raise ValueError("There is already a piece at this position")
         self.board[hex] = piece
 
+
+    def is_queen_surrounded(self, owner):
+        """
+        Check if the queen bee is surrounded by enemy pieces.
+        """
+        queen_hex = next((hex for hex, piece in self.board.items() if piece.owner == owner and piece.name == "Queen Bee"), None)
+        if queen_hex is None:
+            return False
+
+        for direction in range(6):
+            neighbor_hex = queen_hex.neighbor(direction)
+            if neighbor_hex in self.board and self.board[neighbor_hex].owner != owner:
+                return False
+        return True
     def is_adjacent_to_enemy_piece(self, hex, owner):
         """
         Check if the given hex is adjacent to a piece owned by the enemy player.

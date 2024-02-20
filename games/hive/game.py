@@ -248,19 +248,32 @@ class HiveGame(Game):
         """
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
         self.turn_count += 1
-
+    
     def is_game_over(self):
         """
-        Check if the game is over.
+        Check if the game is over by checking if either player's Queen Bee is surrounded.
+        
         """
-        # Implement the logic to determine if the game has ended
+        for player in self.players:
+            if self.board.is_queen_surrounded(player.team_id):
+                return True
         return False
+        
 
-    def run_game(self):
+    def play(self):
         """
         Run the game loop.
         """
         while not self.is_game_over():
             self.play_turn()
+            
+        if self.board.is_queen_surrounded(self.players[0].team_id):
+            return [0, 1]
+        elif self.board.is_queen_surrounded(self.players[1].team_id):
+            return [1, 0]
+        else:
+            return [0, 0]
+            
+        
 
 # Agent class and other relevant classes/methods not shown for brevity
