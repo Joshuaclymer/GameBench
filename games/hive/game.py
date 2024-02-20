@@ -1,7 +1,8 @@
+# TODO: handle beetle movement
 from api.classes import Agent, Action, Observation, AvailableActions, Rules
 from pieces import HivePiece, QueenBee, Beetle, Grasshopper, Spider, SoldierAnt
 from .config import GameConfig as Config
-from .board import HiveBoard
+from .board import HiveBoard, Hex
 
 default_config = Config()
 
@@ -10,7 +11,6 @@ class HiveGame(Game):
 
     config : Config = default_config
     board : HiveBoard = None
-    queen_bee_placed : bool = False
     
     def init_game(self, agent_1_class: Agent, agent_2_class : Agent):
         """
@@ -80,7 +80,7 @@ class HiveGame(Game):
         """
         # List actions such as placing or moving pieces
         # The actions should be tailored based on the game's rules and the current turn
-        return self.list_possible_moves(self.current_player_index)
+        return self.list_actionable_pieces(agent.team_id)
 
     def list_possible_moves_for_placed_piece(self, piece, hex):
         """
@@ -102,7 +102,7 @@ class HiveGame(Game):
 
         If 3 moves have passed without the Queen Bee being placed, then it can be the only possible move.
         """
-        if self.turn_count == 3 and not self.queen_bee_placed:
+        if self.turn_count == 3 and not self.board.queen_bee_placed:
             if piece.type == "Queen Bee":
                 return [Action("place_" + str(hex) + "_" + str(piece.type)) for hex in self.board.board if self.board.board[hex] is None and self.board.is_adjacent_empty(hex)]
             else:
@@ -110,40 +110,108 @@ class HiveGame(Game):
         else:
             return [Action("place_" + str(hex) + "_" + str(piece.type)) for hex in self.board.board if self.board.board[hex] is None and self.board.is_adjacent_empty(hex) and self.board.can_place_piece(piece, hex)]
         
-
-    def list_possible_moves(self, player_index):
+    def list_possible_moves_for_placed_piece(self, piece, hex):
         """
-        List all possible moves for the agent.
-        THe possible moves are either to place a new piece or move an existing piece.
+        List all possible moves for a piece that is already placed on the board.
         """
-        possible_moves = []
+        return [Action("move_" + str(hex) +  "_" + str(neighbor_hex)) for direction in range(6) for neighbor_hex in hex.neighbor(direction) if self.board.can_move_piece(hex, neighbor_hex)]
+    
+    def list_actionable_pieces(self, player_index):
+        """
+        List all pieces that can be moved or placed by the player.
+        """
+        possible_actions_set = set()
 
         possible_pieces_to_place = [piece for piece in self.pieces_remaining if piece.owner == player_index]
 
         for possible_piece in possible_pieces_to_place:
-            possible_moves += self.list_possible_moves_for_unplaced_piece(possible_piece)
-        
-        for (x,y) in self.board.board:
-            pieces = self.board.board[(x, y)]
+            possible_moves = self.list_possible_moves_for_unplaced_piece(possible_piece)
+            if len(possible_moves) > 0:
+                possible_actions_set += Action("list_place_" + str(possible_piece.type))
 
-            for piece in pieces:
-                if piece.owner == player_index:
-                    possible_moves += piece.valid_moves(self.board)
+        
+        possible_moves = self.list_possible_moves_for_placed_piece(possible_piece)
+        if len(possible_moves) > 0:
+            possible_actions_set += Action("list_move_" + str(possible_piece.type) + "_" + str(hex))
 
         return possible_moves 
 
+    def process_piece_place_action(self, action, agent):
+        """
+        Process the action of placing a piece on the board.
+        """
+        hex_x = action.split("_")[1]
+        hex_y = action.split("_")[2]
+        hex = Hex(hex_x, hex_y)            
+        piece_type = action.split("_")[3]
+        for piece in self.pieces_remaining:
+            if piece.type == piece_type and piece.owner == agent.team_id:
+                break
+        else:
+            raise ValueError("Invalid action")
+        
+        if self.board.can_place_piece(piece, hex):
+            self.board.add_piece(piece, hex)
+            del self.pieces_remaining[piece]
+            if piece.type == "Queen Bee":
+                self.board.queen_bee_placed = True
+
+    def process_piece_move_action(self, action, agent):
+        """
+        Process the action of moving a piece on the board.
+        """
+        from_hex = action.split("_")[1].split(",")
+        to_hex = action.split("_")[2].split(",")
+
+        from_hex = Hex(int(from_hex[0]), int(from_hex[1]))
+        to_hex = Hex(int(to_hex[0]), int(to_hex[1]))
+
+        if from_hex not in self.board.board or to_hex in self.board.board:
+            raise ValueError("Invalid action")
+        piece = self.board.board[from_hex]
+        if piece.owner != agent.team_id:
+            raise ValueError("Invalid action")
+        if self.board.can_move_piece(from_hex, to_hex) and to_hex in piece.valid_moves(piece, self.board):
+            self.board.move_piece(from_hex, to_hex)
+
+    def process_list_placement_action(self, action, agent):
+        """
+        Process the action of listing possible placements for a piece.
+        """
+        possible_placements = []
+        piece_type = action.split("_")[1]
+        for piece in self.pieces_remaining:
+            if piece.type == piece_type and piece.owner == agent.team_id:
+                possible_placements += self.list_possible_moves_for_unplaced_piece(piece)
+                break 
+        return possible_placements
+        
+
+    def process_list_moves_action(self, action, agent):
+        """
+        Process the action of listing possible moves for a piece.
+        """
+        hex_x = action.split("_")[2]
+        hex_y = action.split("_")[3]
+        
+        hex = Hex(hex_x, hex_y)
+        if hex not in self.board.board:
+            raise ValueError("Invalid action")
+        piece = self.board.board[hex]
+        return self.list_possible_moves_for_placed_piece(piece, hex)
+    
     def update(self, action, agent):
         """
         Update the game state based on the agent's action.
         """
         if action.startswith("place"):
-            hex = eval(action.split("_")[1])
-            piece = self.pieces_remaining.pop()
-            piece.owner = self.current_player_index
-            self.board.add_piece(piece, hex)
+            self.process_piece_place_action(action, agent)
         elif action.startswith("move"):
-            from_hex, to_hex = eval(action.split("_")[1]), eval(action.split("_")[2])
-            self.board.move_piece(from_hex, to_hex)
+            self.process_piece_move_action(action, agent)
+        elif action.startswith("list_place"):
+            return self.process_list_placement_action(action, agent)
+        elif action.startswith("list_move"):
+            return self.process_list_moves_action(action, agent)
         else:
             raise ValueError("Invalid action")
 
