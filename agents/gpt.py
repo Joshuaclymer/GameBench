@@ -194,7 +194,6 @@ class ChainOfThought(OpenAITextAgent):
     agent_type_id: str = "cot"
     mode: int = 1
 
-
 @dataclass
 class BabbleAndPrune(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
