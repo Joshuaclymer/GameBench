@@ -1,7 +1,8 @@
 # TODO: handle beetle movement
 from api.classes import Agent, Action, Observation, AvailableActions, Rules
-from pieces import HivePiece, QueenBee, Beetle, Grasshopper, Spider, SoldierAnt
+from .pieces import HivePiece, QueenBee, Grasshopper, Spider, SoldierAnt
 from .config import GameConfig as Config
+from api.classes import Game
 from .board import HiveBoard, Hex
 import random
 
@@ -18,7 +19,7 @@ class HiveGame(Game):
         Initialize the game.
         """
         self.board = HiveBoard()
-        self.players = [agent_1_class("Player1"), agent_2_class("Player2")]
+        self.players = [agent_1_class(agent_id="Player1", agent_type_id=0, team_id=0), agent_2_class(agent_id="Player2", agent_type_id=0,team_id=1)]
         self.current_player_index = 0
         self.turn_count = 0
         self.pieces_remaining = set()
@@ -43,9 +44,6 @@ class HiveGame(Game):
         for _ in range(self.config.NUM_SPIDER_CARDS):
             self.pieces_remaining.add(Spider(team_id))
 
-        for _ in range(self.config.NUM_BEETLE_CARDS):
-            self.pieces_remaining.add(Beetle(team_id))
-
         for _ in range(self.config.NUM_GRASSHOPPER_CARDS):
             self.pieces_remaining.add(Grasshopper(team_id))
         
@@ -68,15 +66,13 @@ class HiveGame(Game):
         if not actions:
             actions = [Action("pass")]
         
-        return observation, actions
+        return Observation(observation), AvailableActions(instructions="Choose a move:", predefined=actions, openended=None)
 
     def generate_observation(self, agent):
         """
         Generate the current game state observation for the agent.
         """
-        # Include information about the board state, pieces, etc.
-        # This information will be used by the agent to make a decision
-        return {"board": self.board, "current_player": agent}
+        return self.board.create_text_board(agent.team_id)
 
     def get_available_actions(self, agent):
         """
@@ -133,10 +129,11 @@ class HiveGame(Game):
             if len(possible_moves) > 0:
                 possible_actions_set += Action("list_place_" + str(possible_piece.type))
 
-        
-        possible_moves = self.list_possible_moves_for_placed_piece(possible_piece)
-        if len(possible_moves) > 0:
-            possible_actions_set += Action("list_move_" + str(possible_piece.type) + "_" + str(hex))
+        for hex in self.board.board:
+            if self.board.board[hex].owner == player_index:
+                possible_moves = self.list_possible_moves_for_placed_piece(self.board.board[hex], hex)
+                if len(possible_moves) > 0:
+                    possible_actions_set += Action("list_move_" + str(possible_piece.type) + "_" + str(hex))
 
         return possible_moves 
 
@@ -228,12 +225,12 @@ class HiveGame(Game):
         if not piece_actions:
             self.next_player()
             return
-        action = agent.take_action(observation, piece_actions)
+        action = agent.take_action(self.rules, observation, piece_actions)
         if action not in piece_actions:
             action = random.choice(piece_actions)
         output_actions = self.update(action, agent)
         if output_actions:
-            action = agent.take_action(observation, output_actions)
+            action = agent.take_action(self.rules, observation, output_actions)
             if action not in output_actions:
                 action = random.choice(output_actions)
         else:

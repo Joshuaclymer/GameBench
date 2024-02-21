@@ -201,9 +201,7 @@ class Ladybug(HivePiece):
         return self.find_moves(current_hex, board, 3)
 
     def find_moves(self, current_hex, board, steps_remaining):
-        """
         Recursively find all valid moves for the Ladybug.
-        """
         if steps_remaining == 0:
             return [current_hex] if board.get_piece_at(current_hex) is None else []
 
@@ -239,9 +237,7 @@ class Beetle(HivePiece):
         return valid_moves
 
     def can_climb(self, board, current_hex, target_hex):
-        """
         Check if the Beetle can climb to the target hex.
-        """
         # If the target hex is empty or has a stack, the Beetle can climb onto it
         if board.get_piece_at(target_hex) is not None:
             return True
@@ -264,9 +260,7 @@ class Beetle(HivePiece):
                 return False
 
     def stack_height(self, board, hex):
-        """
         Returns the height of the stack at the given hex.
-        """
         piece = board.get_piece_at(hex)
         height = 0
         while piece:
