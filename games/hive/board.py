@@ -1,4 +1,45 @@
 from .pieces import HivePiece
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import numpy as np
+
+class HiveBoardVisualizer:
+    def __init__(self, board):
+        self.board = board
+
+    def draw_hexagon(self, ax, center, size=1):
+        """Draw a hexagon given a center, size, and the axis to draw on."""
+        for angle in range(0, 360, 60):
+            x = center[0] + size * np.cos(np.radians(angle))
+            y = center[1] + size * np.sin(np.radians(angle))
+            hexagon = patches.RegularPolygon((x, y), numVertices=6, radius=size, orientation=np.radians(30))
+            ax.add_patch(hexagon)
+            ax.text(x, y, '.', ha='center', va='center', size=20)  # Placeholder for empty hex
+
+    def draw_board(self):
+        """Draw the Hive board."""
+        fig, ax = plt.subplots()
+        ax.set_aspect('equal')
+
+        # Set limits based on your board dimensions
+        ax.set_xlim(-10, 10)
+        ax.set_ylim(-10, 10)
+
+        # Iterate through your board and draw each piece
+        for hex, piece in self.board.board.items():
+            x, y = self.hex_to_pixel(hex)
+            self.draw_hexagon(ax, (x, y))
+            ax.text(x, y, str(piece), ha='center', va='center', size=20)  # Replace str(piece) with your piece identifier
+
+        plt.show()
+
+    def hex_to_pixel(self, hex):
+        """Convert hex coordinates to pixel coordinates."""
+        x = 3/2 * hex.x
+        y = np.sqrt(3) * (hex.y + 0.5 * (hex.x & 1))
+        return (x, y)
+    
+
 class Hex:
     # Directions correspond to neighboring hexes in a hex grid
     DIRECTIONS = [
@@ -35,7 +76,37 @@ class HiveBoard:
             raise ValueError("There is already a piece at this position")
         self.board[hex] = piece
 
+    def create_text_board(self, team_id):
+        """
+        Print the board with the pieces. Do this in a way that it is easy to see the pieces and their positions on the board. Start by finding the current hex        """
 
+        # Find the current hex
+        if not self.board:
+            return "Empty Board"
+        min_x = min(hex.x for hex in self.board)
+        max_x = max(hex.x for hex in self.board)
+        min_y = min(hex.y for hex in self.board)
+        max_y = max(hex.y for hex in self.board)
+
+        for y in range(max_y, min_y - 1, -1):
+            row = " " * (max_y - y)
+            for x in range(min_x, max_x + 1):
+                hex = Hex(x, y)
+                if hex in self.board:
+                    piece = self.board[hex]
+                    row += f" {piece.type} "
+                else:
+                    row += " . "
+            print(row)
+        print()
+
+    def display_board(self):
+        """
+        Display the board with the pieces and their positions. Produce a visual representation of the board such that an image can be exported.
+        """
+        visualizer = HiveBoardVisualizer(self)
+        visualizer.draw_board()
+    
     def is_queen_surrounded(self, owner):
         """
         Check if the queen bee is surrounded by enemy pieces.
