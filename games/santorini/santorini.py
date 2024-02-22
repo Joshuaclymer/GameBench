@@ -205,7 +205,7 @@ class Santorini(Game):
 
         if pawn.player_number != agent.team_id:
             self.display_message(
-                f"The agent's team ID is out of sync with the current pawn's player number, which means that the agent ran out of options and lost."
+                "The agent's team ID is out of sync with the current pawn's player number, which means that the agent ran out of options and lost."
             )
             return {}, {}, {}
 
@@ -281,7 +281,8 @@ class Santorini(Game):
 
     def play(self) -> Tuple[float, float]:
         """Return the scores for agent_1 and agent_2 after the game is finished."""
-        # Returns 1 for the winning team, 0 for the losing team, and 0.5 for a draw.
+        # Returns 1 for the winning team and 0 for the losing team.
+        # There are no draws in Santorini.
 
         self.display_message("Placing the pawns.\n")
         for i in range(2):
@@ -337,8 +338,7 @@ class Santorini(Game):
 
         winner_number = self.board.winner_player_number
         if winner_number is None:
-            self.display_message("It was a draw.")
-            return (0.5, 0.5)
+            raise Exception("The game is over, but there is no winner.")
         else:
             self.display_message(f"Player {winner_number} wins!")
             return (1.0, 0.0) if winner_number == 1 else (0.0, 1.0)
