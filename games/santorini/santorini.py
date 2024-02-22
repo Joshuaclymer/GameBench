@@ -100,7 +100,7 @@ class Santorini(Game):
 
     def board_string_for_user(self) -> str:
         """Return a string representation of the board to be displayed to a human user in the terminal."""
-
+        # TODO: replace board_string_for_user with a print board for user function
         level_color_mapping = {
             0: Back.BLACK,
             1: Back.BLUE,
@@ -134,6 +134,8 @@ class Santorini(Game):
                 else:
                     board_string += pawn_letter
             board_string += "\n" if i != len(board_matrix) - 1 else ""
+
+        board_string += "\n"
 
         return board_string
 
@@ -261,8 +263,16 @@ class Santorini(Game):
     def place_pawn(self, action: Action):
         move: Tuple = ast.literal_eval(action.action_id)
         # This returns false if the move is invalid, but it should never return false because I will only present the agent with valid moves.
-        self.display_message(f"Placed at {move}.\n")
+
+        pawn_letter = self.pawn_letter(self.board.get_playing_pawn())
+        player_number = self.board.get_playing_pawn().player_number
+
         self.board.place_pawn(move)
+
+        self.display_message(
+            f"Player {player_number} placed pawn {pawn_letter} at {move}."
+        )
+        self.display_message(self.board_string_for_user())
 
     def play_turn(
         self,
@@ -276,8 +286,15 @@ class Santorini(Game):
 
         play = action_name_mapping[action]
         move, build = play
-        self.display_message(f"Moved to {move} and built at {build}.\n")
+        pawn_letter = self.pawn_letter(self.board.get_playing_pawn())
+        player_number = self.board.get_playing_pawn().player_number
+
         self.board.play_move(move, build)
+
+        self.display_message(
+            f"Player {player_number} moved pawn {pawn_letter} to {move} and built at {build}."
+        )
+        self.display_message(self.board_string_for_user())
 
     def play(self) -> Tuple[float, float]:
         """Return the scores for agent_1 and agent_2 after the game is finished."""
@@ -287,10 +304,6 @@ class Santorini(Game):
         self.display_message("Placing the pawns.\n")
         for i in range(2):
             for agent in self.agents:
-                self.display_message(
-                    f"Player {agent.team_id} is placing pawn {self.pawn_letter(self.board.get_playing_pawn())}."
-                )
-                self.display_message(self.board_string_for_user())
                 observation, available_actions = self.get_pawn_placement_observation(
                     agent
                 )
@@ -305,10 +318,6 @@ class Santorini(Game):
         self.display_message("Playing the game.\n")
         while not self.board.is_game_over():
             for agent in self.agents:
-                self.display_message(
-                    f"Player {agent.team_id} is playing pawn {self.pawn_letter(self.board.get_playing_pawn())}."
-                )
-                self.display_message(self.board_string_for_user())
                 (
                     observation,
                     available_actions,
@@ -333,7 +342,9 @@ class Santorini(Game):
                     available_actions,
                     show_state=self.show_state,
                 )
+
                 self.play_turn(action, available_actions, action_name_mapping)
+
         self.display_message("Game over.")
 
         winner_number = self.board.winner_player_number
