@@ -27,7 +27,7 @@ class BoardSquare:
 class Santorini(Game):
     rules: Rules = Rules(
         title="Santorini",
-        summary='Win by moving one of your pawns to the third level of the board or forcing your opponent to be unable to finish their turn. The game is played on a five by five grid of squares, and each player controls two pawns. Play alternates between the players, starting with player 1. The pawn that a player plays with alternates during each of their turns: for example, player 1 plays pawn A on their first turn, pawn B on their next turn, then pawn A, and so on. Blocks can be placed on squares on the board up to four blocks high, creating four possible height levels.\n\nThe board begins with no blocks placed, so every square begins at level 0. Before the game starts, each of the players takes turns placing each of their pawns on the board. A square is occupied if a pawn is on it.\n\nEach turn consists of two stages: the "move" stage and the "build" stage. During the move stage, the player moves their pawn by one square (horizontally, vertically, or diagonally). They cannot move their pawn onto a square that is occupied by another pawn, more than one level higher than the pawn, or at level 4. They can move a pawn any number of levels down, to the same level, or one level higher, but not more than one level higher and not to level 4.\n\nDuring the build stage, the player must select an unoccupied square adjacent to the pawn they moved during the move stage and place a block on it. They can place a block onto an unoccupied square at any level less than 4. Once a square has been built to level 4, it is "complete", meaning pawns cannot move to it and blocks cannot be placed on it. The player instantly wins if they move their pawn onto a square at level 3 or if they force their opponent to not be able to finish their turn.',  # noqa: E501
+        summary='Win by moving one of your pawns to the third level of the board or forcing your opponent to be unable to finish their turn. The game is played on a five by five grid of squares, and each player controls two pawns. Play alternates between the players, starting with player 1. The pawn that a player plays with alternates during each of their turns: for example, player 1 plays pawn A on their first turn, pawn B on their next turn, then pawn A, and so on. Blocks can be placed on squares on the board up to four blocks high, creating four possible height levels.\n\nThe board begins with no blocks placed, so every square begins at level 0. Before the game starts, each of the players takes turns placing each of their pawns on the board. A square is occupied if a pawn is on it.\n\nEach turn consists of two stages: the "move" stage and the "build" stage. During the move stage, the player moves their pawn by one square (horizontally, vertically, or diagonally). They cannot move their pawn onto a square that is occupied by another pawn, more than one level higher than the pawn, or at level 4. They can move a pawn any number of levels down, to the same level, or one level higher, but not more than one level higher and not to level 4.\n\nDuring the build stage, the player must select an unoccupied square adjacent to the pawn they moved during the move stage and place a block on it. They can place a block onto an unoccupied square at any level less than 4. Once a square has been built to level 4, it is "complete", meaning pawns cannot move to it and blocks cannot be placed on it. The player instantly wins if they move their pawn onto a square at level 3 or if they force their opponent to not be able to finish their turn.',
         additional_details=None,
     )
     id: str = "santorini"
@@ -196,7 +196,7 @@ class Santorini(Game):
 
     def get_move_build_observation(
         self, agent: Agent
-    ) -> Tuple[Observation, AvailableActions, Dict[str, Play]]:  # noqa: E501
+    ) -> Tuple[Observation, AvailableActions, Dict[str, Play]]:
         observation = self.get_general_observation(agent)
 
         # TODO: double check that tokenization makes sense (ints are separate tokens)
@@ -212,13 +212,13 @@ class Santorini(Game):
         pawn_letter = self.pawn_letter(pawn)
 
         available_actions = AvailableActions(
-            instructions=f"For this turn, you are playing with pawn {pawn_letter}. Pick which direction you want to move pawn {pawn_letter} and where you want to build a block relative to it after it has moved.",  # noqa: E501
+            instructions=f"For this turn, you are playing with pawn {pawn_letter}. Pick which direction you want to move pawn {pawn_letter} and where you want to build a block relative to it after it has moved.",
             predefined={},
             openended={},
         )
         possible_plays: List[
             Tuple[Tuple[int, int], Tuple[int, int]]
-        ] = self.board.get_possible_movement_and_building_positions(pawn)  # noqa: E501
+        ] = self.board.get_possible_movement_and_building_positions(pawn)
         action_name_mapping: Dict[str, Play] = {}
         for play in possible_plays:
             (move, build) = play
@@ -226,7 +226,7 @@ class Santorini(Game):
             build_direction = self.relative_direction_name(pawn, build)
             action_id = f"Move {move_direction}, build {build_direction}"
             action_name_mapping[action_id] = play
-            action_description = f"Move pawn {pawn_letter} from {pawn.pos} to {play} and then build a block on {build}."  # noqa: E501
+            action_description = f"Move pawn {pawn_letter} from {pawn.pos} to {play} and then build a block on {build}."
             available_actions.predefined[action_id] = action_description
 
         return observation, available_actions, action_name_mapping
@@ -288,7 +288,7 @@ class Santorini(Game):
             for agent in self.agents:
                 self.display_message(
                     f"Player {agent.team_id} is placing pawn {self.pawn_letter(self.board.get_playing_pawn())}."
-                )  # noqa: E501
+                )
                 self.display_message(self.board_string_for_user())
                 observation, available_actions = self.get_pawn_placement_observation(
                     agent
@@ -306,7 +306,7 @@ class Santorini(Game):
             for agent in self.agents:
                 self.display_message(
                     f"Player {agent.team_id} is playing pawn {self.pawn_letter(self.board.get_playing_pawn())}."
-                )  # noqa: E501
+                )
                 self.display_message(self.board_string_for_user())
                 (
                     observation,
