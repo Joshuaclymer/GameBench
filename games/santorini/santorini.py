@@ -14,6 +14,7 @@ class Play:
     move: Tuple[int, int]
     build: Tuple[int, int]
 
+
 @dataclass
 class Santorini(Game):
     rules: Rules = Rules(
@@ -31,7 +32,7 @@ class Santorini(Game):
     def init_game(self, agent_1: Agent, agent_2: Agent):
         self.agents = [agent_1(team_id=1, agent_id=1), agent_2(team_id=2, agent_id=2)]
         self.board = Board(2)
-    
+
     def pawn_letter(self, pawn: Pawn) -> str:
         letter_mapping = {
             1: "A",
@@ -47,7 +48,7 @@ class Santorini(Game):
             if pawn.player_number == agent.team_id:
                 pawns.append(pawn)
         return pawns
-    
+
     def get_opponent_pawns(self, agent: Agent) -> List[Pawn]:
         pawns = []
         for pawn in self.board.pawns:
@@ -83,7 +84,7 @@ class Santorini(Game):
             board_string += "\n" if i != len(board_matrix) - 1 else ""
 
         return board_string
-    
+
     def square_to_string(self, square: int) -> str:
         square_color_mapping = {
             0: Fore.BLACK,
@@ -91,10 +92,10 @@ class Santorini(Game):
             2: Fore.GREEN,
             3: Fore.CYAN,
             4: Fore.WHITE,
-            'A': Back.BLUE,
-            'B': Back.CYAN,
-            'X': Back.RED,
-            'Y': Back.MAGENTA,
+            "A": Back.BLUE,
+            "B": Back.CYAN,
+            "X": Back.RED,
+            "Y": Back.MAGENTA,
         }
         if self.colored_output:
             return square_color_mapping[square] + str(square) + Style.RESET_ALL
@@ -102,7 +103,7 @@ class Santorini(Game):
             return str(square)
 
     def get_general_observation(self, agent: Agent) -> Observation:
-        board_string =  self.board_string()
+        board_string = self.board_string()
         pawns = self.get_pawns(agent)
         pawn_letters = [self.pawn_letter(pawn) for pawn in pawns]
         opponent_pawns = self.get_opponent_pawns(agent)
@@ -110,10 +111,11 @@ class Santorini(Game):
 
         observation_text = f"Player {agent.team_id}, it is your turn. You control two pawns, represented as the letters {pawn_letters[0]} and {pawn_letters[1]}, and your opponent controls pawns {opponent_pawn_letters[0]} and {opponent_pawn_letters[1]}. Each non-occupied square is represented as a digit corresponding to what level it is, from 0 to 4. Here is the board:\n\n{board_string}"
         return Observation(text=observation_text)
-    
 
     # These direction–name functions are not elegant. I just had CodePilot manually write them for me. One idea if I wanted to refactor the code is to define a class-level constant matrix with each of the direction names and use it in each function to translate between relative directions and names.
-    def relative_direction_name(self, pawn: Pawn, second_position: Tuple[int, int]) -> str:
+    def relative_direction_name(
+        self, pawn: Pawn, second_position: Tuple[int, int]
+    ) -> str:
         """Given a pawn and a position adjacent to the pawn, return the relative direction name. For example, if a pawn is at (0, 0), the position (0, 1) returns 'east' and (1, 1), returns 'southeast'."""
         pawn_position = pawn.pos
         if pawn_position[0] == second_position[0]:
@@ -137,9 +139,9 @@ class Santorini(Game):
                     return "southwest"
                 else:
                     return "northwest"
-    
+
     def adjacent_position(self, pawn: Pawn, direction: str) -> Tuple[int, int]:
-        """"Given a pawn and a direction name (e.g. "north"), return the position adjacent to the pawn in that direction."""
+        """ "Given a pawn and a direction name (e.g. "north"), return the position adjacent to the pawn in that direction."""
         direction_name_mapping = {
             "north": [-1, 0],
             "south": [1, 0],
@@ -158,28 +160,34 @@ class Santorini(Game):
         pawn_position = pawn.pos
         return (pawn_position[0] + x_offset, pawn_position[1] + y_offset)
 
-    def get_move_build_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions, Dict[str, Play]]:  # noqa: E501
+    def get_move_build_observation(
+        self, agent: Agent
+    ) -> Tuple[Observation, AvailableActions, Dict[str, Play]]:  # noqa: E501
         observation = self.get_general_observation(agent)
-        
+
         # TODO: double check that tokenization makes sense (ints are separate tokens)
 
         pawn = self.board.get_playing_pawn()
 
         if pawn.player_number != agent.team_id:
-            self.display_message(f"The agent's team ID is out of sync with the current pawn's player number, which means that the agent ran out of options and lost.")
+            self.display_message(
+                f"The agent's team ID is out of sync with the current pawn's player number, which means that the agent ran out of options and lost."
+            )
             return {}, {}, {}
 
         pawn_letter = self.pawn_letter(pawn)
 
         available_actions = AvailableActions(
-            instructions=f'For this turn, you are playing with pawn {pawn_letter}. Pick which direction you want to move pawn {pawn_letter} and where you want to build a block relative to it after it has moved.',  # noqa: E501
+            instructions=f"For this turn, you are playing with pawn {pawn_letter}. Pick which direction you want to move pawn {pawn_letter} and where you want to build a block relative to it after it has moved.",  # noqa: E501
             predefined={},
             openended={},
         )
-        possible_plays: List[Tuple[Tuple[int, int], Tuple[int, int]]] = self.board.get_possible_movement_and_building_positions(pawn)  # noqa: E501
+        possible_plays: List[
+            Tuple[Tuple[int, int], Tuple[int, int]]
+        ] = self.board.get_possible_movement_and_building_positions(pawn)  # noqa: E501
         action_name_mapping: Dict[str, Play] = {}
         for play in possible_plays:
-            ( move, build ) = play
+            (move, build) = play
             move_direction = self.relative_direction_name(pawn, move)
             build_direction = self.relative_direction_name(pawn, build)
             action_id = f"Move {move_direction}, build {build_direction}"
@@ -188,8 +196,10 @@ class Santorini(Game):
             available_actions.predefined[action_id] = action_description
 
         return observation, available_actions, action_name_mapping
-    
-    def get_pawn_placement_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
+
+    def get_pawn_placement_observation(
+        self, agent: Agent
+    ) -> Tuple[Observation, AvailableActions]:
         observation = self.get_general_observation(agent)
 
         pawn = self.board.get_playing_pawn()
@@ -219,8 +229,13 @@ class Santorini(Game):
         # This returns false if the move is invalid, but it should never return false because I will only present the agent with valid moves.
         self.display_message(f"Placed at {move}.\n")
         self.board.place_pawn(move)
-    
-    def play_turn(self, action: Action, available_actions: AvailableActions, action_name_mapping: Dict[str, Play]):
+
+    def play_turn(
+        self,
+        action: Action,
+        available_actions: AvailableActions,
+        action_name_mapping: Dict[str, Play],
+    ):
         action = action.action_id
         if action not in available_actions.predefined:
             action = random.choice(list(available_actions.predefined.keys()))
@@ -233,13 +248,17 @@ class Santorini(Game):
     def play(self) -> Tuple[float, float]:
         """Return the scores for agent_1 and agent_2 after the game is finished."""
         # Returns 1 for the winning team, 0 for the losing team, and 0.5 for a draw.
-        
+
         self.display_message("Placing the pawns.\n")
         for i in range(2):
             for agent in self.agents:
-                self.display_message(f"Player {agent.team_id} is placing pawn {self.pawn_letter(self.board.get_playing_pawn())}.")  # noqa: E501
+                self.display_message(
+                    f"Player {agent.team_id} is placing pawn {self.pawn_letter(self.board.get_playing_pawn())}."
+                )  # noqa: E501
                 self.display_message(self.board_string())
-                observation, available_actions = self.get_pawn_placement_observation(agent)
+                observation, available_actions = self.get_pawn_placement_observation(
+                    agent
+                )
                 action = agent.take_action(
                     self.rules,
                     observation,
@@ -251,18 +270,28 @@ class Santorini(Game):
         self.display_message("Playing the game.\n")
         while not self.board.is_game_over():
             for agent in self.agents:
-                self.display_message(f"Player {agent.team_id} is playing pawn {self.pawn_letter(self.board.get_playing_pawn())}.")  # noqa: E501
+                self.display_message(
+                    f"Player {agent.team_id} is playing pawn {self.pawn_letter(self.board.get_playing_pawn())}."
+                )  # noqa: E501
                 self.display_message(self.board_string())
-                observation, available_actions, action_name_mapping = self.get_move_build_observation(agent)
+                (
+                    observation,
+                    available_actions,
+                    action_name_mapping,
+                ) = self.get_move_build_observation(agent)
                 if available_actions == {} or available_actions.predefined == {}:
-                    self.display_message(f"Player {agent.team_id} ran out of options and loses.")
+                    self.display_message(
+                        f"Player {agent.team_id} ran out of options and loses."
+                    )
                     return (0.0, 1.0) if agent.team_id == 1 else (1.0, 0.0)
                 current_pawn = self.board.get_playing_pawn()
                 try:
                     assert current_pawn.player_number == agent.team_id
                 except AssertionError:
-                    raise Exception(f"Agent {agent.team_id} is trying to take a turn when it is not their turn.")
-                
+                    raise Exception(
+                        f"Agent {agent.team_id} is trying to take a turn when it is not their turn."
+                    )
+
                 action = agent.take_action(
                     self.rules,
                     observation,
@@ -277,7 +306,5 @@ class Santorini(Game):
             self.display_message("It was a draw.")
             return (0.5, 0.5)
         else:
-            self.display_message(
-                f"Player {winner_number} wins!"
-            )
+            self.display_message(f"Player {winner_number} wins!")
             return (1.0, 0.0) if winner_number == 1 else (0.0, 1.0)
