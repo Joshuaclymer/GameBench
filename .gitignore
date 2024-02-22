@@ -1,3 +1,5 @@
 credentials.json
 games/santorini/sea_battle.py
 **/__pycache__/
+elo_ratings.json
+matches.json
