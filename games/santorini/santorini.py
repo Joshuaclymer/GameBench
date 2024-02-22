@@ -139,26 +139,24 @@ class Santorini(Game):
                     return "northwest"
     
     def adjacent_position(self, pawn: Pawn, direction: str) -> Tuple[int, int]:
-        """"Given a pawn and a direction, return the position adjacent to the pawn in that direction."""
+        """"Given a pawn and a direction name (e.g. "north"), return the position adjacent to the pawn in that direction."""
+        direction_name_mapping = {
+            "north": [-1, 0],
+            "south": [1, 0],
+            "east": [0, 1],
+            "west": [0, -1],
+            "northeast": [-1, 1],
+            "northwest": [-1, -1],
+            "southeast": [1, 1],
+            "southwest": [1, -1],
+        }
+        try:
+            assert direction in direction_name_mapping
+        except AssertionError:
+            raise Exception(f"Invalid direction: {direction}")
+        x_offset, y_offset = direction_name_mapping[direction]
         pawn_position = pawn.pos
-        if direction == "north":
-            return (pawn_position[0] - 1, pawn_position[1])
-        elif direction == "south":
-            return (pawn_position[0] + 1, pawn_position[1])
-        elif direction == "east":
-            return (pawn_position[0], pawn_position[1] + 1)
-        elif direction == "west":
-            return (pawn_position[0], pawn_position[1] - 1)
-        elif direction == "northeast":
-            return (pawn_position[0] - 1, pawn_position[1] + 1)
-        elif direction == "northwest":
-            return (pawn_position[0] - 1, pawn_position[1] - 1)
-        elif direction == "southeast":
-            return (pawn_position[0] + 1, pawn_position[1] + 1)
-        elif direction == "southwest":
-            return (pawn_position[0] + 1, pawn_position[1] - 1)
-        else:
-            raise ValueError(f"Invalid direction: {direction}")
+        return (pawn_position[0] + x_offset, pawn_position[1] + y_offset)
 
     def get_move_build_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions, Dict[str, Play]]:  # noqa: E501
         observation = self.get_general_observation(agent)
