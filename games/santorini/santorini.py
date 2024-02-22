@@ -16,6 +16,14 @@ class Play:
 
 
 @dataclass
+class BoardSquare:
+    """Used to represent a square on the board when converting the board into a string."""
+
+    level: int
+    pawn_letter: str
+
+
+@dataclass
 class Santorini(Game):
     rules: Rules = Rules(
         title="Santorini",
@@ -56,54 +64,81 @@ class Santorini(Game):
                 pawns.append(pawn)
         return pawns
 
-    def board_string(self) -> str:
-        # 1. Convert matrix of ints into a string, with more semantic characters
-        # 2. Add the pawns to the string
-        # Board values:
-        # 0 = empty
-        # 1 = tower level 1
-        # 2 = tower level 2
-        # 3 = tower level 3
-        # 4 = terminated tower
-        board = self.board.copy()
-        board_matrix = board.board
-        board_string = ""
+    def get_board_matrix(self) -> List[List[BoardSquare]]:
+        """Return a matrix representation of the board, where each square is represented as a list of two elements: the first element is the level of the square, and the second element is the letter of the pawn that is on the square, or "." if the square is not occupied."""
 
-        for pawn in board.pawns:
+        original_board = self.board.copy()
+        board_matrix: List[List[BoardSquare]] = [
+            [
+                BoardSquare(level=original_board.board[i][j], pawn_letter=".")
+                for j in range(5)
+            ]
+            for i in range(5)
+        ]
+
+        for pawn in original_board.pawns:
             position = pawn.pos
             if position is None or position[0] is None or position[1] is None:
                 continue
             letter = self.pawn_letter(pawn)
-            board_matrix[position[0]][position[1]] = letter
+            board_matrix[position[0]][position[1]].pawn_letter = letter
+
+        return board_matrix
+
+    def board_string_for_agent(self) -> str:
+        """Return a string representation of the board to be displayed to an agent."""
+
+        board_matrix = self.get_board_matrix()
+        board_string = ""
 
         for i in range(len(board_matrix)):
             for square in board_matrix[i]:
-                board_string += self.square_to_string(square)
-                # Add a space between each square to help the LLM read the board (to ensure that each square is parsed as a separate token)
-                board_string += " "
+                board_string += str(square.level) + square.pawn_letter + " "
             board_string += "\n" if i != len(board_matrix) - 1 else ""
 
         return board_string
 
-    def square_to_string(self, square: int) -> str:
-        square_color_mapping = {
-            0: Fore.BLACK,
-            1: Fore.BLUE,
-            2: Fore.GREEN,
-            3: Fore.CYAN,
-            4: Fore.WHITE,
-            "A": Back.BLUE,
-            "B": Back.CYAN,
-            "X": Back.RED,
-            "Y": Back.MAGENTA,
+    def board_string_for_user(self) -> str:
+        """Return a string representation of the board to be displayed to a human user in the terminal."""
+
+        level_color_mapping = {
+            0: Back.BLACK,
+            1: Back.BLUE,
+            2: Back.GREEN,
+            3: Back.CYAN,
+            4: Back.WHITE,
         }
-        if self.colored_output:
-            return square_color_mapping[square] + str(square) + Style.RESET_ALL
-        else:
-            return str(square)
+        pawn_color_mapping = {
+            "A": Fore.BLACK,
+            "B": Fore.BLACK,
+            "X": Fore.WHITE,
+            "Y": Fore.WHITE,
+            " ": "",
+        }
+
+        board_matrix = self.get_board_matrix()
+        board_string = ""
+
+        for i in range(len(board_matrix)):
+            for square in board_matrix[i]:
+                pawn_letter = square.pawn_letter
+                if pawn_letter == ".":
+                    pawn_letter = " "
+                if self.colored_output:
+                    board_string += (
+                        level_color_mapping[square.level]
+                        + pawn_color_mapping[pawn_letter]
+                        + pawn_letter
+                        + Style.RESET_ALL
+                    )
+                else:
+                    board_string += pawn_letter
+            board_string += "\n" if i != len(board_matrix) - 1 else ""
+
+        return board_string
 
     def get_general_observation(self, agent: Agent) -> Observation:
-        board_string = self.board_string()
+        board_string = self.board_string_for_agent()
         pawns = self.get_pawns(agent)
         pawn_letters = [self.pawn_letter(pawn) for pawn in pawns]
         opponent_pawns = self.get_opponent_pawns(agent)
@@ -254,7 +289,7 @@ class Santorini(Game):
                 self.display_message(
                     f"Player {agent.team_id} is placing pawn {self.pawn_letter(self.board.get_playing_pawn())}."
                 )  # noqa: E501
-                self.display_message(self.board_string())
+                self.display_message(self.board_string_for_user())
                 observation, available_actions = self.get_pawn_placement_observation(
                     agent
                 )
@@ -272,7 +307,7 @@ class Santorini(Game):
                 self.display_message(
                     f"Player {agent.team_id} is playing pawn {self.pawn_letter(self.board.get_playing_pawn())}."
                 )  # noqa: E501
-                self.display_message(self.board_string())
+                self.display_message(self.board_string_for_user())
                 (
                     observation,
                     available_actions,
