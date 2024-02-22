@@ -112,7 +112,6 @@ class Santorini(Game):
         observation_text = f"Player {agent.team_id}, it is your turn. You control two pawns, represented as the letters {pawn_letters[0]} and {pawn_letters[1]}, and your opponent controls pawns {opponent_pawn_letters[0]} and {opponent_pawn_letters[1]}. Each non-occupied square is represented as a digit corresponding to what level it is, from 0 to 4. Here is the board:\n\n{board_string}"
         return Observation(text=observation_text)
 
-    # These direction–name functions are not elegant. I just had CodePilot manually write them for me. One idea if I wanted to refactor the code is to define a class-level constant matrix with each of the direction names and use it in each function to translate between relative directions and names.
     def relative_direction_name(
         self, pawn: Pawn, second_position: Tuple[int, int]
     ) -> str:
