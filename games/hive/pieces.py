@@ -14,9 +14,13 @@ class HivePiece(ABC):
                 return hex
         return None
     
+    def __hash__(self) -> int:
+        # hash based on the type and owner
+        return hash((self.type, self.owner))
+    
 class QueenBee(HivePiece):
     def __init__(self, owner):
-        super().__init__("Queen Bee", owner)
+        super().__init__("Queen_Bee", owner)
 
     def valid_moves(self, board):
         current_hex = self.find_current_hex(board)
@@ -92,7 +96,7 @@ class Grasshopper(HivePiece):
 
 class SoldierAnt(HivePiece):
     def __init__(self, owner):
-        super().__init__("Soldier Ant", owner)
+        super().__init__("Soldier_Ant", owner)
 
     def valid_moves(self, board):
         current_hex = self.find_current_hex(board)

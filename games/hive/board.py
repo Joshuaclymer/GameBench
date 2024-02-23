@@ -1,4 +1,4 @@
-from .pieces import HivePiece
+from .pieces import HivePiece, Grasshopper
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
@@ -26,7 +26,7 @@ class HiveBoardVisualizer:
         ax.set_ylim(-10, 10)
 
         # Iterate through your board and draw each piece
-        for hex, piece in self.board.board.items():
+        for hex, piece in self.board.items():
             x, y = self.hex_to_pixel(hex)
             self.draw_hexagon(ax, (x, y))
             ax.text(x, y, str(piece), ha='center', va='center', size=20)  # Replace str(piece) with your piece identifier
@@ -141,10 +141,11 @@ class HiveBoard:
         if hex in self.board:
             return self.is_one_hive()
         else:
-            temporary_piece = HivePiece("Temporary", 0)
+            temporary_piece = Grasshopper(0)
             self.board[hex] = temporary_piece
             is_connected = self.is_one_hive()
             del self.board[hex]
+            return is_connected
 
     def can_place_piece(self, piece, hex):
         """
@@ -159,12 +160,11 @@ class HiveBoard:
         if hex in self.board:
             return False
 
-        if len(self.board.board) != 1 and not self.is_adjacent_to_enemy_piece(hex, piece.owner):
+        if len(self.board) >= 2 and self.is_adjacent_to_enemy_piece(hex, piece.owner):
             return False
 
         if not self.is_one_hive_if_added(hex):
             return False
-
         return True
 
     def can_move_piece(self, from_hex, to_hex):
