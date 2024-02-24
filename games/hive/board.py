@@ -111,7 +111,7 @@ class HiveBoard:
         """
         Check if the queen bee is surrounded by enemy pieces.
         """
-        queen_hex = next((hex for hex, piece in self.board.items() if piece.owner == owner and piece.name == "Queen Bee"), None)
+        queen_hex = next((hex for hex, piece in self.board.items() if piece.owner == owner and piece.type == "Queen Bee"), None)
         if queen_hex is None:
             return False
 
@@ -170,10 +170,7 @@ class HiveBoard:
     def can_move_piece(self, from_hex, to_hex):
         """
         Check if a piece can move from from_hex to to_hex according to Hive rules.
-        """
-        if self.is_piece_covered(from_hex):
-            return False
-        
+        """        
         if self.get_piece_at(to_hex) is not None:
             return False
 
@@ -209,8 +206,8 @@ class HiveBoard:
         """
         Check the Freedom to Move Rule between from_hex and to_hex.
         """
-        adjacent_to_from = set(self.get_adjacent_hexes(from_hex))
-        adjacent_to_to = set(self.get_adjacent_hexes(to_hex))
+        adjacent_to_from = set(self.get_adjacent_pieces(from_hex))
+        adjacent_to_to = set(self.get_adjacent_pieces(to_hex))
 
         # Identifying shared neighbors
         shared_neighbors = adjacent_to_from.intersection(adjacent_to_to)
@@ -261,11 +258,6 @@ class HiveBoard:
 
         self.last_moved_piece = moving_piece
 
-    def is_piece_covered(self, hex):
-        """
-        Check if the piece at the given hex is covered by another piece.
-        """
-        return len(self.board.get(hex, [])) > 1
 
     def get_piece_at(self, hex):
         """

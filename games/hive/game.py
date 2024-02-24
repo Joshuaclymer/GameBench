@@ -22,7 +22,7 @@ class HiveGame(Game):
         self.players = [agent_1_class(agent_id="Player1", agent_type_id=0, team_id=0), agent_2_class(agent_id="Player2", agent_type_id=0,team_id=1)]
         self.current_player_index = 0
         self.turn_count = 0
-        self.pieces_remaining = set()
+        self.pieces_remaining = []
 
         self.add_starting_pieces(0)
         self.add_starting_pieces(1)
@@ -39,16 +39,16 @@ class HiveGame(Game):
         - 3 Soldier Ants
         """
         for _ in range(self.config.NUM_QUEENBEE_CARDS):
-            self.pieces_remaining.add(QueenBee(team_id))
+            self.pieces_remaining.append(QueenBee(team_id))
 
         for _ in range(self.config.NUM_SPIDER_CARDS):
-            self.pieces_remaining.add(Spider(team_id))
+            self.pieces_remaining.append(Spider(team_id))
 
         for _ in range(self.config.NUM_GRASSHOPPER_CARDS):
-            self.pieces_remaining.add(Grasshopper(team_id))
+            self.pieces_remaining.append(Grasshopper(team_id))
         
         for _ in range(self.config.NUM_SOLDIERANT_CARDS):
-            self.pieces_remaining.add(SoldierAnt(team_id))
+            self.pieces_remaining.append(SoldierAnt(team_id))
 
     def get_observation(self, agent):
         """
@@ -88,11 +88,10 @@ class HiveGame(Game):
         """
         possible_moves = []
 
-        if not self.board.is_piece_covered(hex):
-            for direction in range(6):
-                neighbor_hex = hex.neighbor(direction)
-                if self.board.can_move_piece(hex, neighbor_hex):
-                    possible_moves.append(Action("move_" + str(hex) +  "_" + str(neighbor_hex)))
+        for direction in range(6):
+            neighbor_hex = hex.neighbor(direction)
+            if self.board.can_move_piece(hex, neighbor_hex):
+                possible_moves.append(Action("move_" + str(hex) +  "_" + str(neighbor_hex)))
 
         return possible_moves
 
@@ -103,7 +102,7 @@ class HiveGame(Game):
         If 3 moves have passed without the Queen Bee being placed, then it can be the only possible move.
         """
         if self.turn_count == 3 and not self.board.queen_bee_placed:
-            if piece.type == "Queen Bee":
+            if piece.type == "QueenBee":
                 return [Action("place_" + str(hex) + "_" + str(piece.type)) for hex in self.board.board if self.board.board[hex] is None and self.board.is_adjacent_empty(hex)]
             else:
                 return []
@@ -123,7 +122,12 @@ class HiveGame(Game):
         """
         List all possible moves for a piece that is already placed on the board.
         """
-        return [Action("move_" + str(hex) +  "_" + str(neighbor_hex)) for direction in range(6) for neighbor_hex in hex.neighbor(direction) if self.board.can_move_piece(hex, neighbor_hex)]
+        moves = []
+        for direction in range(6):
+            neighbor_hex = hex.neighbor(direction)
+            if self.board.can_move_piece(hex, neighbor_hex):
+                moves.append(neighbor_hex)
+        return moves
     
     def list_actionable_pieces(self, player_index):
         """
@@ -141,11 +145,14 @@ class HiveGame(Game):
             possible_moves = self.list_possible_moves_for_unplaced_piece(possible_piece)
             if len(possible_moves) > 0:
                 possible_actions.append(Action("list_place_" + str(possible_piece.type)))
-
-        for hex in self.board.board:
+    
+        for hex in list(self.board.board.keys()):
+            print(hex, self.board.board[hex])
             if self.board.board[hex].owner == player_index:
                 possible_moves = self.list_possible_moves_for_placed_piece(self.board.board[hex], hex)
+                possible_piece = self.board.board[hex]
                 if len(possible_moves) > 0:
+                    print(possible_piece, possible_piece.type)
                     possible_actions.append(Action("list_move_" + str(possible_piece.type) + "_" + str(hex)))
 
         return possible_actions
@@ -154,20 +161,21 @@ class HiveGame(Game):
         """
         Process the action of placing a piece on the board.
         """
-        hex_x = action.split("_")[1]
-        hex_y = action.split("_")[2]
+        hex_coords = action.split("_")[1].split(",")
+        hex_x = int(hex_coords[0][1:])
+        hex_y = int(hex_coords[1][0: -1])
         hex = Hex(hex_x, hex_y)            
-        piece_type = action.split("_")[3]
+        piece_type = action.split("_")[2]
         for piece in self.pieces_remaining:
             if piece.type == piece_type and piece.owner == agent.team_id:
                 break
         else:
             raise ValueError("Invalid action")
-        
+
         if self.board.can_place_piece(piece, hex):
             self.board.add_piece(piece, hex)
-            del self.pieces_remaining[piece]
-            if piece.type == "Queen Bee":
+            self.pieces_remaining.remove(piece)
+            if piece.type == "QueenBee":
                 self.board.queen_bee_placed = True
 
     def process_piece_move_action(self, action, agent):
@@ -192,22 +200,19 @@ class HiveGame(Game):
         """
         Process the action of listing possible placements for a piece.
         """
-        possible_placements = []
-        piece_type = action.split("_")[1]
+        piece_type = action.split("_")[2]
         for piece in self.pieces_remaining:
             if piece.type == piece_type and piece.owner == agent.team_id:
-                possible_placements += self.list_possible_moves_for_unplaced_piece(piece)
-                break 
-        return possible_placements
+                return self.list_possible_moves_for_unplaced_piece(piece)
         
 
     def process_list_moves_action(self, action, agent):
         """
         Process the action of listing possible moves for a piece.
         """
-        hex_x = action.split("_")[2]
-        hex_y = action.split("_")[3]
-        
+        hex_coords = action.split("_")[3].split(",")
+        hex_x = int(hex_coords[0][1:])
+        hex_y = int(hex_coords[1][0:-1])
         hex = Hex(hex_x, hex_y)
         if hex not in self.board.board:
             raise ValueError("Invalid action")
@@ -243,11 +248,12 @@ class HiveGame(Game):
         action = agent.take_action(self.rules, observation, actions)
         if action not in piece_actions:
             action = random.choice(piece_actions)
-        output_actions = self.update(action, agent)
-        if output_actions:
-            action = agent.take_action(self.rules, observation, output_actions)
-            if action not in output_actions:
-                action = random.choice(output_actions)
+        specific_move_actions = self.update(action, agent)
+        new_actions = AvailableActions(instructions="Choose a move:", predefined=specific_move_actions, openended=[])
+        if specific_move_actions:
+            action = agent.take_action(self.rules, observation, new_actions)
+            if action not in specific_move_actions:
+                action = random.choice(specific_move_actions)
         else:
             self.next_player()
             return
