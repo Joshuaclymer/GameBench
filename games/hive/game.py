@@ -118,16 +118,7 @@ class HiveGame(Game):
                 possible_places.append(Hex(20, 20))
             return [Action("place_" + str(hex) + "_" + str(piece.type)) for hex in possible_places if self.board.can_place_piece(piece, hex)]
         
-    def list_possible_moves_for_placed_piece(self, piece, hex):
-        """
-        List all possible moves for a piece that is already placed on the board.
-        """
-        moves = []
-        for direction in range(6):
-            neighbor_hex = hex.neighbor(direction)
-            if self.board.can_move_piece(hex, neighbor_hex):
-                moves.append(neighbor_hex)
-        return moves
+
     
     def list_actionable_pieces(self, player_index):
         """
@@ -182,8 +173,8 @@ class HiveGame(Game):
         """
         Process the action of moving a piece on the board.
         """
-        from_hex = action.split("_")[1].split(",")
-        to_hex = action.split("_")[2].split(",")
+        from_hex = action.split("_")[1][1:-1].split(",")
+        to_hex = action.split("_")[2][1:-1].split(",")
 
         from_hex = Hex(int(from_hex[0]), int(from_hex[1]))
         to_hex = Hex(int(to_hex[0]), int(to_hex[1]))
@@ -193,7 +184,7 @@ class HiveGame(Game):
         piece = self.board.board[from_hex]
         if piece.owner != agent.team_id:
             raise ValueError("Invalid action")
-        if self.board.can_move_piece(from_hex, to_hex) and to_hex in piece.valid_moves(piece, self.board):
+        if self.board.can_move_piece(from_hex, to_hex) and to_hex in piece.valid_moves(self.board):
             self.board.move_piece(from_hex, to_hex)
 
     def process_list_placement_action(self, action, agent):

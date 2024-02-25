@@ -241,20 +241,16 @@ class HiveBoard:
     
     def move_piece(self, from_hex, to_hex):
         """
-        Move a piece from from_hex to to_hex, accounting for stacks of pieces.
+        Move a piece from from_hex to to_hex.
         """
         if from_hex not in self.board or not self.board[from_hex]:
             raise ValueError("There is no piece at the starting position")
 
-        moving_piece = self.board[from_hex][-1]  # Get the top piece from the stack
+        moving_piece = self.board[from_hex]  
         if not self.board.get(to_hex):
-            self.board[to_hex] = []
+            self.board[to_hex] = moving_piece
 
-        self.board[to_hex].append(moving_piece)  # Move it to the top of the destination stack
-        self.board[from_hex].pop()  # Remove it from the original stack
-
-        if not self.board[from_hex]:  # Clean up empty stack
-            del self.board[from_hex]
+        del self.board[from_hex]
 
         self.last_moved_piece = moving_piece
 
