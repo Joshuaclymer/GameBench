@@ -51,18 +51,14 @@ class Santorini(Game):
         return letter_mapping[pawn.number]
 
     def get_pawns(self, agent: Agent) -> List[Pawn]:
-        pawns = []
-        for pawn in self.board.pawns:
-            if pawn.player_number == agent.team_id:
-                pawns.append(pawn)
-        return pawns
+        return [
+            pawn for pawn in self.board.pawns if pawn.player_number == agent.team_id
+        ]
 
     def get_opponent_pawns(self, agent: Agent) -> List[Pawn]:
-        pawns = []
-        for pawn in self.board.pawns:
-            if pawn.player_number != agent.team_id:
-                pawns.append(pawn)
-        return pawns
+        return [
+            pawn for pawn in self.board.pawns if pawn.player_number != agent.team_id
+        ]
 
     def get_board_matrix(self) -> List[List[BoardSquare]]:
         """Return a matrix representation of the board, where each square is represented as a list of two elements: the first element is the level of the square, and the second element is the letter of the pawn that is on the square, or "." if the square is not occupied."""
