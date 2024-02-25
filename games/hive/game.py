@@ -137,9 +137,6 @@ class HiveGame(Game):
         """
         List all pieces that can be moved or placed by the player.
         """
-
-        if not self.board.queen_bee_placed[player_index]:
-            return []
         
         possible_actions = []
 
@@ -154,6 +151,9 @@ class HiveGame(Game):
             if len(possible_moves) > 0:
                 possible_actions.append(Action("list_place_" + str(possible_piece.type)))
     
+        if not self.board.queen_bee_placed[player_index]:
+            return possible_actions
+        
         for hex in list(self.board.board.keys()):
             print(hex, self.board.board[hex])
             if self.board.board[hex].owner == player_index:
