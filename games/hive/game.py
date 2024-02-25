@@ -14,6 +14,19 @@ class HiveGame(Game):
     config : Config = default_config
     board : HiveBoard = None
     
+    def export_state(self):
+        """
+        Export the current game state.
+        """
+        return {
+            "board": self.board.board,
+            "players": self.players,
+            "current_player_index": self.current_player_index,
+            "turn_count": self.turn_count,
+            "pieces_remaining": self.pieces_remaining,
+            "queen_bee_placed": self.board.queen_bee_placed
+        }
+    
     def init_game(self, agent_1_class: Agent, agent_2_class : Agent):
         """
         Initialize the game.
@@ -90,7 +103,7 @@ class HiveGame(Game):
 
         for direction in range(6):
             neighbor_hex = hex.neighbor(direction)
-            if self.board.can_move_piece(hex, neighbor_hex):
+            if self.board.can_move_piece(hex, neighbor_hex) and neighbor_hex in piece.valid_moves(self.board):
                 possible_moves.append(Action("move_" + str(hex) +  "_" + str(neighbor_hex)))
 
         return possible_moves

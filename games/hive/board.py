@@ -68,7 +68,6 @@ class Hex:
 class HiveBoard:
     def __init__(self):
         self.board = {}  # Dictionary to store pieces keyed by their Hex coordinates
-        self.last_moved_piece = None
         self.queen_bee_placed = False
 
     def add_piece(self, piece, hex):
@@ -78,7 +77,8 @@ class HiveBoard:
 
     def create_text_board(self, team_id):
         """
-        Print the board with the pieces. Do this in a way that it is easy to see the pieces and their positions on the board. Start by finding the current hex        """
+        Print the board with the pieces. Do this in a way that it is easy to see the pieces and their positions on the board. Start by finding the current hex.
+        """
 
         # Find the current hex
         if not self.board:
@@ -94,9 +94,9 @@ class HiveBoard:
                 hex = Hex(x, y)
                 if hex in self.board:
                     piece = self.board[hex]
-                    row += f" {piece.type} "
+                    row += f" {piece.type}({x},{y}) "
                 else:
-                    row += " . "
+                    row += f" .({x},{y}) "
             print(row)
         print()
 
@@ -173,6 +173,9 @@ class HiveBoard:
         """        
         if self.get_piece_at(to_hex) is not None:
             return False
+        
+        if self.get_piece_at(from_hex) is None:
+            return False
 
         if not self.has_freedom_to_move(from_hex, to_hex):
             return False
@@ -197,7 +200,8 @@ class HiveBoard:
         """
         Check if the hive remains connected if a piece is temporarily removed.
         """
-        temp_piece = self.board.pop(hex_to_remove, None)
+        temp_piece = self.board.get(hex_to_remove)
+        del self.board[hex_to_remove]
         is_connected = self.is_one_hive()
         self.board[hex_to_remove] = temp_piece  # Put the piece back
         return is_connected
@@ -252,14 +256,6 @@ class HiveBoard:
 
         del self.board[from_hex]
 
-        self.last_moved_piece = moving_piece
-
-
-    def get_piece_at(self, hex):
-        """
-        Return the top piece at the given hex.
-        """
-        return self.board.get(hex, [])[-1] if self.board.get(hex) else None
 
     def get_adjacent_pieces(self, hex):
         """
