@@ -68,7 +68,7 @@ class Hex:
 class HiveBoard:
     def __init__(self):
         self.board = {}  # Dictionary to store pieces keyed by their Hex coordinates
-        self.queen_bee_placed = False
+        self.queen_bee_placed = [False, False]
 
     def add_piece(self, piece, hex):
         if hex in self.board:
