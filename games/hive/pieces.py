@@ -112,6 +112,9 @@ class SoldierAnt(HivePiece):
         if current_hex in visited:
             return []
 
+        if start_hex is None:
+            start_hex = current_hex
+
         visited.add(current_hex)
         moves = []
         for direction in range(6):
