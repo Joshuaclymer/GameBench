@@ -108,13 +108,13 @@ class HiveGame(Game):
 
         return possible_moves
 
-    def list_possible_moves_for_unplaced_piece(self, piece):
+    def list_possible_moves_for_unplaced_piece(self, piece, player_index):
         """
         List all possible moves for a piece that has not been placed on the board yet.
 
         If 3 moves have passed without the Queen Bee being placed, then it can be the only possible move.
         """
-        if self.turn_count == 3 and not self.board.queen_bee_placed:
+        if self.turn_count == 3 and not self.board.queen_bee_placed[player_index]:
             if piece.type == "QueenBee":
                 return [Action("place_" + str(hex) + "_" + str(piece.type)) for hex in self.board.board if self.board.board[hex] is None and self.board.is_adjacent_empty(hex)]
             else:
@@ -137,6 +137,10 @@ class HiveGame(Game):
         """
         List all pieces that can be moved or placed by the player.
         """
+
+        if not self.board.queen_bee_placed[player_index]:
+            return []
+        
         possible_actions = []
 
         possible_pieces_to_place = [piece for piece in self.pieces_remaining if piece.owner == player_index]
@@ -146,7 +150,7 @@ class HiveGame(Game):
             if possible_piece.type in seen_pieces:
                 continue
             seen_pieces.add(possible_piece.type)
-            possible_moves = self.list_possible_moves_for_unplaced_piece(possible_piece)
+            possible_moves = self.list_possible_moves_for_unplaced_piece(possible_piece, player_index)
             if len(possible_moves) > 0:
                 possible_actions.append(Action("list_place_" + str(possible_piece.type)))
     
@@ -180,7 +184,7 @@ class HiveGame(Game):
             self.board.add_piece(piece, hex)
             self.pieces_remaining.remove(piece)
             if piece.type == "QueenBee":
-                self.board.queen_bee_placed = True
+                self.board.queen_bee_placed[agent.team_id] = True
 
     def process_piece_move_action(self, action, agent):
         """
@@ -207,7 +211,7 @@ class HiveGame(Game):
         piece_type = action.split("_")[2]
         for piece in self.pieces_remaining:
             if piece.type == piece_type and piece.owner == agent.team_id:
-                return self.list_possible_moves_for_unplaced_piece(piece)
+                return self.list_possible_moves_for_unplaced_piece(piece, agent.team_id)
         
 
     def process_list_moves_action(self, action, agent):
