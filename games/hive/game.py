@@ -9,10 +9,12 @@ import random
 default_config = Config()
 
 
+
 class HiveGame(Game):
 
     config : Config = default_config
     board : HiveBoard = None
+    rules : Rules = None
     
     def export_state(self):
         """
@@ -36,6 +38,7 @@ class HiveGame(Game):
         self.current_player_index = 0
         self.turn_count = 0
         self.pieces_remaining = []
+        self.rules = self.config.rules
 
         self.add_starting_pieces(0)
         self.add_starting_pieces(1)
@@ -256,6 +259,9 @@ class HiveGame(Game):
         action = agent.take_action(self.rules, observation, actions)
         if action not in piece_actions:
             action = random.choice(piece_actions)
+        if action.action_id == "pass":
+            self.next_player()
+            return
         specific_move_actions = self.update(action, agent)
         new_actions = AvailableActions(instructions="Choose a move:", predefined=specific_move_actions, openended=[])
         if specific_move_actions:
@@ -263,6 +269,9 @@ class HiveGame(Game):
             if action not in specific_move_actions:
                 action = random.choice(specific_move_actions)
         else:
+            self.next_player()
+            return
+        if action.action_id == "pass":
             self.next_player()
             return
         self.update(action, agent)
