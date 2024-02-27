@@ -96,7 +96,7 @@ class Grasshopper(HivePiece):
 
 class SoldierAnt(HivePiece):
     def __init__(self, owner):
-        super().__init__("SoldierAnt", owner)
+        super().__init__("Ant", owner)
 
     def valid_moves(self, board):
         current_hex = self.find_current_hex(board)
