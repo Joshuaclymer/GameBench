@@ -6,11 +6,15 @@ from matplotlib.animation import FuncAnimation
 from multiprocessing import Process
 from PIL import Image
 import io
+import os
 
 class HiveBoardVisualizer:
     def __init__(self, board, piece_images=None):
         self.board = board
+        self.counter = 0
         self.piece_images = piece_images if piece_images else {}
+        if not os.path.exists('images'):
+            os.makedirs('images')
 
     def draw_hexagon(self, ax, center, size=1, fill_color='white', edge_color='black'):
         """Draw a hexagon given a center, size."""
@@ -19,10 +23,10 @@ class HiveBoardVisualizer:
         ax.add_patch(hexagon)
         return hexagon
 
-    def draw_piece(self, ax, center, coords, piece, size=0.6):
+    def draw_piece(self, ax, center, coords, piece):
         """Draw a piece on the hexagon."""
         ax.text(center[0], center[1], piece.type + "\n" + "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
-                        ha='center', va='center', fontsize=10, color='black')
+                        ha='center', va='center', fontsize=8, color='black')
 
     def draw_board(self, interactive=False):
         """Draw and display the Hive board."""
@@ -46,10 +50,10 @@ class HiveBoardVisualizer:
             plt.show()
         
         # return as PIL image
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        buf.seek(0)
-        return Image.open(buf)
+        self.counter += 1
+        plt.savefig('images/board_' + str(self.counter) + '.png', format='png')
+        plt.close()
+        return Image.open('images/board_' + str(self.counter) + '.png')
 
     def find_board_limits(self):
         """Calculate the limits of the board to set the display size."""

@@ -4,19 +4,21 @@ from .pieces import HivePiece, QueenBee, Grasshopper, Spider, SoldierAnt
 from .config import GameConfig as Config
 from api.classes import Game
 from .board import HiveBoard, Hex
+from dataclasses import dataclass, field
 import random
 
 default_config = Config()
 
 
-
+@dataclass
 class HiveGame(Game):
 
+    id : str = "hive"
     config : Config = default_config
     board : HiveBoard = None
     rules : Rules = None
     image_mode : bool = True
-    interactive_mode : bool = True
+    interactive_mode : bool = False
     
     def export_state(self):
         """
@@ -82,9 +84,9 @@ class HiveGame(Game):
         actions = self.get_available_actions(agent)
         
         if not actions:
-            actions = [Action("pass")]
+            actions = {"pass": "Pass the turn."}
         
-        return Observation(observation), AvailableActions(instructions="Choose a move:", predefined=actions, openended=[])
+        return Observation(observation), AvailableActions(instructions="Choose a move:", predefined=actions, openended={})
 
     def generate_observation(self, agent):
         """
@@ -110,12 +112,12 @@ class HiveGame(Game):
         """
         List all possible moves for a piece that is already placed on the board.
         """
-        possible_moves = []
+        possible_moves = {}
 
         for direction in range(6):
             neighbor_hex = hex.neighbor(direction)
             if self.board.can_move_piece(hex, neighbor_hex) and neighbor_hex in piece.valid_moves(self.board):
-                possible_moves.append(Action("move_" + str(hex) +  "_" + str(neighbor_hex)))
+                possible_moves["move_" + str(hex) +  "_" + str(neighbor_hex)] = "Move the piece to " + str(neighbor_hex)
 
         return possible_moves
 
@@ -138,7 +140,12 @@ class HiveGame(Game):
                     possible_places.append(neighbor_hex)
         if not self.board.board:
             possible_places.append(Hex(20, 20))
-        return [Action("place_" + str(hex) + "_" + str(piece.type)) for hex in possible_places if self.board.can_place_piece(piece, hex)]
+        
+        actions = {}
+        for hex in possible_places:
+            if self.board.can_place_piece(piece, hex):
+                actions["place_" + str(hex) + "_" + str(piece.type)] = "Place the piece at " + str(hex) + "."
+        return actions
     
 
     
@@ -147,7 +154,7 @@ class HiveGame(Game):
         List all pieces that can be moved or placed by the player.
         """
         
-        possible_actions = []
+        possible_actions = {}
 
         possible_pieces_to_place = [piece for piece in self.pieces_remaining if piece.owner == player_index]
         seen_pieces = set()
@@ -158,19 +165,17 @@ class HiveGame(Game):
             seen_pieces.add(possible_piece.type)
             possible_moves = self.list_possible_moves_for_unplaced_piece(possible_piece, player_index)
             if len(possible_moves) > 0:
-                possible_actions.append(Action("list_place_" + str(possible_piece.type)))
+                possible_actions["list_place_" + str(possible_piece.type)] = "Place the " + str(possible_piece.type) + " piece."
     
         if not self.board.queen_bee_placed[player_index]:
             return possible_actions
         
         for hex in list(self.board.board.keys()):
-            print(hex, self.board.board[hex])
             if self.board.board[hex].owner == player_index:
                 possible_moves = self.list_possible_moves_for_placed_piece(self.board.board[hex], hex)
                 possible_piece = self.board.board[hex]
                 if len(possible_moves) > 0:
-                    print(possible_piece, possible_piece.type)
-                    possible_actions.append(Action("list_move_" + str(possible_piece.type) + "_" + str(hex)))
+                    possible_actions["list_move_" + str(possible_piece.type) + "_" + str(hex)] = "Move the " + str(possible_piece.type) + " piece."
 
         return possible_actions
 
@@ -262,25 +267,25 @@ class HiveGame(Game):
             self.next_player()
             return
         piece_actions = actions.predefined
-        action = agent.take_action(self.rules, observation, actions)
-        if action not in piece_actions:
-            action = random.choice(piece_actions)
-        if action.action_id == "pass":
+        action_id = agent.take_action(self.rules, observation, actions, show_state=self.interactive_mode)
+        if action_id not in piece_actions:
+            action_id = random.choice(list(piece_actions.keys()))
+        if action_id == "pass":
             self.next_player()
             return
-        specific_move_actions = self.update(action, agent)
-        new_actions = AvailableActions(instructions="Choose a move:", predefined=specific_move_actions, openended=[])
+        specific_move_actions = self.update(Action(action_id=action_id), agent)
+        new_actions = AvailableActions(instructions="Choose a move:", predefined=specific_move_actions, openended={})
         if specific_move_actions:
-            action = agent.take_action(self.rules, observation, new_actions)
-            if action not in specific_move_actions:
-                action = random.choice(specific_move_actions)
+            action_id = agent.take_action(self.rules, observation, new_actions, show_state=self.interactive_mode)
+            if action_id not in specific_move_actions:
+                action_id = random.choice(list(specific_move_actions.keys()))
         else:
             self.next_player()
             return
-        if action.action_id == "pass":
+        if action_id == "pass":
             self.next_player()
             return
-        self.update(action, agent)
+        self.update(Action(action_id=action_id), agent)
         self.next_player()
 
     def next_player(self):
