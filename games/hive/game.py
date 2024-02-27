@@ -88,7 +88,8 @@ class HiveGame(Game):
         """
         Generate the current game state observation for the agent.
         """
-        return self.board.create_text_board(agent.team_id)
+        image = self.board.display_board(interactive=False)
+        return Observation(text="Current game state. {current_team} to move.".format(current_team="Green" if agent.team_id == 1 else "Blue"), image=image)
 
     def get_available_actions(self, agent):
         """

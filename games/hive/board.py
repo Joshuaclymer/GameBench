@@ -2,42 +2,72 @@ from .pieces import HivePiece, Grasshopper
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
+from matplotlib.animation import FuncAnimation
+from multiprocessing import Process
+from PIL import Image
+import io
 
 class HiveBoardVisualizer:
-    def __init__(self, board):
+    def __init__(self, board, piece_images=None):
         self.board = board
+        self.piece_images = piece_images if piece_images else {}
 
-    def draw_hexagon(self, ax, center, size=1):
-        """Draw a hexagon given a center, size, and the axis to draw on."""
-        for angle in range(0, 360, 60):
-            x = center[0] + size * np.cos(np.radians(angle))
-            y = center[1] + size * np.sin(np.radians(angle))
-            hexagon = patches.RegularPolygon((x, y), numVertices=6, radius=size, orientation=np.radians(30))
-            ax.add_patch(hexagon)
-            ax.text(x, y, '.', ha='center', va='center', size=20)  # Placeholder for empty hex
+    def draw_hexagon(self, ax, center, size=1, fill_color='white', edge_color='black'):
+        """Draw a hexagon given a center, size."""
+        hexagon = patches.RegularPolygon(center, numVertices=6, radius=size, orientation=np.radians(30),
+                                         facecolor=fill_color, edgecolor=edge_color, linewidth=1.5)
+        ax.add_patch(hexagon)
+        return hexagon
 
-    def draw_board(self):
-        """Draw the Hive board."""
+    def draw_piece(self, ax, center, coords, piece, size=0.6):
+        """Draw a piece on the hexagon."""
+        ax.text(center[0], center[1], piece.type + "\n" + "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
+                        ha='center', va='center', fontsize=10, color='black')
+
+    def draw_board(self, interactive=False):
+        """Draw and display the Hive board."""
         fig, ax = plt.subplots()
         ax.set_aspect('equal')
+        ax.axis('off')  # Hide the axes
 
-        # Set limits based on your board dimensions
-        ax.set_xlim(-10, 10)
-        ax.set_ylim(-10, 10)
+        # Find board limits
+        min_x, max_x, min_y, max_y = self.find_board_limits()
+        ax.set_xlim(min_x - 1, max_x + 1)
+        ax.set_ylim(min_y - 1, max_y + 1)
 
-        # Iterate through your board and draw each piece
+        # Draw hexagons and pieces
         for hex, piece in self.board.items():
             x, y = self.hex_to_pixel(hex)
-            self.draw_hexagon(ax, (x, y))
-            ax.text(x, y, str(piece), ha='center', va='center', size=20)  # Replace str(piece) with your piece identifier
+            fill_color = 'lightgreen' if piece.owner == 1 else 'lightblue'
+            self.draw_hexagon(ax, (x, y), fill_color=fill_color)
+            self.draw_piece(ax, (x, y), (hex.x, hex.y), piece)
 
-        plt.show()
+        if interactive:
+            plt.show()
+        
+        # return as PIL image
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        return Image.open(buf)
+    
 
-    def hex_to_pixel(self, hex):
+        
+
+    def find_board_limits(self):
+        """Calculate the limits of the board to set the display size."""
+        x_coords = [self.hex_to_pixel(hex)[0] for hex in self.board]
+        y_coords = [self.hex_to_pixel(hex)[1] for hex in self.board]
+        if not x_coords or not y_coords:
+            return (0, 0, 0, 0)
+        return min(x_coords), max(x_coords), min(y_coords), max(y_coords)
+      
+    def hex_to_pixel(self, hex, size=1):
         """Convert hex coordinates to pixel coordinates."""
-        x = 3/2 * hex.x
-        y = np.sqrt(3) * (hex.y + 0.5 * (hex.x & 1))
+        x = size * 3/2 * hex.x
+        y = size * np.sqrt(3) * (hex.y + hex.x / 2.0)
         return (x, y)
+
     
 
 class Hex:
@@ -69,6 +99,8 @@ class HiveBoard:
     def __init__(self):
         self.board = {}  # Dictionary to store pieces keyed by their Hex coordinates
         self.queen_bee_placed = [False, False]
+        self.visualizer = HiveBoardVisualizer(self.board)
+
 
     def add_piece(self, piece, hex):
         if hex in self.board:
@@ -100,12 +132,11 @@ class HiveBoard:
             print(row)
         print()
 
-    def display_board(self):
+    def display_board(self, interactive=False):
         """
         Display the board with the pieces and their positions. Produce a visual representation of the board such that an image can be exported.
         """
-        visualizer = HiveBoardVisualizer(self)
-        visualizer.draw_board()
+        return self.visualizer.draw_board(interactive)
     
     def is_queen_surrounded(self, owner):
         """
