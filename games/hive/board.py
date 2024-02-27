@@ -50,9 +50,6 @@ class HiveBoardVisualizer:
         plt.savefig(buf, format='png')
         buf.seek(0)
         return Image.open(buf)
-    
-
-        
 
     def find_board_limits(self):
         """Calculate the limits of the board to set the display size."""
@@ -130,7 +127,10 @@ class HiveBoard:
                 else:
                     row += f" .({x},{y}) "
             print(row)
-        print()
+        print() 
+
+    def generate_text_board(self):
+        return self.visualizer.text_representation()
 
     def display_board(self, interactive=False):
         """
