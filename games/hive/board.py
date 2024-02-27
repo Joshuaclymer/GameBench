@@ -26,7 +26,7 @@ class HiveBoardVisualizer:
     def draw_piece(self, ax, center, coords, piece):
         """Draw a piece on the hexagon."""
         ax.text(center[0], center[1], piece.type + "\n" + "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
-                        ha='center', va='center', fontsize=8, color='black')
+                        ha='center', va='center', fontsize=6, color='black')
 
     def draw_board(self, interactive=False):
         """Draw and display the Hive board."""
