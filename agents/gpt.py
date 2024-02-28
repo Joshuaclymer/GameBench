@@ -177,6 +177,7 @@ class OpenAITextAgent(Agent):
 
             try:
                 action = ast.literal_eval(response)
+                action["action"]
             except:
                 self.print("GPT returned invalid JSON")
                 continue
