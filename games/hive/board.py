@@ -1,4 +1,4 @@
-from .pieces import HivePiece, Grasshopper
+from .pieces import HivePiece, Grasshopper, Spider
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
@@ -6,11 +6,15 @@ from matplotlib.animation import FuncAnimation
 from multiprocessing import Process
 from PIL import Image
 import io
+import os
 
 class HiveBoardVisualizer:
     def __init__(self, board, piece_images=None):
         self.board = board
+        self.counter = 0
         self.piece_images = piece_images if piece_images else {}
+        if not os.path.exists('images'):
+            os.makedirs('images')
 
     def draw_hexagon(self, ax, center, size=1, fill_color='white', edge_color='black'):
         """Draw a hexagon given a center, size."""
@@ -19,10 +23,10 @@ class HiveBoardVisualizer:
         ax.add_patch(hexagon)
         return hexagon
 
-    def draw_piece(self, ax, center, coords, piece, size=0.6):
+    def draw_piece(self, ax, center, coords, piece):
         """Draw a piece on the hexagon."""
         ax.text(center[0], center[1], piece.type + "\n" + "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
-                        ha='center', va='center', fontsize=10, color='black')
+                        ha='center', va='center', fontsize=6, color='black')
 
     def draw_board(self, interactive=False):
         """Draw and display the Hive board."""
@@ -46,10 +50,10 @@ class HiveBoardVisualizer:
             plt.show()
         
         # return as PIL image
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        buf.seek(0)
-        return Image.open(buf)
+        self.counter += 1
+        plt.savefig('images/board_' + str(self.counter) + '.png', format='png')
+        plt.close()
+        return Image.open('images/board_' + str(self.counter) + '.png')
 
     def find_board_limits(self):
         """Calculate the limits of the board to set the display size."""
@@ -148,9 +152,7 @@ class HiveBoard:
 
         for direction in range(6):
             neighbor_hex = queen_hex.neighbor(direction)
-            if neighbor_hex in self.board and self.board[neighbor_hex].owner == owner:
-                return False
-            elif neighbor_hex not in self.board:
+            if neighbor_hex not in self.board:
                 return False
         return True
     
@@ -197,16 +199,23 @@ class HiveBoard:
         if not self.is_one_hive_if_added(hex):
             return False
         return True
-
-    def can_move_piece(self, from_hex, to_hex):
+    
+    def can_move_piece(self, from_hex, to_hex, spider_move=False):
         """
         Check if a piece can move from from_hex to to_hex according to Hive rules.
         """        
+        is_starting_piece_temporary = False
+
         if self.get_piece_at(to_hex) is not None:
             return False
         
         if self.get_piece_at(from_hex) is None:
-            return False
+            if spider_move:
+                temporary_piece = Spider(0)
+                self.board[from_hex] = temporary_piece
+                is_starting_piece_temporary = True
+            else:
+                return False
 
         if not self.has_freedom_to_move(from_hex, to_hex):
             return False
@@ -221,11 +230,22 @@ class HiveBoard:
 
         one_hive = self.is_one_hive()
 
-        # Move back after checking
-        self.board[from_hex] = piece  # Put the piece back
+        if not is_starting_piece_temporary:
+            self.board[from_hex] = piece  
+
         del self.board[to_hex]
 
         return one_hive
+    
+    def is_in_direct_contact(self, piece, hex):
+        """
+        Check if a piece is in direct contact with a given hex.
+        """
+        for direction in range(6):
+            neighbor_hex = hex.neighbor(direction)
+            if self.get_piece_at(neighbor_hex) is piece:
+                return True
+        return False
     
     def is_one_hive_if_removed(self, hex_to_remove):
         """
@@ -237,18 +257,43 @@ class HiveBoard:
         self.board[hex_to_remove] = temp_piece  # Put the piece back
         return is_connected
 
+    def is_almost_completely_surrounded(self, hex):
+        """
+        Check if a hex is almost completely surrounded by other pieces.
+        A hex is almost completely surrounded if there is one or no empty spaces adjacent to it.
+        """
+        adjacent_hexes = self.get_adjacent_hexes(hex)
+        empty_adjacent_hexes = [h for h in adjacent_hexes if h not in self.board]
+
+        # If there is one or no empty adjacent hexes, the hex is almost completely surrounded
+        return len(empty_adjacent_hexes) <= 1
+
+    def get_adjacent_hexes(self, hex):
+        """
+        Returns a list of hexes adjacent to the given hex.
+        """
+        return [hex.neighbor(direction) for direction in range(6)]
+    
     def has_freedom_to_move(self, from_hex, to_hex):
         """
         Check the Freedom to Move Rule between from_hex and to_hex.
         """
-        adjacent_to_from = set(self.get_adjacent_pieces(from_hex))
-        adjacent_to_to = set(self.get_adjacent_pieces(to_hex))
+        # Grasshopper exception to freedom to move rule
+        if from_hex in self.board and self.board[from_hex].type == "Grasshopper":
+            return True
+        # Check if the destination hex is empty and not almost completely surrounded
+        if to_hex in self.board or self.is_almost_completely_surrounded(to_hex):
+            return False
 
-        # Identifying shared neighbors
-        shared_neighbors = adjacent_to_from.intersection(adjacent_to_to)
+        # Check if the starting hex is almost completely surrounded
+        if self.is_almost_completely_surrounded(from_hex):
+            return False
 
-        # The move is not allowed if all shared neighbors are occupied
-        return not all(neighbor in self.board for neighbor in shared_neighbors)
+        # If 'from_hex' and 'to_hex' are adjacent, we check if the move is directly possible
+        if to_hex in self.get_adjacent_hexes(from_hex):
+            return True
+
+        return False  # If none of the conditions are met, the move is not allowed.
     
     def is_one_hive(self):
         """
