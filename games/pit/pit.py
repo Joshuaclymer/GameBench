@@ -4,17 +4,20 @@ import random
 from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
-# Define a simple Commodity class for representing commodities in the Pit game
 @dataclass
 class Commodity:
     name: str
     base_value: float
-    price_fluctuation: Tuple[
-        float, float
-    ]  # Tuple representing min and max percentage fluctuation
+    price_fluctuation: Tuple[float, float]
 
 
-# Define the PitGame class implementing the Game interface
+@dataclass
+class Message:
+    sender_id: int
+    recipient_id: int
+    content: str
+
+
 @dataclass
 class PitGame(Game):
     rules: Rules = Rules(
@@ -39,8 +42,9 @@ class PitGame(Game):
         self.stock_pile = {
             commodity.name: random.randint(1, 10) for commodity in self.commodities
         }
-        self.scores = []  # Initialize scores as an empty list
+        self.scores = []
         self.round_number = 0
+        self.messages = []  # List to store messages exchanged between agents
 
     def init_game(
         self,
@@ -60,9 +64,7 @@ class PitGame(Game):
             **self.agent_2_kwargs,
         )
         self.agents = [agent_1, agent_2]
-        self.scores = [0.0] * len(
-            self.agents
-        )  # Initialize scores with the correct length
+        self.scores = [0.0] * len(self.agents)
 
     def get_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
         observation_text = (
@@ -87,25 +89,22 @@ class PitGame(Game):
             if commodity:
                 if self.stock_pile[chosen_commodity] > 0:
                     self.stock_pile[chosen_commodity] -= 1
-                    # Calculate fluctuated value based on the commodity's base value and price fluctuation
                     fluctuated_value = commodity.base_value * random.uniform(
                         *commodity.price_fluctuation
                     )
-                    # Apply Bull or Bear effect
-                    if random.random() < 0.1:  # 10% chance of Bull or Bear effect
+                    if random.random() < 0.1:
                         if random.choice(["Bull", "Bear"]) == "Bull":
-                            fluctuated_value *= 1.2  # 20% increase for Bull
+                            fluctuated_value *= 1.2
                             if self.show_state:
                                 print(
                                     f"Bull effect! {chosen_commodity} value increased by 20%."
                                 )
                         else:
-                            fluctuated_value *= 0.8  # 20% decrease for Bear
+                            fluctuated_value *= 0.8
                             if self.show_state:
                                 print(
                                     f"Bear effect! {chosen_commodity} value decreased by 20%."
                                 )
-                    # Increment agent's score by the fluctuated value
                     self.scores[self.agents.index(agent)] += fluctuated_value
                     if self.show_state:
                         print(
@@ -149,24 +148,42 @@ class PitGame(Game):
                     if self.show_state:
                         print(f"No more {chosen_commodity} in stock pile.")
 
+    def communicate(self, sender_id: int, recipient_id: int, content: str):
+        self.messages.append(Message(sender_id, recipient_id, content))
+
     def play(self) -> Tuple[float, float]:
         while not self.game_is_over:
             self.round_number += 1
             for agent in self.agents:
                 observation, available_actions = self.get_observation(agent)
+                # Send message to the other agent
+                other_agent = self.agents[1 - self.agents.index(agent)]
+                agent.send_message(
+                    other_agent.agent_id,
+                    f"Round {self.round_number}: Trade offers, negotiations, etc.",
+                )
+                # Receive messages
+                received_messages = [
+                    message
+                    for message in self.messages
+                    if message.recipient_id == agent.agent_id
+                ]
+                # Process received messages
+                for message in received_messages:
+                    # Example: agent processes trade offers, negotiations, etc.
+                    agent.process_message(message)
+                # Take action based on observation and received messages
                 action = agent.take_action(
                     self.rules,
                     observation,
                     available_actions,
+                    received_messages=received_messages,
                     show_state=self.show_state,
                 )
                 self.update(action, available_actions, agent)
-
                 if all(value == 0 for value in self.stock_pile.values()):
                     self.game_is_over = True
 
-        # Normalize scores to sum up to 1
         total_score = sum(self.scores)
         normalized_scores = [score / total_score for score in self.scores]
-
         return tuple(normalized_scores)
