@@ -18,16 +18,21 @@ class HiveBoardVisualizer:
 
     def draw_hexagon(self, ax, center, size=1, fill_color='white', edge_color='black'):
         """Draw a hexagon given a center, size."""
-        hexagon = patches.RegularPolygon(center, numVertices=6, radius=size, orientation=np.radians(30),
-                                         facecolor=fill_color, edgecolor=edge_color, linewidth=1.5)
+        hexagon = patches.RegularPolygon(center, numVertices=6, radius=size, orientation=0,
+                                        facecolor=fill_color, edgecolor=edge_color, linewidth=1.5)
         ax.add_patch(hexagon)
         return hexagon
 
-    def draw_piece(self, ax, center, coords, piece):
+    def draw_piece(self, ax, center, coords, piece, label_color='black'):
         """Draw a piece on the hexagon."""
         ax.text(center[0], center[1], piece.type + "\n" + "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
-                        ha='center', va='center', fontsize=6, color='black')
+                        ha='center', va='center', fontsize=6, color=label_color)
 
+    def draw_fake_piece(self, ax, center, coords, label_color='black'):
+        """Draw a fake piece on the hexagon."""
+        ax.text(center[0], center[1], "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
+                        ha='center', va='center', fontsize=6, color=label_color)
+        
     def draw_board(self, interactive=False):
         """Draw and display the Hive board."""
         fig, ax = plt.subplots()
@@ -38,13 +43,21 @@ class HiveBoardVisualizer:
         min_x, max_x, min_y, max_y = self.find_board_limits()
         ax.set_xlim(min_x - 1, max_x + 1)
         ax.set_ylim(min_y - 1, max_y + 1)
-
+        seen_set = set()
         # Draw hexagons and pieces
         for hex, piece in self.board.items():
             x, y = self.hex_to_pixel(hex)
             fill_color = 'lightgreen' if piece.owner == 1 else 'lightblue'
             self.draw_hexagon(ax, (x, y), fill_color=fill_color)
             self.draw_piece(ax, (x, y), (hex.x, hex.y), piece)
+            for direction in range(6):
+                neighbor_hex = hex.neighbor(direction)
+                if neighbor_hex not in self.board and neighbor_hex not in seen_set:
+                    nx, ny = self.hex_to_pixel(neighbor_hex)
+                    self.draw_hexagon(ax, (nx, ny), fill_color='white', edge_color='black')
+                    self.draw_fake_piece(ax, (nx, ny), (neighbor_hex.x, neighbor_hex.y), label_color='red')
+                    seen_set.add(neighbor_hex)
+
 
         if interactive:
             plt.show()
@@ -57,42 +70,46 @@ class HiveBoardVisualizer:
 
     def find_board_limits(self):
         """Calculate the limits of the board to set the display size."""
-        x_coords = [self.hex_to_pixel(hex)[0] for hex in self.board]
-        y_coords = [self.hex_to_pixel(hex)[1] for hex in self.board]
+        all_hexes = set(list(self.board.keys()))
+        # add all neighbors to the list
+        for hex in self.board.keys():
+            for direction in range(6):
+                neighbor_hex = hex.neighbor(direction)
+                if neighbor_hex not in self.board:
+                    all_hexes.add(neighbor_hex)
+
+        x_coords = [self.hex_to_pixel(hex)[0] for hex in all_hexes]
+        y_coords = [self.hex_to_pixel(hex)[1] for hex in all_hexes]
         if not x_coords or not y_coords:
             return (0, 0, 0, 0)
         return min(x_coords), max(x_coords), min(y_coords), max(y_coords)
       
     def hex_to_pixel(self, hex, size=1):
-        """Convert hex coordinates to pixel coordinates."""
-        x = size * 3/2 * hex.x
-        y = size * np.sqrt(3) * (hex.y + hex.x / 2.0)
+        """Convert hex coordinates to pixel coordinates for pointy-topped hexagons with odd-r vertical layout."""
+        x = size * np.sqrt(3) * (hex.x + 0.5 * (hex.y & 1))
+        y = size * 3/2 * hex.y
         return (x, y)
 
-    
-
 class Hex:
-    # Directions correspond to neighboring hexes in a hex grid
-    DIRECTIONS = [
-        (1, -1), (1, 0), (0, 1),
-        (-1, 1), (-1, 0), (0, -1)
-    ]
+    EVEN_R_DIRECTIONS = [(1, 0), (0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 1)]
+    ODD_R_DIRECTIONS = [(1, 0), (1, -1), (0, -1), (-1, 0), (0, 1), (1, 1)]
 
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
     def __eq__(self, other):
-        return self.x == other.x and self.y == other.y 
+        return self.x == other.x and self.y == other.y
 
     def __hash__(self):
         return hash((self.x, self.y))
 
     def neighbor(self, direction):
         """ Returns the neighboring hex in the given direction """
-        dx, dy = Hex.DIRECTIONS[direction]
-        return Hex(self.x + dx, self.y + dy)
-    
+        directions = Hex.EVEN_R_DIRECTIONS if self.y % 2 == 0 else Hex.ODD_R_DIRECTIONS
+        dq, dr = directions[direction]
+        return Hex(self.x + dq, self.y + dr)
+
     def __str__(self):
         return f"({self.x},{self.y})"
     
@@ -146,7 +163,7 @@ class HiveBoard:
         """
         Check if the queen bee is surrounded by enemy pieces.
         """
-        queen_hex = next((hex for hex, piece in self.board.items() if piece.owner == owner and piece.type == "Queen Bee"), None)
+        queen_hex = next((hex for hex, piece in self.board.items() if piece.owner == owner and piece.type == "QueenBee"), None)
         if queen_hex is None:
             return False
 
@@ -200,22 +217,16 @@ class HiveBoard:
             return False
         return True
     
-    def can_move_piece(self, from_hex, to_hex, spider_move=False):
+    def can_move_piece(self, from_hex, to_hex):
         """
         Check if a piece can move from from_hex to to_hex according to Hive rules.
         """        
-        is_starting_piece_temporary = False
 
         if self.get_piece_at(to_hex) is not None:
             return False
         
         if self.get_piece_at(from_hex) is None:
-            if spider_move:
-                temporary_piece = Spider(0)
-                self.board[from_hex] = temporary_piece
-                is_starting_piece_temporary = True
-            else:
-                return False
+            return False
 
         if not self.has_freedom_to_move(from_hex, to_hex):
             return False
@@ -230,8 +241,7 @@ class HiveBoard:
 
         one_hive = self.is_one_hive()
 
-        if not is_starting_piece_temporary:
-            self.board[from_hex] = piece  
+        self.board[from_hex] = piece  
 
         del self.board[to_hex]
 

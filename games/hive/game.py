@@ -54,7 +54,6 @@ class HiveGame(Game):
         Per the official rules without expansions this includes the following for each team:
         - 1 Queen Bee
         - 2 Spiders
-        - 2 Beetles
         - 3 Grasshoppers
         - 3 Soldier Ants
         """
@@ -113,12 +112,8 @@ class HiveGame(Game):
         List all possible moves for a piece that is already placed on the board.
         """
         possible_moves = {}
-
-        for direction in range(6):
-            neighbor_hex = hex.neighbor(direction)
-            if self.board.can_move_piece(hex, neighbor_hex) and neighbor_hex in piece.valid_moves(self.board):
-                possible_moves["move_" + str(hex) +  "_" + str(neighbor_hex)] = "Move the piece to " + str(neighbor_hex)
-
+        for possible_move in piece.valid_moves(self.board):
+            possible_moves["move_" + str(hex) + "_" + str(possible_move)] = "Move the piece to " + str(possible_move)
         return possible_moves
 
     def list_possible_moves_for_unplaced_piece(self, piece, player_index):
@@ -139,12 +134,12 @@ class HiveGame(Game):
                 if neighbor_hex not in self.board.board:
                     possible_places.append(neighbor_hex)
         if not self.board.board:
-            possible_places.append(Hex(20, 20))
+            possible_places.append(Hex(0, 0))
         
         actions = {}
         for hex in possible_places:
             if self.board.can_place_piece(piece, hex):
-                actions["place_" + str(hex) + "_" + str(piece.type)] = "Place the piece at " + str(hex) + "."
+                actions["place_" + str(hex) + "_" + str(piece.type)] = ""
         return actions
     
 
@@ -215,7 +210,7 @@ class HiveGame(Game):
         piece = self.board.board[from_hex]
         if piece.owner != agent.team_id:
             raise ValueError("Invalid action")
-        if self.board.can_move_piece(from_hex, to_hex) and to_hex in piece.valid_moves(self.board):
+        if to_hex in piece.valid_moves(self.board):
             self.board.move_piece(from_hex, to_hex)
 
     def process_list_placement_action(self, action, agent):
@@ -247,13 +242,22 @@ class HiveGame(Game):
         """
         action_id = action.action_id
         if action_id.startswith("place"):
+            if self.show_state:
+                print(action_id)
             self.process_piece_place_action(action_id, agent)
         elif action_id.startswith("move"):
+            if self.show_state:
+                print(action_id)
             self.process_piece_move_action(action_id, agent)
         elif action_id.startswith("list_place"):
+            if self.show_state:
+                print(action_id)
             return self.process_list_placement_action(action_id, agent)
         elif action_id.startswith("list_move"):
+            if self.show_state:
+                print(action_id)
             return self.process_list_moves_action(action_id, agent)
+            
         else:
             raise ValueError("Invalid action")
 
@@ -267,8 +271,10 @@ class HiveGame(Game):
             self.next_player()
             return
         piece_actions = actions.predefined
-        action_id = agent.take_action(self.rules, observation, actions, show_state=self.interactive_mode)
+        action_id = agent.take_action(self.rules, observation, actions, show_state=self.interactive_mode).action_id
         if action_id not in piece_actions:
+            if self.show_state:
+                print("Invalid action: ", action_id, piece_actions, action_id in piece_actions, action_id.strip() in piece_actions)
             action_id = random.choice(list(piece_actions.keys()))
         if action_id == "pass":
             self.next_player()
@@ -276,8 +282,9 @@ class HiveGame(Game):
         specific_move_actions = self.update(Action(action_id=action_id), agent)
         new_actions = AvailableActions(instructions="Choose a move:", predefined=specific_move_actions, openended={})
         if specific_move_actions:
-            action_id = agent.take_action(self.rules, observation, new_actions, show_state=self.interactive_mode)
+            action_id = agent.take_action(self.rules, observation, new_actions, show_state=self.interactive_mode).action_id
             if action_id not in specific_move_actions:
+                print("Invalid Action: ", action_id, specific_move_actions)
                 action_id = random.choice(list(specific_move_actions.keys()))
         else:
             self.next_player()
