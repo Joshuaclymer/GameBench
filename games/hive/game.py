@@ -274,7 +274,7 @@ class HiveGame(Game):
         action_id = agent.take_action(self.rules, observation, actions, show_state=self.interactive_mode).action_id
         if action_id not in piece_actions:
             if self.show_state:
-                print("Invalid action: ", action_id, piece_actions, action_id in piece_actions, action_id.strip() in piece_actions)
+                print("Invalid action: ", action_id)
             action_id = random.choice(list(piece_actions.keys()))
         if action_id == "pass":
             self.next_player()
@@ -284,7 +284,7 @@ class HiveGame(Game):
         if specific_move_actions:
             action_id = agent.take_action(self.rules, observation, new_actions, show_state=self.interactive_mode).action_id
             if action_id not in specific_move_actions:
-                print("Invalid Action: ", action_id, specific_move_actions)
+                print("Invalid action: ", action_id)
                 action_id = random.choice(list(specific_move_actions.keys()))
         else:
             self.next_player()
