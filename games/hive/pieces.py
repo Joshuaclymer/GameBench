@@ -67,7 +67,6 @@ class Spider(HivePiece):
         if steps_remaining == 0:
             # If the spider has moved 3 steps, return the current hex as a possible move,
             # but only if it is not the starting hex (which is already in visited)
-            print(current_hex, [str(i) for i in visited])
             return [current_hex] if current_hex not in visited else []
         new_visited = visited.union({current_hex})
         moves = []
@@ -170,7 +169,7 @@ class SoldierAnt(HivePiece):
 
         for direction in range(6):
             neighbor_hex = current_hex.neighbor(direction)
-            
+
             temp_ant_created = False
 
             if current_hex not in board.board:
