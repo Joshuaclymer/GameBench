@@ -26,12 +26,12 @@ class HiveBoardVisualizer:
     def draw_piece(self, ax, center, coords, piece, label_color='black'):
         """Draw a piece on the hexagon."""
         ax.text(center[0], center[1], piece.type + "\n" + "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
-                        ha='center', va='center', fontsize=6, color=label_color)
+                        ha='center', va='center', fontsize=7, color=label_color)
 
     def draw_fake_piece(self, ax, center, coords, label_color='black'):
         """Draw a fake piece on the hexagon."""
         ax.text(center[0], center[1], "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
-                        ha='center', va='center', fontsize=6, color=label_color)
+                        ha='center', va='center', fontsize=7, color=label_color)
         
     def draw_board(self, interactive=False):
         """Draw and display the Hive board."""
@@ -163,7 +163,7 @@ class HiveBoard:
         """
         Check if the queen bee is surrounded by enemy pieces.
         """
-        queen_hex = next((hex for hex, piece in self.board.items() if piece.owner == owner and piece.type == "QueenBee"), None)
+        queen_hex = next((hex for hex, piece in self.board.items() if piece.owner == owner and piece.type == "Queen"), None)
         if queen_hex is None:
             return False
 
@@ -289,7 +289,7 @@ class HiveBoard:
         Check the Freedom to Move Rule between from_hex and to_hex.
         """
         # Grasshopper exception to freedom to move rule
-        if from_hex in self.board and self.board[from_hex].type == "Grasshopper":
+        if from_hex in self.board and self.board[from_hex].type == "Hopper":
             return True
         # Check if the destination hex is empty and not almost completely surrounded
         if to_hex in self.board or self.is_almost_completely_surrounded(to_hex):

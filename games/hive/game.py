@@ -94,7 +94,7 @@ class HiveGame(Game):
         image = None
         if self.image_mode:
             image = self.board.display_board(interactive=self.interactive_mode)
-        text = "{current_team} to move.".format(current_team="Green" if agent.team_id == 1 else "Blue")
+        text = "{current_team} to move. Surround the enemy queen.".format(current_team="Green" if agent.team_id == 1 else "Blue")
         if not self.image_mode:
             text += "\n\nBoard:\n\n" + self.board.generate_text_board()
         return Observation(text, image=image)
@@ -123,7 +123,7 @@ class HiveGame(Game):
         If 3 moves have passed without the Queen Bee being placed, then it can be the only possible move.
         """
         if self.turn_count[player_index] == 3 and not self.board.queen_bee_placed[player_index]:
-            if piece.type != "QueenBee":
+            if piece.type != "Queen":
                 return []
             
         current_hexes = [hex for hex in self.board.board if self.board.board[hex]]
@@ -192,7 +192,7 @@ class HiveGame(Game):
         if self.board.can_place_piece(piece, hex):
             self.board.add_piece(piece, hex)
             self.pieces_remaining.remove(piece)
-            if piece.type == "QueenBee":
+            if piece.type == "Queen":
                 self.board.queen_bee_placed[agent.team_id] = True
 
     def process_piece_move_action(self, action, agent):
@@ -242,20 +242,12 @@ class HiveGame(Game):
         """
         action_id = action.action_id
         if action_id.startswith("place"):
-            if self.show_state:
-                print(action_id)
             self.process_piece_place_action(action_id, agent)
         elif action_id.startswith("move"):
-            if self.show_state:
-                print(action_id)
             self.process_piece_move_action(action_id, agent)
         elif action_id.startswith("list_place"):
-            if self.show_state:
-                print(action_id)
             return self.process_list_placement_action(action_id, agent)
         elif action_id.startswith("list_move"):
-            if self.show_state:
-                print(action_id)
             return self.process_list_moves_action(action_id, agent)
             
         else:
@@ -320,12 +312,16 @@ class HiveGame(Game):
         while not self.is_game_over():
             self.play_turn()
             
-        if self.board.is_queen_surrounded(self.players[0].team_id):
-            return [0, 1]
-        elif self.board.is_queen_surrounded(self.players[1].team_id):
-            return [1, 0]
-        else:
+        queen_1_surrounded = self.board.is_queen_surrounded(self.players[0].team_id)
+        queen_2_surrounded = self.board.is_queen_surrounded(self.players[1].team_id)
+        
+        if queen_1_surrounded and queen_2_surrounded:
             return [0, 0]
+        elif queen_1_surrounded:
+            return [0, 1]
+        else:
+            return [1, 0]
+        
             
         
 

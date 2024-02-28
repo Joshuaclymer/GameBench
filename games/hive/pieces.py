@@ -20,7 +20,7 @@ class HivePiece(ABC):
     
 class QueenBee(HivePiece):
     def __init__(self, owner):
-        super().__init__("QueenBee", owner)
+        super().__init__("Queen", owner)
     
     def valid_moves(self, board):
         current_hex = self.find_current_hex(board)
@@ -110,7 +110,7 @@ class Spider(HivePiece):
     
 class Grasshopper(HivePiece):
     def __init__(self, owner):
-        super().__init__("Grasshopper", owner)
+        super().__init__("Hopper", owner)
 
     def valid_moves(self, board):
         current_hex = self.find_current_hex(board)
