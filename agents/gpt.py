@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
+from typing import Any, Dict, List
 from api.classes import Agent, AvailableActions, Action, Observation, Rules
-import random
 import openai
 import api.util as util
 import ast
@@ -44,32 +44,42 @@ def completions(*args, **kwargs):
 
 @dataclass
 class OpenAITextAgent(Agent):
-    openai_model: str
-    agent_type_id: str
-    system_message: str = "You are an agent playing a game. Select the action that maximizes your probability of winning."
-    max_retries: int = 3
-    transparent_reasoning: bool = False
+    openai_model : str
+    agent_type_id : str
+    system_message : str = "You are an agent playing a game. Select the action that maximizes your probability of winning."
+    max_retries : int = 3
+    transparent_reasoning : bool = False
     mode: int = 0  # 0 = normal, 1 = chain of thought, 2 = babble and prune
-
+    
     def print(self, *args, **kwargs):
         if self.transparent_reasoning:
             print(self.agent_type_id, *args, **kwargs)
+            
+    def get_user_message_content(self, text_prompt: str, image: Image) -> List[Dict[str, Any]]:
+        return [
+                {
+                    "type": "text",
+                    "text": text_prompt
+                }
+            ]
 
-    def take_action(
-        self,
-        rules: Rules,
-        observation: Observation,
-        available_actions: AvailableActions,
-        show_state: bool,
-    ):
-        messages = [{"role": "system", "content": self.system_message}]
+    def get_request_params(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+        return {
+            "model": self.openai_model,
+            "messages": messages,
+            "response_format": { "type": "json_object" }
+        }
+    
+    def take_action(self,
+                    rules: Rules,
+                    observation: Observation,
+                    available_actions: AvailableActions,
+                    show_state : bool) -> Action:
         valid_actions = []
         prompt = f"You are playing a game called {rules.title}. The rules are as follows:\n{rules.summary}\n"
         if rules.additional_details != None:
             prompt += "The following are headings with additional information about the rules that you can expand by taking the action Explain(<heading key>).\n"
-            details_dict = {
-                f"H{i+1}": topic for i, topic in enumerate(rules.additional_details)
-            }
+            details_dict = {f"H{i+1}": topic + " - " + description for i, (topic, description) in enumerate(rules.additional_details.items())}
             prompt += json.dumps(details_dict, indent=4)
             #valid_actions.extend(f"Explain({h})" for h in list(details_dict.keys()))
 
@@ -148,6 +158,11 @@ class OpenAITextAgent(Agent):
         ):
             prompt += "Return the action Explain(<action>) to receive additional info about what any of the above actions do.\n"
 
+        messages = [
+            {"role": "system", "content": self.system_message},
+            {"role": "user", "content": self.get_user_message_content(prompt, observation.image)},
+        ]
+
         # Chain of Thought
         if self.mode == 1:
             prompt += "First, let's reason out loud about which action you should take to maximize your probability of winning."
@@ -186,16 +201,22 @@ class OpenAITextAgent(Agent):
             )
             messages.append({"role": "assistant", "content": response})
             prompt = ""
-
-            self.print(f"GPT listed the following actions as possibilities: {response}")
+            
+            self.print(
+                f"GPT listed the following actions as possibilities: {response}"
+            )
 
         prompt += "\nTo summarize, if you choose a predefined action, you must return json with an 'action' key which contains one of the following valid actions:\n"
         prompt += str(list(available_actions.predefined))
         prompt += "\nOr if you choose an openended action, you must return json with an 'action' key which contains one of the following valid actions and an 'openended_response' key which contains your response to the prompt:\n"
         prompt += str(list(available_actions.openended))
+        #prompt += "\nMake sure to return ONLY a JSON. It should contain nothing outside the curly braces of the JSON."
         messages.append({"role": "user", "content": prompt})
-
+            
+        
+        #print(prompt)
         result = None
+        
         for _ in range(self.max_retries):
             response = (
                 completions(
@@ -212,7 +233,7 @@ class OpenAITextAgent(Agent):
             self.print("GPT responded with", response)
 
             try:
-                action = ast.literal_eval(response.strip())
+                action = ast.literal_eval(util.extract_json(response))
                 action["action"]
             except:
                 self.print("GPT returned invalid JSON")
@@ -254,13 +275,14 @@ class OpenAITextAgent(Agent):
                 self.print("GPT chose valid action", action)
                 result = action
                 break
-
+            
             self.print("GPT returned invalid action", action)
             error_message = f"{action['action']} is not one of the valid actions. "
             error_message += "As a reminder, the valid actions are as follows:\n"
             error_message += f"{str(list(valid_actions))}\n"
             error_message += "Please return a json with the key 'action' with the action you choose and (optionally) the key 'openended_response' if you select openended response action."
             messages.append({"role": "user", "content": error_message})
+
         if result == None:
             self.print(
                 f"WARNING: GPT returned too many invalid actions after {self.max_retries} tries"
@@ -308,3 +330,30 @@ class GPT4BaP(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
     agent_type_id: str = "gpt4-bap"
     mode: int = 2
+
+@dataclass
+class GPT4Vision(OpenAITextAgent):
+    openai_model : str = "gpt-4-vision-preview"
+    agent_type_id : str = "gpt-4-vision"
+    is_vision_agent : bool = True
+    
+    def get_user_message_content(self, text_prompt: str, image: Image) -> List[Dict[str, str]]:
+        content = super().get_user_message_content(text_prompt, image)
+        if image is not None:
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{util.base64_encode_image(image)}",
+                    "detail": "low"
+                }
+            })
+        return content
+    
+    def get_request_params(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+        return {
+            "model": self.openai_model,
+            "messages": messages,
+            # As vision models have a low(but undocumented?) default value for below parameter
+            # https://community.openai.com/t/documented-max-token-default-is-incorrect-for-gpt-4-vision-preview/507329
+            "max_tokens": 600,
+        }

@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Type
 from dataclasses import dataclass, field
 from abc import abstractmethod
 from PIL import Image
@@ -6,8 +6,24 @@ from PIL import Image
 
 @dataclass
 class Observation:
-    text : str
+    text : str = ""
     image : Image = None
+    
+    def __eq__(self, other):
+        if not isinstance(other, Observation):
+            return False
+
+        # Check text equality
+        if self.text != other.text:
+            return False
+
+        # Check image equality    
+        if self.image is None and other.image is None:
+            return True
+        elif self.image is None or other.image is None:
+            return False
+        else:
+            return (self.image.tobytes() == other.image.tobytes())
 
 @dataclass
 class AvailableActions:
@@ -51,7 +67,7 @@ class Game:
     agent_2_kwargs : dict = field(default_factory=dict) # kwargs to pass to the agent 2 class when initializing.
 
     @abstractmethod
-    def init_game(self, agent_1: Agent, agent_2: Agent):
+    def init_game(self, agent_1: Type[Agent], agent_2: Type[Agent]):
         pass
 
     @abstractmethod
