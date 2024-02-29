@@ -72,10 +72,6 @@ class AirLandSea(Game):
         self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_2_kwargs)]
         pass
 
-    # TODO: must create a way to represent the board state and hand state as string
-    def get_board_string(self):
-        pass
-
     # generate observation and available actions for the agent
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
         # TODO: generate available action list based on game state and hand
@@ -89,6 +85,7 @@ class AirLandSea(Game):
         # TODO: is there open ended actions in this game?
         pass
 
+    # I pass in observation + available actions to agent, then it will choose one
     def update(self, action : Action, available_actions : AvailableActions, agent : Agent):
         pass
     
@@ -99,6 +96,9 @@ class AirLandSea(Game):
         player_2 = self.agents[1]
 
         while True:
+            # Track player characteristics such as 
+                # hand, VPs, supreme comamander, current turn, locally within this play function?
+
             # TODO: there are multiple rounds in one game
             # reach 12 victory points to win
             # must track victory points of each player
