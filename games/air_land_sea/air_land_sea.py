@@ -24,13 +24,13 @@ class AirLandSea(Game):
             "and the first player to reach 12 VPs wins the game. "
             "Players must carefully manage their hand and strategically deploy cards to outmaneuver their opponent."),
         additional_details = {
-            "Battle Structure": ("During a Battle, the players take turns playing one card at a time, trying to control more Theaters than their opponent.
+            "Battle Structure": ("During a Battle, the players take turns playing one card at a time, trying to control more Theaters than their opponent."
                 "You don’t draw cards during a Battle, so be sure to plan carefully and make the most of the 6 cards you are dealt!"),
-            "Theaters": ("Each of the three Theater boards creates a 'column' between the players: one for Air, one for Land, and one for Sea. These columns are called Theaters. Cards are always played into these three Theaters. If a card is in a particular Theater’s column, we say that the card is 'in that Theater.\n'
+            "Theaters": ("Each of the three Theater boards creates a 'column' between the players: one for Air, one for Land, and one for Sea. These columns are called Theaters. Cards are always played into these three Theaters. If a card is in a particular Theater’s column, we say that the card is 'in that Theater.'\n"
                 "Theaters that are next to each other are called 'adjacent Theaters.'"
                 "A player owns all of the cards on their side of the Theater boards. During your turn, you will play cards only on your side of the Theaters."),
             "Battle Cards": ("Cards are played to advance your war effort and how they are played will ultimately determine who wins the war (the game).\n"
-                "Strength: Each card has a Strength value. If the total Strength of all the cards on your side of the Theater is higher than the total Strength of all the cards on your opponent’s side of that Theater, you 'control' that Theater.\n
+                "Strength: Each card has a Strength value. If the total Strength of all the cards on your side of the Theater is higher than the total Strength of all the cards on your opponent’s side of that Theater, you 'control' that Theater.\n"
                 "Tactical Abilities: Most cards have a Tactical Ability along with Strength, which takes effect as soon as the card is played 'face up' to a Theater. These abilities are either 'Instant' or 'Ongoing.'"),
             "Type of Battle Cards": ("There are three types of cards: 'Air,' 'Land,' and 'Sea' cards, which relate to the three Theaters. Normally, you may only play a card 'face up' to its matching Theater: Air cards in the Air Theater, and so on."),
             "Facedown Cards": ("Cards can also be played 'facedown' as a 'wild card' in any Theater. Facedown cards always have a Strength of 2. 'Facedown' cards do not have any Tactical Abilities. You may see your own facedown cards at any time, but you may not see your opponent's 'facedown' cards."),
@@ -52,7 +52,7 @@ class AirLandSea(Game):
             "Ongoing Abilities": ("These are always in effect as long as the card is face up. If a card with an Ongoing Ability is flipped 'facedown', the ability no longer has any effect (unless that card is revealed again).\n"
                 "Example: The Escalation Tactical Ability increases the Strength of all of your facedown cards to 4 as long as the Escalation card remains 'face up'. If that card were flipped over by another Tactical Ability, your 'facedown' cards would go back to being Strength 2."),
             "Tactical Ability Key Terms": 
-                ("Flip: Many Tactical Abilities allow you to flip a card. Flipping a card means either turning it 'face up' if it is 'facedown' or turning a 'facedown' card so it is 'face up.'
+                ("Flip: Many Tactical Abilities allow you to flip a card. Flipping a card means either turning it 'face up' if it is 'facedown' or turning a 'facedown' card so it is 'face up.'"
                     "Unless the ability states otherwise, you may flip any card — yours or your opponent's.\n"
                 "Uncovered/Covered: Many Tactical Abilities only affect uncovered or covered cards. If an ability does not specify uncovered or covered, such as Transport or Redeploy, assume the ability can affect any card.\n"
                 "Play: Some Tactical Abilities instruct you to play a card, or only take effect in response to a card being played. The word 'play' describes any time a player takes a card from their hand and places it in a Theater.\n"
