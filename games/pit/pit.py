@@ -16,6 +16,7 @@ class Message:
     sender_id: int
     recipient_id: int
     content: str
+    message_type: str
 
 
 @dataclass
@@ -148,8 +149,10 @@ class PitGame(Game):
                     if self.show_state:
                         print(f"No more {chosen_commodity} in stock pile.")
 
-    def communicate(self, sender_id: int, recipient_id: int, content: str):
-        self.messages.append(Message(sender_id, recipient_id, content))
+    def communicate(
+        self, sender_id: int, recipient_id: int, content: str, message_type: str
+    ):
+        self.messages.append(Message(sender_id, recipient_id, content, message_type))
 
     def play(self) -> Tuple[float, float]:
         while not self.game_is_over:
@@ -158,20 +161,118 @@ class PitGame(Game):
                 observation, available_actions = self.get_observation(agent)
                 # Send message to the other agent
                 other_agent = self.agents[1 - self.agents.index(agent)]
-                agent.send_message(
-                    other_agent.agent_id,
-                    f"Round {self.round_number}: Trade offers, negotiations, etc.",
-                )
-                # Receive messages
+                message_content = f"Round {self.round_number}: Interested in trading {random.choice(list(self.stock_pile.keys()))}?"
+                message_type = "inquiry"
+                agent.send_message(other_agent.agent_id, message_content, message_type)
+
                 received_messages = [
                     message
                     for message in self.messages
                     if message.recipient_id == agent.agent_id
                 ]
-                # Process received messages
+
+                # Processing received messages
                 for message in received_messages:
-                    # Example: agent processes trade offers, negotiations, etc.
-                    agent.process_message(message)
+                    if message.message_type == "inquiry":
+                        interested = random.choice([True, False])
+                        if interested:
+                            # Send an offer message back to the inquiring agent
+                            offer_content = (
+                                f"Offering X units of {message.content.split()[-1]}"
+                            )
+                            self.communicate(
+                                agent.agent_id,
+                                message.sender_id,
+                                offer_content,
+                                "offer",
+                            )
+                    elif message.message_type == "offer":
+                        decision = random.choice(["accept", "counter-offer", "reject"])
+
+                        if decision == "accept":
+                            # Assuming the offer format is "Offering [quantity] units of [commodity]"
+                            _, quantity, _, commodity = message.content.split()
+                            quantity = int(quantity)
+                            if (
+                                commodity in self.stock_pile
+                                and self.stock_pile[commodity] >= quantity
+                            ):
+                                # Calculate the trade value
+                                commodity_obj = next(
+                                    filter(
+                                        lambda x: x.name == commodity, self.commodities
+                                    ),
+                                    None,
+                                )
+                                if commodity_obj:
+                                    trade_value = (
+                                        commodity_obj.base_value
+                                        * random.uniform(
+                                            *commodity_obj.price_fluctuation
+                                        )
+                                        * quantity
+                                    )
+                                    # Apply Bull/Bear market effects randomly
+                                    if (
+                                        random.random() < 0.1
+                                    ):  # 10% chance for market effect
+                                        if random.choice(["Bull", "Bear"]) == "Bull":
+                                            trade_value *= 1.2  # Increase value by 20%
+                                        else:
+                                            trade_value *= 0.8  # Decrease value by 20%
+
+                                    # Update the accepting agent's score
+                                    self.scores[self.agents.index(agent)] += trade_value
+
+                                    # Update stock piles
+                                    self.stock_pile[commodity] -= quantity
+
+                                    acceptance_content = f"Offer for {quantity} units of {commodity} accepted."
+                                    self.communicate(
+                                        agent.agent_id,
+                                        message.sender_id,
+                                        acceptance_content,
+                                        "acceptance",
+                                    )
+
+                                    # Log the trade
+                                    if self.show_state:
+                                        print(
+                                            f"{agent.agent_id} accepted the offer and traded {quantity} units of {commodity} for {trade_value}"
+                                        )
+                        elif decision == "counter-offer":
+                            # Assuming the message content includes the commodity name and quantity, e.g., "Offering 5 Wheat"
+                            _, offered_quantity, _, offered_commodity = (
+                                message.content.split()
+                            )
+                            counter_quantity = random.randint(1, int(offered_quantity))
+                            counter_commodity = random.choice(
+                                list(self.stock_pile.keys())
+                            )
+                            counter_offer_content = f"Counter-offer: {counter_quantity} units of {counter_commodity}"
+                            self.communicate(
+                                agent.agent_id,
+                                message.sender_id,
+                                counter_offer_content,
+                                "counter-offer",
+                            )
+                            if self.show_state:
+                                print(
+                                    f"{agent.agent_id} made a counter-offer to Agent {message.sender_id}"
+                                )
+                        else:
+                            # Simply reject the offer without making a counter-offer
+                            rejection_content = "Offer rejected"
+                            self.communicate(
+                                agent.agent_id,
+                                message.sender_id,
+                                rejection_content,
+                                "rejection",
+                            )
+                            if self.show_state:
+                                print(
+                                    f"{agent.agent_id} rejected the offer from Agent {message.sender_id}"
+                                )
                 # Take action based on observation and received messages
                 action = agent.take_action(
                     self.rules,
