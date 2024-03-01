@@ -64,27 +64,51 @@ class OpenAITextAgent(Agent):
 
         prompt += f"\n# Observation\nThe following describes the current state of the game:\n{observation.text}\n"
         if observation.image is not None:
-            self.print(
-                "Image observation recieved. Using GPT4 vision regardless of specified model."
-            )
-            buffered = BytesIO()
-            observation.image.save(buffered, format="JPEG")
-            base64_image = base64.b64encode(buffered.getvalue())
-            messages.append(
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}"
+            if self.openai_model == "gpt-4-1106-preview":
+                self.print("Image observation recieved.")
+                buffered = BytesIO()
+                observation.image.save(buffered, format="JPEG")
+                base64_image = base64.b64encode(buffered.getvalue())
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                },
                             },
-                        },
+                        ],
+                    }
+                )
+                prompt = ""
+            else:
+                self.print("Image observation recieved. Using GPT4 to generate text description.")
+                buffered = BytesIO()
+                image.save(buffered, format="JPEG")
+                base64_image = base64.b64encode(buffered.getvalue())
+                imagedesc = openai_client.chat.completions.create(
+                    model="gpt-4-vision-preview",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": prompt
+                                },
+                                {
+                                    "type": "image",
+                                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                                },
+                            ],
+                        }
                     ],
-                }
-            )
-            prompt = ""
+                ).choices[0].message.content
+                prompt += imagedesc
+                observation.image = None
 
         assert available_actions.predefined != {} or available_actions.openended != {}
         prompt += f"\n# Actions\n"
