@@ -156,6 +156,13 @@ class OpenAITextAgent(Agent):
 
             if action["action"] in valid_actions:
                 self.print("GPT chose valid action", action)
+                explain = re.findall(r"Explain\((H\d+)\)", result["action"])
+                if len(explain):
+                    self.print("GPT is asking for explanation.")
+                    rule = details_dict[explain[0]]
+                    desc = rules.additional_details[desc]
+                    messages.append({"role": "user", "content": desc})
+                    continue
                 result = action
                 break
 
@@ -170,6 +177,7 @@ class OpenAITextAgent(Agent):
                 f"WARNING: GPT returned an a random action after {self.max_retries} tries"
             )
             return Action(action_id=None)
+
         return Action(
             action_id=result["action"],
             openended_response=result.get("openended_response"),
@@ -187,15 +195,26 @@ class GPT4Text(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
     agent_type_id: str = "gpt-4"
 
-
 @dataclass
-class ChainOfThought(OpenAITextAgent):
-    openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "cot"
+class GPT3COT(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt-3.5-cot"
     mode: int = 1
 
 @dataclass
-class BabbleAndPrune(OpenAITextAgent):
+class GPT3BAP(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "b&p"
+    agent_type_id: str = "gpt-3.5-bap"
+    mode: int = 2
+
+@dataclass
+class GPT4COT(OpenAITextAgent):
+    openai_model: str = "gpt-4-1106-preview"
+    agent_type_id: str = "gpt-4-cot"
+    mode: int = 1
+
+@dataclass
+class GPT4BAP(OpenAITextAgent):
+    openai_model: str = "gpt-4-1106-preview"
+    agent_type_id: str = "gpt-3.5-bap"
     mode: int = 2
