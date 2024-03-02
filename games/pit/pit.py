@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Tuple
 import random
 from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
@@ -17,6 +17,25 @@ class Message:
     recipient_id: int
     content: str
     message_type: str
+
+
+@dataclass
+class MarketTrend:
+    commodity: str
+    trend: str  # e.g., 'up', 'down', 'stable'
+
+
+@dataclass
+class Observation:
+    text: str
+    market_trends: List[MarketTrend] = field(default_factory=list)
+
+
+@dataclass
+class CommodityTradingStats:
+    commodity_name: str
+    trades_count: int = 0
+    volume_traded: int = 0
 
 
 @dataclass
@@ -45,7 +64,13 @@ class PitGame(Game):
         }
         self.scores = []
         self.round_number = 0
-        self.messages = []  # List to store messages exchanged between agents
+        self.messages = []
+        self.market_trends = []
+        self.trading_stats = {
+            commodity.name: CommodityTradingStats(commodity.name)
+            for commodity in self.commodities
+        }
+        self.previous_round_stats = None
 
     def init_game(
         self,
@@ -67,6 +92,33 @@ class PitGame(Game):
         self.agents = [agent_1, agent_2]
         self.scores = [0.0] * len(self.agents)
 
+    def update_trading_stats(self, commodity_name, volume):
+        self.trading_stats[commodity_name].trades_count += 1
+        self.trading_stats[commodity_name].volume_traded += volume
+
+    def calculate_market_trends_adjust_values(self):
+        if self.previous_round_stats:
+            for commodity_name, stats in self.trading_stats.items():
+                previous_stats = self.previous_round_stats.get(commodity_name)
+                commodity_obj = next(
+                    filter(lambda x: x.name == commodity_name, self.commodities), None
+                )
+
+                if stats.trades_count > previous_stats.trades_count * 1.1:
+                    trend = "up"
+                    commodity_obj.base_value *= 1.05
+                elif stats.trades_count < previous_stats.trades_count * 0.9:
+                    trend = "down"
+                    commodity_obj.base_value *= 0.95
+                else:
+                    trend = "stable"
+                self.market_trends.append(MarketTrend(commodity_name, trend))
+
+        self.previous_round_stats = self.trading_stats.copy()
+        self.trading_stats = {
+            name: CommodityTradingStats(name) for name in self.trading_stats.keys()
+        }
+
     def get_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
         observation_text = (
             f"{agent.agent_id}, it's your turn. Stock Pile: {self.stock_pile}"
@@ -79,7 +131,10 @@ class PitGame(Game):
             },
             openended={},
         )
-        return Observation(text=observation_text), available_actions
+        return (
+            Observation(text=observation_text, market_trends=self.market_trends),
+            available_actions,
+        )
 
     def update(self, action: Action, available_actions: AvailableActions, agent: Agent):
         chosen_commodity = action.action_id
@@ -159,7 +214,6 @@ class PitGame(Game):
             self.round_number += 1
             for agent in self.agents:
                 observation, available_actions = self.get_observation(agent)
-                # Send message to the other agent
                 other_agent = self.agents[1 - self.agents.index(agent)]
                 message_content = f"Round {self.round_number}: Interested in trading {random.choice(list(self.stock_pile.keys()))}?"
                 message_type = "inquiry"
@@ -190,7 +244,6 @@ class PitGame(Game):
                         decision = random.choice(["accept", "counter-offer", "reject"])
 
                         if decision == "accept":
-                            # Assuming the offer format is "Offering [quantity] units of [commodity]"
                             _, quantity, _, commodity = message.content.split()
                             quantity = int(quantity)
                             if (
@@ -227,6 +280,9 @@ class PitGame(Game):
                                     # Update stock piles
                                     self.stock_pile[commodity] -= quantity
 
+                                    # Update the trading stats right after it's accepted
+                                    self.update_trading_stats(commodity, quantity)
+
                                     acceptance_content = f"Offer for {quantity} units of {commodity} accepted."
                                     self.communicate(
                                         agent.agent_id,
@@ -241,7 +297,6 @@ class PitGame(Game):
                                             f"{agent.agent_id} accepted the offer and traded {quantity} units of {commodity} for {trade_value}"
                                         )
                         elif decision == "counter-offer":
-                            # Assuming the message content includes the commodity name and quantity, e.g., "Offering 5 Wheat"
                             _, offered_quantity, _, offered_commodity = (
                                 message.content.split()
                             )
@@ -282,6 +337,7 @@ class PitGame(Game):
                     show_state=self.show_state,
                 )
                 self.update(action, available_actions, agent)
+                self.calculate_market_trends()
                 if all(value == 0 for value in self.stock_pile.values()):
                     self.game_is_over = True
 
