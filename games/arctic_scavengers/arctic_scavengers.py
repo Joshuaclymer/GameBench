@@ -13,6 +13,9 @@ class ArcticScavengers(Game):
 
         def create_deck(self, deck):
             pass
+
+        def draw_hand(self):
+            pass
     class Deck:
         def __init__(self):
             self.contested_resources = []
@@ -45,16 +48,60 @@ class ArcticScavengers(Game):
     def update(self, action : Action, available_actions : AvailableActions, agent : Agent):
         pass
 
+    def observation_decide_cards(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
+        # Returns the hand of the player.
+        # The available actions are to choose which cards to keep for skirmish.
+        pass
+
+    def play_resource_gather(self, player : Player):
+        # Configure a while loop until the user says STOP. No need to announce how many cards left for skirmish.
+        # Make sure in while loop that actions are not repeated and each one is valid.
+        # Once user says STOP the number of cards left for skirmish is determined for them (might have output to announce this).
+        observation, available_actions = self.get_observation(player.agent)
+        action = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+        while action != "STOP":
+            self.update(action, available_actions, player.agent)
+            observation, available_actions = self.get_observation(player.agent)
+            action = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
+
+    def play_skirmish(self, player : Player):
+        pass
+
     def play(self) -> Tuple[float, float]:
+        #### DRAWING PHASE #### 
         # 14 turns in total, as there are 14 contested resource cards in the pile.
-        # DRAWING PHASE: 
         # Both players draw 5 cards from top of their deck. If deck is empty, shuffle discard pile and draw from there.
         count = 0
         while self.deck.contested_resources:
             initiator = count % 2
-            # Draw 5 cards automatically for each player. get_observation returns the hand of the player.
-            # The available actions are to choose which cards to keep for skirmish.
-            # Call get_observation again to decide which resources to gather. Need to use logic to check validity (otherwise call again).
-            # Call update again to update the player's deck.
+            for player in self.players:
+                player.draw_hand()
+
+            #### RESOURCE GATHERING PHASE ####
+            player = self.players[initiator]
+            self.play_resource_gather(player)
+            player = self.players[1 - initiator]
+            self.play_resource_gather(player)
+            
+            #### SKIRMISH PHASE ####
             # Then the skirmish happens, and the top contested resource card goes to the winining player.
+            # Use a while loop like before
+            player = self.players[initiator]
+            self.play_skirmish(player)
+            player = self.players[1 - initiator]
+            self.play_skirmish(player)
+            fight_scores = [self.players[0].calculate_fight_score(), self.players[1].calculate_fight_score()]
+            if fight_scores[0] > fight_scores[1]:
+                self.players[0].cards["deck"].append(self.deck.contested_resources.pop(0))
+            elif fight_scores[0] < fight_scores[1]:
+                self.players[1].cards["deck"].append(self.deck.contested_resources.pop(0))
+            else:
+                people_scores = [self.players[0].calculate_people(), self.players[1].calculate_people()]
+                if people_scores[0] > people_scores[1]:
+                    self.players[0].cards["deck"].append(self.deck.contested_resources.pop(0))
+                elif people_scores[0] < people_scores[1]:
+                    self.players[1].cards["deck"].append(self.deck.contested_resources.pop(0))
+                else:
+                    self.deck.junkyard.append(self.deck.contested_resources.pop(0))
+            
             count += 1
