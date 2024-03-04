@@ -6,6 +6,7 @@ class GameConfig:
     NUM_GRASSHOPPER_CARDS = 3
     NUM_SOLDIERANT_CARDS = 4
     NUM_QUEENBEE_CARDS = 1
+    MAX_TURNS = 100
     rules = Rules(
         title="Hive", summary="Hive is a bug-themed abstract strategy game. The object of Hive is to capture the opponent's queen bee by allowing it to become completely surrounded by pieces belonging to either player, while avoiding the capture of one's own queen. Tiles can be moved to other positions after being placed according to various rules, much like chess pieces.",  
         additional_details={"Placing the Queen Bee": "Players must place their Queen Bee by their fourth turn. Until then, they cannot move any placed pieces.", 
@@ -14,7 +15,7 @@ class GameConfig:
                             "Ant Movement": "Able to move to any empty space around the hive as long as other movement rules are not violated.",
                             "Grasshopper Movement": "The Grasshopper can jump over over adjacent pieces, landing on the first empty space.",
                             "One Hive Rule": "The tiles must always be connected; you cannot move a piece if it would break the hive into separate groups.",
-                            "Freedom to Move": "A piece can only move if it can physically slide to its new position without disturbing other tiles."
+                            "Freedom to Move": "A piece can only move if it can physically slide to its new position without disturbing other tiles.",
+                            "Max Turns": "The game ends after " + str(MAX_TURNS) + " turns."  + "If the Queen Bee is not surrounded by the end of the " + str(MAX_TURNS) + "th turn, the player with the least pieces surrounding its Queen Bee wins."
                             }
     )
-    MAX_TURNS = 500

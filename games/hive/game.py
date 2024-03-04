@@ -94,7 +94,9 @@ class HiveGame(Game):
         image = None
         if self.image_mode:
             image = self.board.display_board(interactive=self.interactive_mode)
-        text = "{current_team} to move. Surround the enemy queen.".format(current_team="Green" if agent.team_id == 1 else "Blue")
+
+        remaining_turns = self.config.MAX_TURNS - max(self.turn_count)
+        text = "{current_team} to move. Surround the enemy queen. You have {remaining_turns} left.".format(current_team="Green" if agent.team_id == 1 else "Blue", remaining_turns=remaining_turns)
         if not self.image_mode:
             text += "\n\nBoard:\n\n" + self.board.generate_text_board()
         return Observation(text, image=image)
@@ -299,6 +301,13 @@ class HiveGame(Game):
         Intermediate scoring function based on how surrounded each Queen Bee is. The less surrounded Queen Bee wins. This is a heuristic if we run out of turns.
         """
         num_pieces_1 = len(self.board.get_surrounding_pieces(self.players[0].team_id, self.board.get_queen_bee(self.players[0].team_id)))
+        num_pieces_2 = len(self.board.get_surrounding_pieces(self.players[1].team_id, self.board.get_queen_bee(self.players[1].team_id)))
+        if num_pieces_1 < num_pieces_2:
+            return [1, 0]
+        elif num_pieces_2 < num_pieces_1:
+            return [0, 1]
+        else:
+            return [0, 0]
         
 
     def is_game_over(self):
@@ -320,7 +329,8 @@ class HiveGame(Game):
         """
         while not self.is_game_over():
             self.play_turn()
-            
+        if self.image_mode:
+            image = self.board.display_board(interactive=self.interactive_mode)
         queen_1_surrounded = self.board.is_queen_surrounded(self.players[0].team_id)
         queen_2_surrounded = self.board.is_queen_surrounded(self.players[1].team_id)
         
@@ -328,8 +338,11 @@ class HiveGame(Game):
             return [0, 0]
         elif queen_1_surrounded:
             return [0, 1]
-        else:
+        elif queen_2_surrounded:
             return [1, 0]
+        else:
+            # return intermediate score
+            return self.get_intermediate_score()
         
             
         

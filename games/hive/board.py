@@ -127,12 +127,21 @@ class HiveBoard:
 
     def get_queen_bee(self, team_id):
         for hex, piece in self.board.items():
-            if piece.type == "QueenBee" and piece.owner == team_id:
+            if piece.type == "Queen" and piece.owner == team_id:
                 return hex
         return None
     
     def get_surrounding_pieces(self, team_id, hex):
-        pass
+        """
+        Get the pieces surrounding the given hex.
+        """
+        surrounding_pieces = []
+        for direction in range(6):
+            neighbor_hex = hex.neighbor(direction)
+            if neighbor_hex in self.board:
+                surrounding_pieces.append(self.board[neighbor_hex])
+        return surrounding_pieces
+    
     def create_text_board(self, team_id):
         """
         Print the board with the pieces. Do this in a way that it is easy to see the pieces and their positions on the board. Start by finding the current hex.
