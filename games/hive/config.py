@@ -17,3 +17,4 @@ class GameConfig:
                             "Freedom to Move": "A piece can only move if it can physically slide to its new position without disturbing other tiles."
                             }
     )
+    MAX_TURNS = 500

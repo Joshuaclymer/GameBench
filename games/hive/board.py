@@ -125,6 +125,14 @@ class HiveBoard:
             raise ValueError("There is already a piece at this position")
         self.board[hex] = piece
 
+    def get_queen_bee(self, team_id):
+        for hex, piece in self.board.items():
+            if piece.type == "QueenBee" and piece.owner == team_id:
+                return hex
+        return None
+    
+    def get_surrounding_pieces(self, team_id, hex):
+        pass
     def create_text_board(self, team_id):
         """
         Print the board with the pieces. Do this in a way that it is easy to see the pieces and their positions on the board. Start by finding the current hex.

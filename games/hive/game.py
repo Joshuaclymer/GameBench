@@ -294,16 +294,25 @@ class HiveGame(Game):
         self.turn_count[self.current_player_index] += 1
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
     
+    def get_intermediate_score(self):
+        """
+        Intermediate scoring function based on how surrounded each Queen Bee is. The less surrounded Queen Bee wins. This is a heuristic if we run out of turns.
+        """
+        num_pieces_1 = len(self.board.get_surrounding_pieces(self.players[0].team_id, self.board.get_queen_bee(self.players[0].team_id)))
+        
+
     def is_game_over(self):
         """
         Check if the game is over by checking if either player's Queen Bee is surrounded.
         
         """
+        if max(self.turn_count) >= self.config.MAX_TURNS:
+            return True
         for player in self.players:
             if self.board.is_queen_surrounded(player.team_id):
                 return True
         return False
-        
+    
 
     def play(self):
         """
