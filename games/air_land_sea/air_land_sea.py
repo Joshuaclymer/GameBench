@@ -4,11 +4,22 @@ from abc import abstractmethod
 from typing import List, Dict, Optional, Tuple
 from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 import ast
+from .board import Board
+from .player import Player
+from .cards import Card, Deck
+import random
 
-# TODO: probably gonna need a class to represent board state
-    # TODO: probably gonna need a class to represent theater state
-# TODO: probably gonna need a class to represent hand state
-    # TODO: how to represent cards and deck
+@dataclass
+class EffectManager:
+    ongoing_effect_cards : List[Card] = field(default_factory=list)
+
+    def add_effect(self, card : Card):
+        self.ongoing_effect_cards.append(card)
+        pass
+
+    def remove_effect(self, card : Card):
+        self.ongoing_effect_cards.remove(card)
+        pass
 
 @dataclass
 class AirLandSea(Game):
@@ -67,10 +78,22 @@ class AirLandSea(Game):
         }
     )
     id : str = "air_land_sea"
+    withdrawal_points : Dict[str, Dict[int, int]] = {
+        "1st": {4: 2, 3: 3, 2: 3, 1: 4, 0: 6},
+        "2nd": {5: 2, 4: 3, 3: 3, 2: 4, 0: 6}
+    }
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
+        self.effect_manager = EffectManager()
+        self.board : Board = Board() # theater_order is randomized on init
+        self.deck = Deck() # shuffled on init
+        p1_hand = self.deck.deal()
+        p2_hand = self.deck.deal()
+        p1_assignment = math.random.choice([1, 2])
+        p2_assignment = 3 - p1_assignment
         self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_2_kwargs)]
-        pass
+        self.player1 = Player(supreme_commander=p1_assignment, hand=p1_hand, agent=agent1, player_id=1) # TODO: wip player constructor
+        self.player2 = Player(supreme_commander=p2_assignment, hand=p2_hand, agent=agent2, player_id=2) # TODO: wip player constructor
 
     # generate observation and available actions for the agent
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
@@ -91,11 +114,12 @@ class AirLandSea(Game):
     
     # Returns the scores for agent_1 and agent_2 after the game is finished.
     # the high level gameplay loop
+    # is run after init_game is ran
     def play(self):
-        player_1 = self.agents[0]
-        player_2 = self.agents[1]
+        agent_1 = self.agents[0]
+        agent_2 = self.agents[1]
 
-        while True:
+        # while True:
             # Track player characteristics such as 
                 # hand, VPs, supreme comamander, current turn, locally within this play function?
 
@@ -104,7 +128,6 @@ class AirLandSea(Game):
             # must track victory points of each player
                 # check after each battle if a player has reached 12 victory points
             # must track who is the supreme commander (influences victory points players get from withdrawing)
-                # TODO: what are the exact points scored from withdrawing?
                 # supreme commander goes first and wins ties in theaters
             # must track current position of theaters (in order to rotate them clockwise after each battle)
                 # must randomly place 3 theaters in beginning of game

@@ -1,15 +1,40 @@
+from dataclasses import dataclass, field
+from typing import Optional, List
+import random
+
 @dataclass
 class Card:
-    card_type: str
-    card_name: str
-    card_id: int
+    name: str
+    theater: str
     strength: int
-    tactical_ability: str
-    
+    tactical_ability_type: Optional[str] = None
+    tactical_ability_description: Optional[str] = None
 
 @dataclass
 class Deck:
-    cards: List[Card]
+    cards: List[Card] = field(default_factory=lambda: [
+            Card('Support', 'Air', 1, 'Ongoing', 'You gain +3 strength in each adjacent theater.'),
+            Card('Air Drop', 'Air', 2, 'Instant', 'The next time you play a card, you may play it to a non-matching theater.'),
+            Card('Manuever', 'Air', 3, 'Instant', 'Flip an uncovered card in an adjacent theater.'),
+            Card('Aerodrome', 'Air', 4, 'Ongoing', 'You may play cards of strength 3 or less to non-matching theaters.'),
+            Card('Containment', 'Air', 5, 'Ongoing', 'If any player plays a facedown card, destroy that card.'),
+            Card('Heavy Bombers', 'Air', 6),
+            Card('Transport', 'Sea', 1, 'Instant', 'You may move 1 of your cards to a different theater.'),
+            Card('Escalation', 'Sea', 2, 'Ongoing', 'All your facedown cards are now strength 4.'),
+            Card('Manuever', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater.'),
+            Card('Redeploy', 'Sea', 4, 'Instant', 'You may return 1 of your facedown cards to your hand. If you do, play a card.'),
+            Card('Blockade', 'Sea', 5, 'Ongoing', 'If any player plays a card to an adjacent theater occupied by at least 3 other cards, destroy that card.'),
+            Card('Super Battleship', 'Sea', 6),
+            Card('Reinforce', 'Land', 1, 'Instant', 'Draw 1 card and play it facedown to an adjacent theater.'),
+            Card('Ambush', 'Land', 2, 'Instant', 'Flip any uncovered card'),
+            Card('Manuever', 'Land', 3, 'Instant', 'Flip an uncovered card in an adjacent theater.'),
+            Card('Cover Fire', 'Land', 4, 'Ongoing', 'All cards covered by this card are now strength 4.'),
+            Card('Disrupt', 'Land', 5, 'Onoging', 'Starting with you, both players choose and flip 1 of their uncovered cards.'),
+            Card('Heavy Tanks', 'Land', 6)
+    ])
+
+    def __post_init__(self):
+        self.shuffle()
 
     def shuffle(self):
         random.shuffle(self.cards)
@@ -18,13 +43,8 @@ class Deck:
         return self.cards.pop()
 
     def add(self, card: Card):
-        self.cards.append(card)
-    
-    def remove(self, card: Card):
-        self.cards.remove(card)
+        self.cards.insert(0, card)
 
-class Config:
-    # includes the card list
-    # includes number of each card that should be in deck
-    # includes supreme commander card rules
-    pass
+    def deal(self):
+        # deal 6 cards from the deck
+        return [self.draw() for _ in range(6)]
