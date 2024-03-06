@@ -217,7 +217,12 @@ class PitGame(Game):
                 other_agent = self.agents[1 - self.agents.index(agent)]
                 message_content = f"Round {self.round_number}: Interested in trading {random.choice(list(self.stock_pile.keys()))}?"
                 message_type = "inquiry"
-                agent.send_message(other_agent.agent_id, message_content, message_type)
+                self.communicate(
+                    sender_id=agent.agent_id,
+                    recipient_id=other_agent.agent_id,
+                    content=message_content,
+                    message_type=message_type,
+                )
 
                 received_messages = [
                     message
