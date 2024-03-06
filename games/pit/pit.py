@@ -235,9 +235,12 @@ class PitGame(Game):
                     if message.message_type == "inquiry":
                         interested = random.choice([True, False])
                         if interested:
+                            offer_quantity = random.randint(1, 5)
+                            commodity = message.content.split()[-1].rstrip("?")
+
                             # Send an offer message back to the inquiring agent
                             offer_content = (
-                                f"Offering X units of {message.content.split()[-1]}"
+                                f"Offering {offer_quantity} units of {commodity}"
                             )
                             self.communicate(
                                 agent.agent_id,
@@ -249,13 +252,14 @@ class PitGame(Game):
                         decision = random.choice(["accept", "counter-offer", "reject"])
 
                         if decision == "accept":
-                            _, quantity, _, commodity = message.content.split()
+                            parts = message.content.split()
+                            quantity = parts[1]
+                            commodity = " ".join(parts[3:])
                             quantity = int(quantity)
                             if (
                                 commodity in self.stock_pile
                                 and self.stock_pile[commodity] >= quantity
                             ):
-                                # Calculate the trade value
                                 commodity_obj = next(
                                     filter(
                                         lambda x: x.name == commodity, self.commodities
@@ -271,21 +275,16 @@ class PitGame(Game):
                                         * quantity
                                     )
                                     # Apply Bull/Bear market effects randomly
-                                    if (
-                                        random.random() < 0.1
-                                    ):  # 10% chance for market effect
+                                    if random.random() < 0.1:
                                         if random.choice(["Bull", "Bear"]) == "Bull":
                                             trade_value *= 1.2  # Increase value by 20%
                                         else:
                                             trade_value *= 0.8  # Decrease value by 20%
 
-                                    # Update the accepting agent's score
                                     self.scores[self.agents.index(agent)] += trade_value
 
-                                    # Update stock piles
                                     self.stock_pile[commodity] -= quantity
 
-                                    # Update the trading stats right after it's accepted
                                     self.update_trading_stats(commodity, quantity)
 
                                     acceptance_content = f"Offer for {quantity} units of {commodity} accepted."
@@ -296,15 +295,13 @@ class PitGame(Game):
                                         "acceptance",
                                     )
 
-                                    # Log the trade
                                     if self.show_state:
                                         print(
                                             f"{agent.agent_id} accepted the offer and traded {quantity} units of {commodity} for {trade_value}"
                                         )
                         elif decision == "counter-offer":
-                            _, offered_quantity, _, offered_commodity = (
-                                message.content.split()
-                            )
+                            parts = message.content.split()
+                            offered_quantity = parts[1]
                             counter_quantity = random.randint(1, int(offered_quantity))
                             counter_commodity = random.choice(
                                 list(self.stock_pile.keys())
@@ -333,16 +330,15 @@ class PitGame(Game):
                                 print(
                                     f"{agent.agent_id} rejected the offer from Agent {message.sender_id}"
                                 )
-                # Take action based on observation and received messages
+
                 action = agent.take_action(
                     self.rules,
                     observation,
                     available_actions,
-                    received_messages=received_messages,
                     show_state=self.show_state,
                 )
                 self.update(action, available_actions, agent)
-                self.calculate_market_trends()
+                self.calculate_market_trends_adjust_values()
                 if all(value == 0 for value in self.stock_pile.values()):
                     self.game_is_over = True
 
