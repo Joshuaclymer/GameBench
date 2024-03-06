@@ -1,3 +1,4 @@
 fire
 Pillow
 openai
+matplotlib
