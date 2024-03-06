@@ -9,6 +9,34 @@ class Card:
     strength: int
     tactical_ability_type: Optional[str] = None
     tactical_ability_description: Optional[str] = None
+    facedown: bool = False
+
+    def __post_init__(self):
+        self.current_strength = self.strength
+
+    def __str__(self):
+        card_info = f"{self.name} ({self.strength}"
+        if self.facedown:
+            card_info = "Facedown (2"
+        tactical_ablity_string = ""
+        if self.tactical_ability_type and not self.facedown:
+            tactical_ablity_string = f", {self.tactical_ability_type}: {self.tactical_ability_description}"
+        # $ represents the covered/uncovered status of the card (it will be manipulated by the theater class)
+        return f"{card_info}{tactical_ablity_string}, $)"
+
+    def __repr__(self):
+        return self.__str__()
+    
+    def flip(self):
+        if self.facedown:
+            # flip faceup
+            current_strength = self.strength
+            self.facedown = False
+        else:
+            # flip facedown
+            current_strength = 2
+            self.facedown = True
+
 
 @dataclass
 class Deck:
@@ -29,7 +57,7 @@ class Deck:
             Card('Ambush', 'Land', 2, 'Instant', 'Flip any uncovered card'),
             Card('Manuever', 'Land', 3, 'Instant', 'Flip an uncovered card in an adjacent theater.'),
             Card('Cover Fire', 'Land', 4, 'Ongoing', 'All cards covered by this card are now strength 4.'),
-            Card('Disrupt', 'Land', 5, 'Onoging', 'Starting with you, both players choose and flip 1 of their uncovered cards.'),
+            Card('Disrupt', 'Land', 5, 'Ongoing', 'Starting with you, both players choose and flip 1 of their uncovered cards.'),
             Card('Heavy Tanks', 'Land', 6)
     ])
 

@@ -78,10 +78,11 @@ class AirLandSea(Game):
         }
     )
     id : str = "air_land_sea"
-    withdrawal_points : Dict[str, Dict[int, int]] = {
+    # points opponent gets if the player withdraws based on number of cards in player's hand
+    withdrawal_points: Dict[str, Dict[int, int]] = field(default_factory=lambda: {
         "1st": {4: 2, 3: 3, 2: 3, 1: 4, 0: 6},
         "2nd": {5: 2, 4: 3, 3: 3, 2: 4, 0: 6}
-    }
+    })
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
         self.effect_manager = EffectManager()
@@ -89,14 +90,45 @@ class AirLandSea(Game):
         self.deck = Deck() # shuffled on init
         p1_hand = self.deck.deal()
         p2_hand = self.deck.deal()
-        p1_assignment = math.random.choice([1, 2])
-        p2_assignment = 3 - p1_assignment
+        p1_supreme_commander = random.choice([0, 1])
+        p2_supreme_commander = 1 - p1_supreme_commander
         self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_2_kwargs)]
-        self.player1 = Player(supreme_commander=p1_assignment, hand=p1_hand, agent=agent1, player_id=1) # TODO: wip player constructor
-        self.player2 = Player(supreme_commander=p2_assignment, hand=p2_hand, agent=agent2, player_id=2) # TODO: wip player constructor
+        self.player1 = Player(player_id=0, supreme_commander=p1_supreme_commander, agent=self.agents[0], hand=p1_hand)
+        self.player2 = Player(player_id=1, supreme_commander=p2_supreme_commander, agent=self.agents[1], hand=p2_hand)
+        self.players = [self.player1, self.player2]
+
+    def get_player_by_agent_id(self, agent_id : int) -> Player:
+        for player in self.players:
+            if player.player_id == agent_id:
+                return player
+        return None
 
     # generate observation and available actions for the agent
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
+        # get player by agent id
+        print(type(agent))
+        print(agent.agent_id)
+        player = self.get_player_by_agent_id(agent.agent_id)
+        print("player_id", player.player_id)
+        # Observation includes
+        # Easier
+        # which supreme commander as string
+        supreme_commander = "1st" if player.supreme_commander == 0 else "2nd" if player.supreme_commander == 1 else "error"
+        print("supreme commander:",supreme_commander)
+        # opponent hand size as string
+        opponent = self.get_player_by_agent_id(1 - agent.agent_id)
+        opponent_hand_size = str(len(opponent.hand))
+        print("opponent hand size:",opponent_hand_size)
+        # victory points as string
+        victory_points = str(player.victory_points)
+        print("victory points:",victory_points)
+        # harder
+        # board string
+        # hand string
+
+        # observation = Observation(text=)
+        observation_text = ""
+
         # TODO: generate available action list based on game state and hand
         # available_actions = AvailableActions(
             # instructions = "Return actions in json with the following keys. { 'action': str }",
@@ -106,6 +138,7 @@ class AirLandSea(Game):
                 # withdraw
             # openended = {}
         # TODO: is there open ended actions in this game?
+        return observation_text, None
         pass
 
     # I pass in observation + available actions to agent, then it will choose one
