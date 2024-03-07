@@ -35,7 +35,7 @@ class HiveBoardVisualizer:
         
     def draw_board(self, interactive=False):
         """Draw and display the Hive board."""
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(5.12, 5.12), dpi=100)
         ax.set_aspect('equal')
         ax.axis('off')  # Hide the axes
 
