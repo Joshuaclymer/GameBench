@@ -38,7 +38,7 @@ class HiveGame(Game):
         Initialize the game.
         """
         self.board = HiveBoard()
-        self.players = [agent_1_class(agent_id="Player1", agent_type_id=0, team_id=0), agent_2_class(agent_id="Player2", agent_type_id=0,team_id=1)]
+        self.players = [agent_1_class(team_id=0, agent_id=0, **self.agent_1_kwargs), agent_2_class(team_id=1, agent_id=1, **self.agent_2_kwargs)]
         self.current_player_index = 0
         self.turn_count = [0, 0]
         self.pieces_remaining = []
