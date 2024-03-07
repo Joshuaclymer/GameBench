@@ -26,12 +26,12 @@ class HiveBoardVisualizer:
     def draw_piece(self, ax, center, coords, piece, label_color='black'):
         """Draw a piece on the hexagon."""
         ax.text(center[0], center[1], piece.type + "\n" + "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
-                        ha='center', va='center', fontsize=7, color=label_color)
+                        ha='center', va='center', fontsize=6.5, color=label_color)
 
     def draw_fake_piece(self, ax, center, coords, label_color='black'):
         """Draw a fake piece on the hexagon."""
         ax.text(center[0], center[1], "(" + str(coords[0]) + ", " + str(coords[1]) + ")", 
-                        ha='center', va='center', fontsize=7, color=label_color)
+                        ha='center', va='center', fontsize=6.5, color=label_color)
         
     def draw_board(self, interactive=False):
         """Draw and display the Hive board."""
