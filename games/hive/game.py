@@ -96,7 +96,7 @@ class HiveGame(Game):
             image = self.board.display_board(interactive=self.interactive_mode)
 
         remaining_turns = self.config.MAX_TURNS - max(self.turn_count)
-        text = "{current_team} to move. Surround the enemy queen. You have {remaining_turns} left.".format(current_team="Green" if agent.team_id == 1 else "Blue", remaining_turns=remaining_turns)
+        text = "{current_team} to move. Surround the enemy Queen. You have {remaining_turns} left.".format(current_team="Green" if agent.team_id == 1 else "Blue", remaining_turns=remaining_turns)
         if not self.image_mode:
             text += "\n\nBoard:\n\n" + self.board.generate_text_board()
         return Observation(text, image=image)
@@ -355,8 +355,8 @@ class HiveGame(Game):
         elif queen_2_surrounded:
             return [1, 0]
         else:
-            # return intermediate score
-            return self.get_intermediate_score()
+            return [0, 0]
+            #return self.get_intermediate_score()
         
             
         
