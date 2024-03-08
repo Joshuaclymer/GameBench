@@ -10,7 +10,7 @@ class ActionType(Enum):
 class ActionSymbol(Enum):
     DIG = 1
     DRAW = 2
-    COMBAT = 3
+    FIGHT = 3
     HUNT = 4
     MEDICINE = 5
     BUILD_TIME = 6
