@@ -105,29 +105,18 @@ class AirLandSea(Game):
 
     # generate observation and available actions for the agent
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
-        # get player by agent id
-        # print(type(agent))
-        # print(agent.agent_id)
         player = self.get_player_by_agent_id(agent.agent_id)
         # print("player_id", player.id)
         # Observation includes
-        # Easier
-        # which supreme commander as string
         supreme_commander = "1st" if player.supreme_commander == 0 else "2nd" if player.supreme_commander == 1 else "error"
         # print("supreme commander:",supreme_commander)
-        # opponent hand size as string
         opponent = self.get_player_by_agent_id(1 - agent.agent_id)
         opponent_hand_size = str(len(opponent.hand))
         # print("opponent hand size:",opponent_hand_size)
-        # victory points as string
         victory_points = str(player.victory_points)
         # print("victory points:",victory_points)
-        # harder
-        # board string
         board_string = self.board.get_board_string()
 
-
-        # observation = Observation(text=)
         observation_text = (
             "Current Supreme Commander: " + supreme_commander + "\n"
             "Current Victory Points: " + victory_points + "\n"

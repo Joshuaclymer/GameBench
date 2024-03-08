@@ -46,8 +46,6 @@ def test():
     observation, available_actions = game.get_observation(agent_1)
     print(observation.text)
 
-
-    # TODO: get observation needs to work
     print("Test complete")
 
 
