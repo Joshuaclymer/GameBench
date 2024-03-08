@@ -3,6 +3,7 @@ from api.classes import Observation, Action, Agent, AvailableActions, Game, Rule
 from typing import List, Dict, Optional, Tuple
 from cards.game_cards import *
 import random
+import ast
  
 @dataclass
 class ArcticScavengers(Game):
@@ -10,15 +11,20 @@ class ArcticScavengers(Game):
         def __init__(self, agent):
             self.agent = agent
             self.cards = {"deck":[], "draw":[]}
-            self.actions = {ActionSymbol.DIG: 0, ActionSymbol.DRAW: 0, ActionSymbol.HUNT: 0, "HIRE": 0, "TRASH":0, "SNIPER":0, "SABOTEUR":0} 
+            self.actions = {"DIG": 0, "DRAW": 0, "HUNT": 0, "HIRE": 0, "TRASH":0, "SNIPER":0, "SABOTEUR":0} 
             self.food = 0
         
         def create_deck(self, deck):
-            pass
+            self.cards["deck"] = [Refugee()] * 4 + [Scavenger()] * 3 + [Brawler()] + [Spear()] + [Shovel()]
+            random.shuffle(self.cards["deck"])
 
         def draw_hand(self):
-            # Both players draw 5 cards from top of their deck. If deck is empty, shuffle discard pile and draw from there.
-            pass
+            if len(self.cards["deck"]) > 0:
+                self.cards["deck"] += self.cards["draw"]
+                self.cards["draw"] = []
+            random.shuffle(self.cards["deck"])
+            self.cards["draw"] = self.cards["deck"][:5]
+            self.cards["deck"] = self.cards["deck"][5:]
 
         def reset_actions(self):
             self.food = 0
@@ -26,19 +32,24 @@ class ArcticScavengers(Game):
                 self.actions[action] = 0
     class Deck:
         def __init__(self):
-            self.contested_resources = []
-            self.junkyard = []
-            self.mercenaries = [[]] # 8 mercenary piles
+            self.contested_resources = [WolfPack()] * 2 + [Grenade()] * 2 + [SledTeam()] * 2 + [FieldCrew()] * 2 + [TribeFamily()] * 6
+            random.shuffle(self.contested_resources)
+            self.junkyard = [Junk()] * 7 + [MultiTool()] * 4 + [Net()] * 4 + [Spear()] * 4 + [Pickaxe()] * 4 + [Shovel()] * 4 + [Medkit()] * 6 + [Pills()] * 9
+            random.shuffle(self.junkyard)
+            self.mercenaries = [[Brawler()]*8, [Hunter()]*8, [Saboteur()]*8, [Scout()]*8, [GroupLeaders()]*5, [SniperTeam()]*5, [Thug()]*5, [Scavenger()]*14] # 8 mercenary piles
 
     rules : Rules = Rules(
         title="Arctic Scavengers",
         summary="""
-        Players work to build their tribes as large as possible by hiring mercenaries, scavenging junk piles and winning skirmishes against other players' tribes.
-        Each tribe member card in a tribe represents the number of people shown on the card.
-        The player with the largest tribe at the end of the game is the winner.
+        The game is played in 14 rounds, with each round consisting of a resource gathering phase and a skirmish phase.
+        In the resource gathering phase, players draw cards from their deck and take actions to gather resources from the mercenary piles and the junkyard pile.
+        In the skirmish phase, players compare the strength of their tribes and the winner of the skirmish gains a contested resource card.
+        The game ends when all contested resource cards have been won, and the player with the largest tribe is the winner.
+
+        Each tribe member card has the number of people it represents shown on the card.
+        During the resource gathering phase, you can interrupt your opponent's actions by playing a sniper or saboteur card from your hand, then the card you play is discarded.
+        During the skirmish phase, you can play a sniper or saboteur card to interrupt your opponent's actions, but the card you play remains in your hand.
         """,
-        # Give instructions on game setup here, the different deck piles, and how each round will work, and how you win.
-        # 14 turns in total, as there are 14 contested resource cards in the pile.
         additional_details = None
     )
     id : str = "arctic_scavengers"
@@ -47,7 +58,7 @@ class ArcticScavengers(Game):
         self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_2_kwargs)]
         self.players = [self.Player(self.agents[0]), self.Player(self.agents[1])]
         self.deck = self.Deck()
-        # TODO: Initialise 10 cards for each player (4 refugee, 3 scavenger, 1 brawler, 1 spear, 1 shovel)
+        # Initialise 10 cards for each player (4 refugee, 3 scavenger, 1 brawler, 1 spear, 1 shovel)
         for player in self.players:
             player.create_deck(self.deck)
         self.game_winner = None
@@ -72,11 +83,11 @@ class ArcticScavengers(Game):
         s += "\nThe HIRE action allows you to hire one mercenary and add it to your reserve deck. The MEDICINE and FOOD currency you play must equal the cost of the mercenary card.",
         s += "\nThe HUNT action allows you to generate FOOD currency that is equal to the sum of the HUNT values you play. This currency can be used to hire mercenaries.",
         s += "\nThe TRASH action allows you to choose one or more cards from your playing hand to add to the junkyard pile, which is shuffled after each new card added."
-        s += "\nFor the actions DIG, DRAW, HUNT or TRASH, return as an openended response a tuple of the action name and a list of the card titles you are using for this action."
-        s += "\nFor example, (\"DIG\", [\"Brawler\", \"Shovel\"])."
-        s += "\nFor the action HIRE, return as an openended response a tuple of the action, a list of the MEDICINE card titles you are using for this action, and the title of the mercenary you want to hire. You must have gathered enough FOOD currency gained by HUNTing for this action."
-        s += "\nFor example, (\"HIRE\", [\"Pills\"], \"Saboteur\")."
-        s += "\nFor STOP, return (\"STOP\", [])"
+        s += "\nFor the actions DIG, DRAW, HUNT or TRASH, return as an openended response a list of the action name and a list of the card titles you are using for this action."
+        s += "\nFor example, [\"DIG\", [\"Brawler\", \"Shovel\"]]."
+        s += "\nFor the action HIRE, return as an openended response a list of the action, a list of the MEDICINE card titles you are using for this action, and the title of the mercenary you want to hire. You must have gathered enough FOOD currency gained by HUNTing for this action."
+        s += "\nFor example, [\"HIRE\", [\"Pills\"], \"Saboteur\"]."
+        s += "\nFor STOP, return [\"STOP\", []]"
         available_actions = AvailableActions(
              instructions = s,            
              openended = {
@@ -86,7 +97,6 @@ class ArcticScavengers(Game):
                     "HUNT": "Generate FOOD currency that is equal to the sum of the HUNT values you play. This currency can be used to hire mercenaries.",
                     "TRASH": "Choose one or more cards from your playing hand to add to the junkyard pile, which is shuffled after each new card added.",
                     "STOP": "Stop gathering resources and move to the skirmish phase."
-                    #Add the ability to snipe during the opponent's turn
              },
              predefined = {}
         )
@@ -104,8 +114,8 @@ class ArcticScavengers(Game):
         s +- "\nThe winner of the round is determined by the highest fight value, and if there is a tie then the biggest tribe. Otherwise the contested resource is shuffled in the junkyard pile."
         s += "\nThe SNIPER action allows you to snipe one tribe member, forcing it to be discarded."
         s += "\nThe SABOTEUR action allows you to disarm one tool card, forcing it to be discarded."
-        s += "\nFor the actions SNIPER or SABOTEUR, return as an openended response a tuple of the action name and the card title of your opponent that you are performing this action on."
-        s += "\nFor the action STOP, return (\"STOP\", "")"
+        s += "\nFor the actions SNIPER or SABOTEUR, return as an openended response a list of the action name and the card title of your opponent that you are performing this action on."
+        s += "\nFor the action STOP, return [\"STOP\", ""]"
         available_actions = AvailableActions(
              instructions = s,            
              openended = {
@@ -124,9 +134,9 @@ class ArcticScavengers(Game):
         s = "You have the option to perform a SNIPER or SABOTEUR action then discard any cards that you play."
         s += "\nThe SNIPER action allows you to snipe one tribe member, forcing it to be discarded by the opponent."
         s += "\nThe SABOTEUR action allows you to disarm one tool card, forcing it to be discarded by the opponent."
-        s += "If you are unable or don't want to take these actions, take the action STOP and return (\"STOP\", "")."
-        s += "Otherwise, for the actions SNIPER or SABOTEUR, return as an openended response a tuple of the action name and the card title of your opponent that you are performing this action on."
-        s += "\nFor example, (\"SNIPER\", [\"Brawler\"])."
+        s += "If you are unable or don't want to take these actions, take the action STOP and return [\"STOP\", ""]."
+        s += "Otherwise, for the actions SNIPER or SABOTEUR, return as an openended response a list of the action name and the card title of your opponent that you are performing this action on."
+        s += "\nFor example, [\"SNIPER\", [\"Brawler\"]]."
         available_actions = AvailableActions(
              instructions = s,            
              openended = {
@@ -137,32 +147,267 @@ class ArcticScavengers(Game):
              predefined = {}
         )
         return observation, available_actions
+    
+    def observation_dig_cards(self, dig_cards : List[Card], player : Player) -> Tuple[Observation, AvailableActions]:
+        context = "These are the cards you have drawn from the junkyard pile after taking the DIG action."
+        for card in dig_cards:
+            context += "\n" + str(card)
+        observation = Observation(text=context)
+        s = "Choose a card to place in your reserve deck, and return the rest to the bottom of the junkyard pile."
+        available_actions = AvailableActions(
+             instructions = s,            
+             predefined = {
+                  f"{card.title}" : None for card in dig_cards
+             },
+             openended = {}
+        )
+        return observation, available_actions
 
     def update_resource_gather(self, action : Action,  available_actions : AvailableActions, player : Player, action2 : Action, player2 : Player):
-        # If you snipe/sabotage during the skirmish phase, the sniper/saboteur card remains in your hand.
-        # If action is invalid then a random one is taken.  I.e. take first card from hand and do something with it. Or trash a card.
-        pass  
+        #### Check if a snipe/sabotage is being performed ####
+        id2 = action2.action_id
+        action2_items = []
+        if id2 in ["SNIPER", "SABOTEUR"]: # This is an optional move, so if they play an invalid move then this move is skipped
+            action2_items = list(ast.literal_eval(action.openended_response))
+            valid = True
+            player2_cards = [c.title for c in player2.cards["draw"]]
+            if id == "SNIPER" and "Sniper" not in player2_cards:
+                valid = False
+            if id == "SABOTEUR" and "Saboteur" not in player2_cards:
+                valid = False
+            player_cards = [c.title for c in player.cards["draw"]]
+            if action2_items[1] not in player_cards:
+                valid = False
+            for card in player.cards["draw"]:
+                if card.title == action2_items[1]:
+                    if id == "SNIPER" and card.tribe_members == None:
+                        valid = False
+                    if id == "SABOTEUR" and card.tribe_members != None:
+                        valid = False
+                    break
+            if valid:
+                for card in player.cards["draw"]:
+                    if card.title == action2_items[1]:
+                        player.cards["draw"].remove(card)
+                        player.cards["deck"].append(card)
+                        for c in player2.cards["draw"]:
+                            if id == "SNIPER" and card.title == "Sniper":
+                                player2.cards["draw"].remove(c)
+                                player2.cards["deck"].append(c)
+                                break
+                            if id == "SABOTEUR" and card.title == "Saboteur":
+                                player2.cards["draw"].remove(c)
+                                player2.cards["deck"].append(c)
+                                break
+                        break
+                return # Player 1's action can no longer be performed
+
+        #### Perform Player 1's action ####
+        # If selected action is not valid, choose a random action out of DIG, DRAW, HUNT, TRASH and a single card from the player's hand.
+        id = action.action_id
+        action_items = []
+        if id not in available_actions.openended:
+            action_items = [[random.choice(player.cards["draw"])]]
+            types = [a for a in action_items[0].actions.keys()]
+            action_items.append(0, random.choice(types + ["TRASH"])) # No random hiring or stopping
+        else:
+            action_items = list(ast.literal_eval(action.openended_response))
+        
+        valid = True
+        player_cards = [c.title for c in player.cards["draw"]]
+        if id in ["DIG", "DRAW", "HUNT"]:
+            standard = 0
+            modifier = 0
+            for card in action_items[1]:
+                if card not in player_cards:
+                    valid = False
+                    break
+                for c in player["draw"]:
+                    if c.title == card:
+                        if id not in c.actions:
+                            valid = False
+                            break
+                        for a in c.actions:
+                            if a.type == ActionType.MODIFIER:
+                                modifier += 1
+                            else:
+                                standard += 1
+            if modifier > 0 and standard == 0:
+                valid = False
+        if id == "HIRE":
+            food_cost = 0
+            med_cost = 0
+            med_currency = 0
+            if len(action_items) < 3:
+                valid = False
+            else:
+                for card in action_items[2]:
+                    for c in card.cost:
+                        if c.type == CostType.FOOD:
+                            food_cost += c.value
+                        else:
+                            med_cost += c.value
+                for card in action_items[1]:
+                    if "MEDICINE" in card.actions:
+                        med_currency += card.actions["MEDICINE"].value
+            if food_cost > player.food or med_cost > med_currency:
+                valid = False
+            mercenary_names = []
+            for m in self.deck.mercenaries:
+                if m:
+                    mercenary_names.append(m[0].title)
+            if action_items[2] not in mercenary_names:
+                valid = False
+        if player.actions[id] > 0: # If action has already been taken
+            valid = False
+        if not valid:
+            action_items = [[random.choice(player.cards["draw"])]]
+            types = [a for a in action_items[0].actions.keys()]
+            for a in player.actions:
+                if a in types and player.actions[a] > 0:
+                    types.remove(a)
+            action_items.append(0, random.choice(types + ["TRASH"]))
+        else: # Transform strings into Card objects
+            for i in range(len(action_items[1])):
+                for card in player.cards["draw"]:
+                    if card.title == action_items[1][i]:
+                        action_items[1][i] = card
+                        break
+            if id == "HIRE":
+                for mercenary in self.deck.mercenaries:
+                    if mercenary and mercenary[0].title == action_items[2]:
+                        action_items[2] = mercenary[0]
+                        break
+    
+        if id == "DRAW":
+            draw_value = 0
+            for card in action_items[1]:
+                for c in player["draw"]:
+                    if c.title == card.title:
+                        player["draw"].remove(c)
+                        player["deck"].append(c)
+                        draw_value += card.actions["DRAW"].value
+                        break
+            player["draw"] += player["deck"][:draw_value]
+            player["deck"] = player["deck"][draw_value:]
+            player.actions["DRAW"] += 1
+
+        if id == "DIG":
+            dig_value = 0
+            for card in action_items[1]:
+                for c in player["draw"]:
+                    if c.title == card.title:
+                        player["draw"].remove(c)
+                        player["deck"].append(c)
+                        dig_value += card.actions["DIG"].value
+                        break
+            dig_cards = self.deck.junkyard[:dig_value]
+            observation_dig, available_actions_dig = self.observation_dig_cards(dig_cards, player)
+            dig_action = player.agent.take_action(self.rules, observation_dig, available_actions_dig, show_state=self.show_state)
+            dig_choice = dig_action.action_id
+            if dig_choice not in available_actions_dig.predefined:
+                dig_choice = random.choice(list(available_actions_dig.predefined.keys()))
+            player["deck"].append(dig_choice)
+            self.deck.junkyard = self.deck.junkyard[dig_value:]
+            dig_cards.remove(dig_choice)
+            self.deck.junkyard += dig_cards
+            player.actions["DIG"] += 1
+
+        if id == "HIRE":
+            mercenary = action_items[2]
+            food_cost = 0
+            for c in mercenary.cost:
+                if c.type == CostType.FOOD:
+                    food_cost += c.value
+            player.food -= food_cost
+            for card in action_items[1]:
+                for c in player["draw"]:
+                    if c.title == card.title:
+                        player["draw"].remove(c)
+                        player["deck"].append(c)
+                        break
+            for pile in self.deck.mercenaries:
+                if pile and pile[0].title == mercenary.title:
+                    pile.pop(0)
+            player["deck"].append(mercenary)
+            player.actions["HIRE"] += 1
+
+        if id == "HUNT":
+            food_value = 0
+            for card in action_items[1]:
+                for c in player["draw"]:
+                    if c.title == card.title:
+                        player["draw"].remove(c)
+                        player["deck"].append(c)
+                        food_value += card.actions["HUNT"].value
+                        break
+            player.food += food_value
+            player.actions["HUNT"] += 1
+
+        if id == "TRASH":
+            for card in action_items[1]:
+                for c in player["draw"]:
+                    if c.title == card.title:
+                        player["draw"].remove(c)
+                        self.deck.junkyard.insert(random.choice(range(len(self.deck.junkyard))), c)
+            player.actions["TRASH"] += 1
 
     def update_skirmish(self, action : Action, available_actions : AvailableActions, player : Player, player2 : Player):
-        pass
+        # If you snipe/sabotage during the skirmish phase, the sniper/saboteur card remains in your hand.
+        id = action.action_id
+        action_items = []
+        if id in available_actions.openended: # This is an optional move, so if they play an invalid move then this move is skipped
+            action_items = list(ast.literal_eval(action.openended_response))
+            valid = True
+            player_cards = [c.title for c in player.cards["draw"]]
+            if id == "SNIPER" and "Sniper" not in player_cards:
+                valid = False
+            if id == "SABOTEUR" and "Saboteur" not in player_cards:
+                valid = False
+            player2_cards = [c.title for c in player2.cards["draw"]]
+            if action_items[1] not in player2_cards:
+                valid = False
+            for card in player2.cards["draw"]:
+                if card.title == action_items[1]:
+                    if id == "SNIPER" and card.tribe_members == None:
+                        valid = False
+                    if id == "SABOTEUR" and card.tribe_members != None:
+                        valid = False
+                    break
+            if valid:
+                if id == "SNIPER":
+                    for card in player2.cards["draw"]:
+                        if card.title == action_items[1]:
+                            player2.cards["draw"].remove(card)
+                            player2.cards["deck"].append(card)
+                            break
+                if id == "SABOTEUR":
+                    for card in player2.cards["draw"]:
+                        if card.title == action_items[1]:
+                            player2.cards["draw"].remove(card)
+                            player2.cards["deck"].append(card)
+                            break
 
     def play_resource_gather(self, player : Player, other : int):
-        # Make sure in while loop that actions are not repeated and each one is valid.
         observation, available_actions = self.observation_resource_gather(player.agent)
         action = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-        while action[0] != "STOP":
+        can_have_another_turn = False
+        for a in player.actions:
+            if player.actions[a] == 0:
+                can_have_another_turn = True
+                break
+        while can_have_another_turn and action.action_id != "STOP":
             observation2, available_actions2 = self.observation_respond_to_action(self.players[other], action)
             action2 = self.players[other].agent.take_action(self.rules, observation2, available_actions2, show_state=self.show_state)
             self.update_resource_gather(action, available_actions, player, action2, self.players[other])
             observation, available_actions = self.observation_resource_gather(player.agent)
             action = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-            # while loop to check if action is valid and not repeated
 
     def play_skirmish(self, player : Player, other : int):
         observation, available_actions = self.observation_skirmish(player.agent)
         action = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-        while action != "STOP":
-            self.update(action, available_actions, player, self.players[other])
+        while action.action_id != "STOP":
+            self.update_skirmish(action, available_actions, player, self.players[other])
             observation, available_actions = self.observation_skirmish(player.agent)
             action = player.agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
 
