@@ -355,7 +355,7 @@ class HiveGame(Game):
         elif queen_2_surrounded:
             return [1, 0]
         else:
-            return [0, 0]
+            return [0.5, 0.5]
             #return self.get_intermediate_score()
         
             
