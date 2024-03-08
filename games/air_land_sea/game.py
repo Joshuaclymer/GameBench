@@ -93,41 +93,47 @@ class AirLandSea(Game):
         p1_supreme_commander = random.choice([0, 1])
         p2_supreme_commander = 1 - p1_supreme_commander
         self.agents = [agent1(team_id = 0, agent_id = 0, **self.agent_1_kwargs), agent2(team_id = 1, agent_id = 1, **self.agent_2_kwargs)]
-        self.player1 = Player(player_id=0, supreme_commander=p1_supreme_commander, agent=self.agents[0], hand=p1_hand)
-        self.player2 = Player(player_id=1, supreme_commander=p2_supreme_commander, agent=self.agents[1], hand=p2_hand)
+        self.player1 = Player(id=0, supreme_commander=p1_supreme_commander, agent=self.agents[0], hand=p1_hand)
+        self.player2 = Player(id=1, supreme_commander=p2_supreme_commander, agent=self.agents[1], hand=p2_hand)
         self.players = [self.player1, self.player2]
 
     def get_player_by_agent_id(self, agent_id : int) -> Player:
         for player in self.players:
-            if player.player_id == agent_id:
+            if player.id == agent_id:
                 return player
         return None
 
     # generate observation and available actions for the agent
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
         # get player by agent id
-        print(type(agent))
-        print(agent.agent_id)
+        # print(type(agent))
+        # print(agent.agent_id)
         player = self.get_player_by_agent_id(agent.agent_id)
-        print("player_id", player.player_id)
+        # print("player_id", player.id)
         # Observation includes
         # Easier
         # which supreme commander as string
         supreme_commander = "1st" if player.supreme_commander == 0 else "2nd" if player.supreme_commander == 1 else "error"
-        print("supreme commander:",supreme_commander)
+        # print("supreme commander:",supreme_commander)
         # opponent hand size as string
         opponent = self.get_player_by_agent_id(1 - agent.agent_id)
         opponent_hand_size = str(len(opponent.hand))
-        print("opponent hand size:",opponent_hand_size)
+        # print("opponent hand size:",opponent_hand_size)
         # victory points as string
         victory_points = str(player.victory_points)
-        print("victory points:",victory_points)
+        # print("victory points:",victory_points)
         # harder
         # board string
-        # hand string
+        board_string = self.board.get_board_string()
+
 
         # observation = Observation(text=)
-        observation_text = ""
+        observation_text = (
+            "Current Supreme Commander: " + supreme_commander + "\n"
+            "Current Victory Points: " + victory_points + "\n"
+            "Current Opponent Hand Size: " + opponent_hand_size + "\n"
+            "Current Board: \n" + board_string
+        )
 
         # TODO: generate available action list based on game state and hand
         # available_actions = AvailableActions(
@@ -138,8 +144,7 @@ class AirLandSea(Game):
                 # withdraw
             # openended = {}
         # TODO: is there open ended actions in this game?
-        return observation_text, None
-        pass
+        return Observation(text=observation_text), None
 
     # I pass in observation + available actions to agent, then it will choose one
     def update(self, action : Action, available_actions : AvailableActions, agent : Agent):

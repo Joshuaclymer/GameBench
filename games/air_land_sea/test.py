@@ -10,27 +10,44 @@ def test():
     agent_2_class = util.import_class(agent_2_path)
     game = AirLandSea()
     game.init_game(agent_1_class, agent_2_class)
-    agent_1 = game.agents[0] # this is why it thinks the agent is a player
-    print("Game id:",game.id)
-    # print(game.player1.hand[0])
-
-    # put cards in theater to test, lets just start easy, won't make play function
-    card_to_play = game.player1.hand.pop()
-    game.board.theaters[0].player_1_cards.append(card_to_play)
+    agent_1 = game.agents[0]
+    # print("Game id:",game.id)
 
     # testing theater string
     # print(game.board.theaters[0].get_theater_string())
     # testing flip function
-    # game.board.theaters[0].player_1_cards[0].flip()
-    # print(game.board.theaters[0].get_theater_string())
+    # game.board.theaters[0].player_cards[1][-1].flip()
     # test board string function
     # print(game.board.get_board_string())
-    # observation, available_actions = game.get_observation(agent_1)
+
+    # print("hand sizes")
+    # print(len(game.player1.hand))
+    # print(len(game.player2.hand))
+
+    game.player1.play(game.player1.hand[0], True, game.board.theaters[0])
+    game.player2.play(game.player2.hand[0], True, game.board.theaters[0])
+    game.player2.play(game.player2.hand[0], True, game.board.theaters[0])
+    game.player2.play(game.player2.hand[0], True, game.board.theaters[1])
+    game.player2.play(game.player2.hand[0], True, game.board.theaters[2])
+    game.player2.play(game.player2.hand[0], False, game.board.theaters[2])
+    # print(game.board.get_board_string())
+    # check theater strengths
+    # print(game.board.theaters[0].player_total_strength)
+    # print(game.board.theaters[1].player_total_strength)
+    # print(game.board.theaters[2].player_total_strength)
+
+    game.board.theaters[2].player_cards[1][-1].flip()
+    # print(game.board.get_board_string())
+    # check theater strengths
+    # print(game.board.theaters[0].player_total_strength)
+    # print(game.board.theaters[1].player_total_strength)
+    # print(game.board.theaters[2].player_total_strength)
+
+    observation, available_actions = game.get_observation(agent_1)
+    print(observation.text)
 
 
-    # TODO: what's the next thing to make?
-    # have a player capable of playing a card?
-        # TODO: get observation needs to work
+    # TODO: get observation needs to work
     print("Test complete")
 
 
