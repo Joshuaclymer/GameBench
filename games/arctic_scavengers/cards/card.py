@@ -8,7 +8,7 @@ class ActionType(Enum):
         return self.name
     
 class ActionSymbol(Enum):
-    SEARCH = 1
+    DIG = 1
     DRAW = 2
     COMBAT = 3
     HUNT = 4
@@ -77,3 +77,22 @@ class Card:
 
         if not self._actions:
             raise ValueError("At least one action is required.")
+        
+    def __str__(self):
+        s = ""
+        s += f"{self.title}\n"
+        if self.tribe_members:
+            s += f"Tribe Members: {self.tribe_members}\n"
+        if self.special_instruction:
+            s += f"Special Instruction: {self.special_instruction}\n"
+        if self.actions:
+            s += "Actions:\n"
+            for action in self.actions:
+                s += f"{action.symbol}, {action.type}: {action.value}\n"
+        if self.supply_pile:
+            s += f"Supply Pile: {self.supply_pile}\n"
+        if self.cost:
+            s += "Cost:\n"
+            for cost in self.cost:
+                s += f"{cost.type}: {cost.value}\n"
+
