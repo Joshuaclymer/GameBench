@@ -22,7 +22,7 @@ class Card:
         if self.tactical_ability_type and not self.facedown:
             tactical_ablity_string = f", {self.tactical_ability_type}: {self.tactical_ability_description}"
         # $ represents the covered/uncovered status of the card (it will be manipulated by the theater class)
-        return f"{card_info}{tactical_ablity_string}, $)"
+        return f"{card_info}{tactical_ablity_string})"
 
     def __repr__(self):
         return self.__str__()
@@ -37,6 +37,7 @@ class Card:
             current_strength = 2
             self.facedown = True
         # TODO: flipping needs to change the strength of the theater
+        # flipping needs to take card out of effects list or put it in
         # done by event manager
 
 @dataclass

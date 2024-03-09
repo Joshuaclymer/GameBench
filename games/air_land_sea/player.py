@@ -16,7 +16,6 @@ class Player:
         self.hand.remove(card)
         if not faceup:
             card.flip()
-        theater.player_total_strength[self.id] += card.current_strength
         theater.player_cards[self.id].append(card)
 
     # TODO: make a function that outputs where a card can be played?

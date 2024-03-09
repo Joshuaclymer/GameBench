@@ -8,18 +8,7 @@ from .board import Board
 from .player import Player
 from .cards import Card, Deck
 import random
-
-@dataclass
-class EffectManager:
-    ongoing_effect_cards : List[Card] = field(default_factory=list)
-
-    def add_effect(self, card : Card):
-        self.ongoing_effect_cards.append(card)
-        pass
-
-    def remove_effect(self, card : Card):
-        self.ongoing_effect_cards.remove(card)
-        pass
+from .effect_manager import EffectManager
 
 @dataclass
 class AirLandSea(Game):
@@ -108,32 +97,49 @@ class AirLandSea(Game):
         player = self.get_player_by_agent_id(agent.agent_id)
         # print("player_id", player.id)
         # Observation includes
+        hand = player.hand
         supreme_commander = "1st" if player.supreme_commander == 0 else "2nd" if player.supreme_commander == 1 else "error"
         # print("supreme commander:",supreme_commander)
+        hand_size = str(len(player.hand))
         opponent = self.get_player_by_agent_id(1 - agent.agent_id)
         opponent_hand_size = str(len(opponent.hand))
         # print("opponent hand size:",opponent_hand_size)
         victory_points = str(player.victory_points)
         # print("victory points:",victory_points)
+        # TODO: make it so only the player who owns a face down card can see it
+        # the opponent sees the name as facedown
+        # but the player sees the normal card but with "Facedown-" in front of the name and strength set to 2
         board_string = self.board.get_board_string()
 
         observation_text = (
+            "Current Hand: " + str(hand) + "\n"
             "Current Supreme Commander: " + supreme_commander + "\n"
             "Current Victory Points: " + victory_points + "\n"
+            "Current Hand Size: " + hand_size + "\n"
             "Current Opponent Hand Size: " + opponent_hand_size + "\n"
             "Current Board: \n" + board_string
         )
 
-        # TODO: generate available action list based on game state and hand
-        # available_actions = AvailableActions(
-            # instructions = "Return actions in json with the following keys. { 'action': str }",
-            # predefined = {
-                # deploy
-                # improvise
-                # withdraw
-            # openended = {}
-        # TODO: is there open ended actions in this game?
-        return Observation(text=observation_text), None
+        # a dictionary formatted like so:
+        # { 'Play {card.name}' : 'Play {card} faceup to {card.theater}'}}
+        cards_to_play = {}
+        for action_id, card in enumerate(hand):
+            cards_to_play[str(action_id)] = f"Play {card} faceup to {card.theater}"
+        # Facedown cards can be played to any theater, make 3 actions for each card for each of the 3 theaters.
+        # facedown action_id must increase counting up from len(hand)
+        for action_id, card in enumerate(hand, start=len(hand)):
+            cards_to_play[str(action_id)] = f"Play {card} facedown to Air. Strength will be 2 while facedown."
+        for action_id, card in enumerate(hand, start=len(hand)*2):
+            cards_to_play[str(action_id)] = f"Play {card} facedown to Land. Strength will be 2 while facedown."
+        for action_id, card in enumerate(hand, start=len(hand)*3):
+            cards_to_play[str(action_id)] = f"Play {card} facedown to Sea. Strength will be 2 while facedown."
+
+        available_actions = AvailableActions(
+            instructions = "Select a card from your hand to play onto its associated theater { 'Card Name': 'Theater' }",
+            predefined = cards_to_play,
+            openended = {}
+        )
+        return Observation(text=observation_text), available_actions
 
     # I pass in observation + available actions to agent, then it will choose one
     def update(self, action : Action, available_actions : AvailableActions, agent : Agent):
@@ -172,5 +178,7 @@ class AirLandSea(Game):
             # observation
             # action
             # update
+
+            # TODO: exception: player plays card like Manuever, they take sub loop with limited available actions before ending turn
             
         pass
