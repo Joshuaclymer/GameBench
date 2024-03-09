@@ -183,13 +183,14 @@ class ArcticScavengers(Game):
         return observation, available_actions
 
     def update_resource_gather(self, action : Action,  available_actions : AvailableActions, player : Player, action2 : Action, player2 : Player):
-        print(action.action_id)
-        print(action.openended_response)
-        if action2: 
-            print(action2.action_id)
-            print(repr(action2.openended_response))
-        print(player.cards)
-        print(player2.cards)
+        if self.show_state:
+            print(action.action_id)
+            print(action.openended_response)
+            if action2: 
+                print(action2.action_id)
+                print(repr(action2.openended_response))
+            print("Player 1 cards: " + player.cards)
+            print("Player 2 cards: " + player2.cards)
         #### Check if a snipe/sabotage is being performed ####
         id2 = action2.action_id
         action2_items = []
@@ -253,7 +254,7 @@ class ArcticScavengers(Game):
             for card in action_items[-1]:
                 if card not in player_cards:
                     valid = False
-                    print("Card not in player_cards")
+                    if self.show_state: print("Card not in player_cards")
                     break
                 for c in player.cards["draw"]:
                     if c.title == card:
@@ -268,8 +269,8 @@ class ArcticScavengers(Game):
                                 standard += 1
             if modifier > 0 and standard == 0:
                 valid = False
-                print("modifier > 0 and standard == 0")
-            print(modifier, standard)
+                if self.show_state: print("modifier > 0 and standard == 0")
+            if self.show_state: print(modifier, standard)
         if id == "HIRE":
             food_cost = 0
             med_cost = 0
@@ -302,8 +303,8 @@ class ArcticScavengers(Game):
                     valid = False
         if player.actions[id] > 0: # If action has already been taken
             valid = False
-            print("Action already taken")
-        print(valid)
+            if self.show_state: print("Action already taken")
+        if self.show_state: print(valid)
         if not valid:
             i = 0
             n = len(player.cards["draw"])
@@ -319,7 +320,7 @@ class ArcticScavengers(Game):
                         types.remove(a)
                 action_items.insert(0, random.choice(types + ["TRASH"]))
             id = action_items[0]
-            print(action_items)
+            if self.show_state: print(action_items)
         else: # Transform strings into Card objects
             for i in range(len(action_items[1])):
                 for card in player.cards["draw"]:
@@ -478,7 +479,8 @@ class ArcticScavengers(Game):
     def play(self) -> Tuple[float, float]:
         count = 0
         while self.deck.contested_resources:
-            print(len(self.deck.contested_resources))
+            if self.show_state:
+                print("Size of contested resources deck: " + len(self.deck.contested_resources))
             initiator = count % 2
             #### DRAWING PHASE #### 
             for player in self.players:
