@@ -48,7 +48,7 @@ class ArcticScavengers(Game):
             return score
     class Deck:
         def __init__(self):
-            self.contested_resources = [WolfPack()] * 2 + [Grenade()] * 2 + [SledTeam()] * 2 + [FieldCrew()] * 2 + [TribeFamily()] * 6
+            self.contested_resources = [WolfPack()] * 1 + [Grenade()] * 1 + [SledTeam()] * 1 + [FieldCrew()] * 1 + [TribeFamily()] * 1
             random.shuffle(self.contested_resources)
             self.junkyard = [Junk()] * 7 + [MultiTool()] * 4 + [Net()] * 4 + [Spear()] * 4 + [Pickaxe()] * 4 + [Shovel()] * 4 + [Medkit()] * 6 + [Pills()] * 9
             random.shuffle(self.junkyard)
@@ -57,7 +57,7 @@ class ArcticScavengers(Game):
     rules : Rules = Rules(
         title="Arctic Scavengers",
         summary="""
-        The game is played in 14 rounds, with each round consisting of a resource gathering phase and a skirmish phase.
+        The game is played in 6 rounds, with each round consisting of a resource gathering phase and a skirmish phase.
         In the resource gathering phase, players draw cards from their deck and take actions to gather resources from the mercenary piles and the junkyard pile.
         In the skirmish phase, players compare the strength of their tribes and the winner of the skirmish gains a contested resource card.
         The game ends when all contested resource cards have been won, and the player with the largest tribe is the winner.
