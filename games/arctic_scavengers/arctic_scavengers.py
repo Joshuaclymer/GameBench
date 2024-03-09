@@ -235,14 +235,14 @@ class ArcticScavengers(Game):
         if id not in available_actions.openended:
             action_items = [[random.choice(player.cards["draw"])]]
             types = [a for a in action_items[0][0].actions.keys()]
-            action_items.append(0, random.choice(types + ["TRASH"])) # No random hiring or stopping
+            action_items.insert(0, random.choice(types + ["TRASH"])) # No random hiring or stopping
         else:
             try:
                 action_items = list(ast.literal_eval(str(action.openended_response)))
             except:
                 action_items = [[random.choice(player.cards["draw"])]]
                 types = [a for a in action_items[0][0].actions.keys()]
-                action_items.append(0, random.choice(types + ["TRASH"])) # No random hiring or stopping
+                action_items.insert(0, random.choice(types + ["TRASH"])) # No random hiring or stopping
 
         
         valid = True
