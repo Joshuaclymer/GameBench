@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Tuple, Dict
 import random
-from classes import Observation, Action, Agent, AvailableActions, Game, Rules
+from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
 @dataclass
@@ -40,11 +40,19 @@ class PitGame(Game):
             Commodity("Soyabeans", 55.0),
             Commodity("Sugar", 65.0),
             Commodity("Wheat", 100.0),
+            Commodity("Bull", 0.0),
+            Commodity("Bear", 0.0),
         ]
         self.scores = []
         self.round_number = 0
+        self.max_possible = 0
 
-    def distribute_cards(self):
+    def shuffle_cards(self):
+        for agent in self.agents:
+            self.player_hands[agent.agent_id] = {
+                commodity.name: 0 for commodity in self.commodities
+            }
+
         for player_id in self.player_hands.keys():
             for _ in range(9):
                 selected_commodity = random.choice(self.commodities).name
@@ -55,38 +63,46 @@ class PitGame(Game):
         agent_1_cls: Agent,
         agent_2_cls: Agent,
     ):
-        # agent_1 = agent_1_cls(
-        #     team_id=0,
-        #     agent_id=1,
-        #     agent_type_id=agent_1_cls.agent_type_id,
-        #     **self.agent_1_kwargs,
-        # )
-        # agent_2 = agent_2_cls(
-        #     team_id=1,
-        #     agent_id=2,
-        #     agent_type_id=agent_2_cls.agent_type_id,
-        #     **self.agent_2_kwargs,
-        # )
-        agent_1 = agent_1_cls
-        agent_2 = agent_2_cls
+        agent_1 = agent_1_cls(
+            team_id=0,
+            agent_id=1,
+            agent_type_id=agent_1_cls.agent_type_id,
+            **self.agent_1_kwargs,
+        )
+        agent_2 = agent_2_cls(
+            team_id=1,
+            agent_id=2,
+            agent_type_id=agent_2_cls.agent_type_id,
+            **self.agent_2_kwargs,
+        )
         self.agents = [agent_1, agent_2]
-
-        for agent in self.agents:
-            self.player_hands[agent.agent_id] = {
-                commodity.name: 0 for commodity in self.commodities
-            }
-
         self.scores = [0.0] * len(self.agents)
 
     def check_corners_update_score(self):
         print(self.player_hands)
+
         for agent_id, hand in self.player_hands.items():
+            bull_card = hand.get("Bull", 0)
+            bear_card = hand.get("Bear", 0)
             for commodity, count in hand.items():
-                if count == 3:
+                is_corner = count == self.max_possible or (
+                    count == self.max_possible - 1 and bull_card
+                )
+                if is_corner:
                     commodity_obj = next(
                         (c for c in self.commodities if c.name == commodity), None
                     )
                     if commodity_obj:
+                        score = commodity_obj.value
+                        if bull_card and count == self.max_possible - 1:
+                            print(f"Agent {agent_id} has a Bull Corner on {commodity}.")
+                        if bull_card and count == self.max_possible:
+                            score *= 2  # Double Bull Corner
+                            print(
+                                f"Agent {agent_id} has a Double Bull Corner on {commodity}."
+                            )
+                        if bear_card:
+                            score -= 20 * bear_card  # Penalty for holding Bear card
                         self.scores[
                             self.agents.index(
                                 next(
@@ -95,14 +111,11 @@ class PitGame(Game):
                                     if agent.agent_id == agent_id
                                 )
                             )
-                        ] += commodity_obj.value
+                        ] += score
                         print(
                             f"Agent {agent_id} has cornered the market on {commodity}. Score updated."
                         )
-
-                    self.distribute_cards()
-                    return True
-        return False
+                        self.shuffle_cards()
 
     def get_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
         observation_text = (
@@ -138,8 +151,11 @@ class PitGame(Game):
                 if self.player_hands[agent.agent_id][chosen_commodity] > 0:
                     self.player_hands[agent.agent_id][chosen_commodity] -= 1
                     self.player_hands[other_agent.agent_id][chosen_commodity] += 1
+
                     if self.show_state:
                         print(f"{agent.agent_id} traded {chosen_commodity}")
+
+                    self.check_corners_update_score()
                 else:
                     if self.show_state:
                         print(f"No more {chosen_commodity} in hand.")
@@ -156,12 +172,28 @@ class PitGame(Game):
 
                 if self.show_state:
                     print(f"{agent.agent_id} traded {chosen_commodity}")
+
+                self.check_corners_update_score()
             else:
                 if self.show_state:
                     print(f"No more {chosen_commodity} in hand.")
 
     def play(self) -> Tuple[float, float]:
-        self.distribute_cards()
+        self.shuffle_cards()
+
+        if self.max_possible == 0:
+            sums = {}
+
+            for dct in self.player_hands.values():
+                for key, value in dct.items():
+                    if key not in ["Bull", "Bear"]:
+                        if key in sums:
+                            sums[key] += value
+                        else:
+                            sums[key] = value
+
+            self.max_possible = max(sums.values())
+            print(self.max_possible)
 
         while not self.game_is_over:
             self.round_number += 1
@@ -178,15 +210,11 @@ class PitGame(Game):
             )
             self.update(action, available_actions, current_agent, other_agent)
             print(self.scores)
-            if self.check_corners_update_score():
-                print(f"Round {self.round_number}: Corner detected, scores updated.")
-                break
 
             print(f"End of round {self.round_number}. Scores: {self.scores}")
 
-            if any(score >= 500 for score in self.scores):
+            if True in [score >= 300 for score in self.scores]:
                 self.game_is_over = True
-                break
 
         print(
             f"Agent {self.agents[self.scores.index(max(self.scores))].agent_id} won with a score of {max(self.scores)}."
