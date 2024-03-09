@@ -1,4 +1,4 @@
-from cards.card import *
+from games.arctic_scavengers.cards.card import *
 
 class Brawler (Card):
     def __init__(self):
@@ -46,7 +46,7 @@ class SniperTeam(Card):
 class Thug(Card):
     def __init__(self):
         super().__init__(title="Thug", tribe_members=3,
-                     actions={"DIG":Action(ActionType.STANDARD, ActionSymbol.DIG, 1), "FIGHT":Action(ActionType.STANDARD, ActionSymbol.FIGHT, 3)}, cost=[Cost(CostType.MEDICINE, 6), Cost(CostType.FOOD, 6)])
+                     actions={"DIG":Action(ActionType.STANDARD, ActionSymbol.DIG, 1), "FIGHT":Action(ActionType.STANDARD, ActionSymbol.FIGHT, 3)}, cost=[Cost(CostType.FOOD, 6)])
         
 class TribeFamily(Card):
     def __init__(self):
