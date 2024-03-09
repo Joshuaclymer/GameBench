@@ -189,8 +189,8 @@ class ArcticScavengers(Game):
             if action2: 
                 print(action2.action_id)
                 print(repr(action2.openended_response))
-            print("Player 1 cards: " + player.cards)
-            print("Player 2 cards: " + player2.cards)
+            print("Player 1 cards: " + str(player.cards))
+            print("Player 2 cards: " + str(player2.cards))
         #### Check if a snipe/sabotage is being performed ####
         id2 = action2.action_id
         action2_items = []
@@ -480,7 +480,7 @@ class ArcticScavengers(Game):
         count = 0
         while self.deck.contested_resources:
             if self.show_state:
-                print("Size of contested resources deck: " + len(self.deck.contested_resources))
+                print("Size of contested resources deck: " + str(len(self.deck.contested_resources)))
             initiator = count % 2
             #### DRAWING PHASE #### 
             for player in self.players:
