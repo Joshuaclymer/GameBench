@@ -1,0 +1,50 @@
+{
+    "actions": [
+        "{example}To the best of your ability, predict your available actions in this position between <actions> and </actions>:",
+        "<actions>\n0. Choose the left door\n1. Choose the middle door\n2. Choose the right door\n</actions>",
+        "{prefix}To the best of your ability, predict your available actions in this position between <actions> and </actions>:"
+    ],
+    "action_select": [
+        "{prefix}To the best of your ability, predict your available actions in this position between <actions> and </action>:",
+        "<actions>\n{actions}\n</actions>",
+        "Choose an action by writing only the associated number."
+    ],
+    "self_eval": [
+        "{prefix}Write your action below:",
+        "{action}",
+        "Is this a good action? yes/no."
+    ],
+    "others": [
+        "{example}To the best of your ability, predict what actions other players might take between <others> and </others>:",
+        "<others>My opponent is going to reveal one of the two doors I don't choose.</others>",
+        "{prefix}To the best of your ability, predict what actions other players might take between <others> and </others>:"
+    ],
+    "state": [
+        "{example}Write your action below:",
+        "I will choose the left door",
+        "Write other player's actions below:",
+        "My opponent will reveal the middle door",
+        "To the best of your ability, predict your new observation of the game based on your actions and others' actions between <state> and </state>:",
+        "<state>\nThe left and right doors are closed, and the middle is open. There is no prize behind it.\n</state>",
+        "{prefix}Write your action below:",
+        "{action}",
+        "Write other players's actions below:",
+        "{others}",
+        "To the best of your ability, predict your new observation of the game based on your actions and others' actions between <state> and </state>:"
+    ],
+    "openended": [
+        "{example}Write your action below:",
+        "Ask my opponent a question.",
+        "This is an openended action. Write a description of what you're going to do.",
+        "I will ask them to pretty-please tell me which door has the prize.",
+        "{prefix}Write your action below:",
+        "{action}",
+        "This is an open-ended action. Write a description of what you're going to do."
+    ],
+    "goal": [
+        "Will you eventually win from this position? yes/no"
+    ],
+    "prefix": "You are now playing a game called {title}.\nThe rules are as follows {summary}. {topics}\nYour observation of the game is between <state> and </state>:\n<state>\n{observation}\n</state>\n",
+    "example": "You are playing a game called monty hall.\nThe rules of the game are as follows: there are three doors, behind one of which there is a prize. Select the door with the prize.\nYour observation of the state is between <state> and </state>:\n<state>\nAll three doors are closed.\n</state>\n",
+    "additional_topics": "If you would like to learn more about the rules at any point, use rule(<topic>) where <topic> is one of {topics}. "
+}

@@ -118,5 +118,125 @@
         "game": "tic_tac_toe",
         "random": 1.0,
         "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 1.0,
+        "gpt-4": 0.0
+    },
+    {
+        "game": "tic_tac_toe",
+        "random": 0.0,
+        "gpt-4": 1.0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt-4": 1,
+        "gpt-3.5": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt-4": 0,
+        "gpt-3.5": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt-4": 1,
+        "gpt-3.5": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt-4": 0,
+        "gpt-3.5": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt-4": 0,
+        "gpt-3.5": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt-4": 0,
+        "gpt-3.5": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt-4": 0,
+        "gpt-3.5": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt-4": 1,
+        "gpt-3.5": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt-4": 0,
+        "gpt-3.5": 1
     }
 ]
