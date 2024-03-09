@@ -24,6 +24,12 @@ class BoardSquare:
 
 
 @dataclass
+class RelativePosition:
+    name: str
+    position: Tuple[int, int]
+
+
+@dataclass
 class Santorini(Game):
     rules: Rules = Rules(
         title="Santorini",
@@ -36,6 +42,11 @@ class Santorini(Game):
     game_is_over: bool = False
     board: Board = None
     colored_output: bool = True
+    DIRECTION_NAME_MATRIX = [
+        ["northwest", "north", "northeast"],
+        ["west", None, "east"],
+        ["southwest", "south", "southeast"],
+    ]
 
     def init_game(self, agent_1: Agent, agent_2: Agent):
         self.agents = [agent_1(team_id=1, agent_id=1), agent_2(team_id=2, agent_id=2)]
@@ -146,51 +157,38 @@ class Santorini(Game):
         return Observation(text=observation_text)
 
     def relative_direction_name(
-        self, pawn: Pawn, second_position: Tuple[int, int]
+        self, first_position: Tuple[int, int], second_position: Tuple[int, int]
     ) -> str:
         """Given a pawn and a position adjacent to the pawn, return the relative direction name. For example, if a pawn is at (0, 0), the position (0, 1) returns 'east' and (1, 1), returns 'southeast'."""
-        pawn_position = pawn.pos
-        if pawn_position[0] == second_position[0]:
-            if pawn_position[1] < second_position[1]:
-                return "east"
-            else:
-                return "west"
-        elif pawn_position[1] == second_position[1]:
-            if pawn_position[0] < second_position[0]:
-                return "south"
-            else:
-                return "north"
-        else:
-            if pawn_position[0] < second_position[0]:
-                if pawn_position[1] < second_position[1]:
-                    return "southeast"
-                else:
-                    return "northeast"
-            else:
-                if pawn_position[1] < second_position[1]:
-                    return "southwest"
-                else:
-                    return "northwest"
+        relative_position = (
+            second_position[0] - first_position[0],
+            second_position[1] - first_position[1],
+        )
+        # matrix_lookup = map(lambda x: x + 1, relative_position)
+        matrix_lookup = (relative_position[0] + 1, relative_position[1] + 1)
+        return self.DIRECTION_NAME_MATRIX[matrix_lookup[0]][matrix_lookup[1]]
 
-    def adjacent_position(self, pawn: Pawn, direction: str) -> Tuple[int, int]:
-        """ "Given a pawn and a direction name (e.g. "north"), return the position adjacent to the pawn in that direction."""
-        direction_name_mapping = {
-            "north": [-1, 0],
-            "south": [1, 0],
-            "east": [0, 1],
-            "west": [0, -1],
-            "northeast": [-1, 1],
-            "northwest": [-1, -1],
-            "southeast": [1, 1],
-            "southwest": [1, -1],
-        }
-        try:
-            assert direction in direction_name_mapping
-        except AssertionError:
-            raise Exception(f"Invalid direction: {direction}")
-        x_offset, y_offset = direction_name_mapping[direction]
-        pawn_position = pawn.pos
-        return (pawn_position[0] + x_offset, pawn_position[1] + y_offset)
+    def relative_position(self, pawn: Pawn, direction: str) -> Tuple[int, int]:
+        """Given a pawn and a direction name (e.g. "north"), return the position adjacent to the pawn in that direction."""
+        # try:
+        #     assert direction in self.DIRECTION_NAME_MAPPING
+        # except AssertionError:
+        #     raise Exception(f"Invalid direction: {direction}")
+        # x_offset, y_offset = self.DIRECTION_NAME_MAPPING[direction]
+        # pawn_position = pawn.pos
+        # return (pawn_position[0] + x_offset, pawn_position[1] + y_offset)
+
+        matrix_position = (1, 1)
+        for i, row in enumerate(self.DIRECTION_NAME_MATRIX):
+            if direction in row:
+                matrix_position = (i, row.index(direction))
+                break
+        relative_position = map(lambda x: x - 1, matrix_position)
+
+        if relative_position == (0, 0):
+            raise ValueError(f"Direction '{direction}' not found in matrix.")
+
+        return relative_position
 
     def get_move_build_observation(
         self, agent: Agent
@@ -214,14 +212,14 @@ class Santorini(Game):
             predefined={},
             openended={},
         )
-        possible_plays: List[
-            Tuple[Tuple[int, int], Tuple[int, int]]
-        ] = self.board.get_possible_movement_and_building_positions(pawn)
+        possible_plays: List[Tuple[Tuple[int, int], Tuple[int, int]]] = (
+            self.board.get_possible_movement_and_building_positions(pawn)
+        )
         action_name_mapping: Dict[str, Play] = {}
         for play in possible_plays:
             (move, build) = play
-            move_direction = self.relative_direction_name(pawn, move)
-            build_direction = self.relative_direction_name(pawn, build)
+            move_direction = self.relative_direction_name(pawn.pos, move)
+            build_direction = self.relative_direction_name(move, build)
             action_id = f"Move {move_direction}, build {build_direction}"
             action_name_mapping[action_id] = play
             action_description = f"Move pawn {pawn_letter} from {pawn.pos} to {play} and then build a block on {build}."
@@ -256,14 +254,19 @@ class Santorini(Game):
         if self.show_state:
             print(message)
 
-    def place_pawn(self, action: Action):
+    def place_pawn(self, action: Action, available_actions: AvailableActions):
+        # If the agent chose an invalid action, replace it with a random action instead.
+        if action.action_id not in available_actions.predefined.keys():
+            action = random.choice(list(available_actions.predefined.keys()))
+
         move: Tuple = ast.literal_eval(action.action_id)
-        # This returns false if the move is invalid, but it should never return false because I will only present the agent with valid moves.
 
         pawn_letter = self.pawn_letter(self.board.get_playing_pawn())
         player_number = self.board.get_playing_pawn().player_number
 
-        self.board.place_pawn(move)
+        pawn_placed, pawn_placement_error = self.board.place_pawn(move)
+        if not pawn_placed:
+            raise Exception(pawn_placement_error)
 
         self.display_message(
             f"Player {player_number} placed pawn {pawn_letter} at {move}."
@@ -276,11 +279,11 @@ class Santorini(Game):
         available_actions: AvailableActions,
         action_name_mapping: Dict[str, Play],
     ):
-        action = action.action_id
-        if action not in available_actions.predefined:
+        # If the agent chose an invalid action, replace it with a random action instead.
+        if action.action_id not in available_actions.predefined.keys():
             action = random.choice(list(available_actions.predefined.keys()))
 
-        play = action_name_mapping[action]
+        play = action_name_mapping[action.action_id]
         move, build = play
         pawn_letter = self.pawn_letter(self.board.get_playing_pawn())
         player_number = self.board.get_playing_pawn().player_number
@@ -309,7 +312,7 @@ class Santorini(Game):
                     available_actions,
                     show_state=self.show_state,
                 )
-                self.place_pawn(action)
+                self.place_pawn(action, available_actions)
 
         self.display_message("Playing the game.\n")
         while not self.board.is_game_over():
