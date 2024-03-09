@@ -1,33 +1,18 @@
 from dataclasses import dataclass, field
-from typing import List, Tuple
+from typing import Tuple, Dict
 import random
-from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
+from classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
 @dataclass
 class Commodity:
     name: str
-    base_value: float
-    price_fluctuation: Tuple[float, float]
-
-
-@dataclass
-class MarketTrend:
-    commodity: str
-    trend: str  # e.g., 'up', 'down', 'stable'
+    value: float
 
 
 @dataclass
 class Observation:
     text: str
-    market_trends: List[MarketTrend] = field(default_factory=list)
-
-
-@dataclass
-class CommodityTradingStats:
-    commodity_name: str
-    trades_count: int = 0
-    volume_traded: int = 0
 
 
 @dataclass
@@ -43,93 +28,88 @@ class PitGame(Game):
         additional_details=None,
     )
     id: str = "pit"
+    player_hands: Dict[int, Dict[str, int]] = field(default_factory=dict)
 
     def __post_init__(self):
         self.commodities = [
-            Commodity("Wheat", 10.0, (0.9, 1.1)),
-            Commodity("Corn", 15.0, (0.8, 1.2)),
-            Commodity("Barley", 12.0, (0.85, 1.15)),
-            Commodity("Oats", 8.0, (0.95, 1.05)),
+            Commodity("Barley", 85.0),
+            Commodity("Coffee", 80.0),
+            Commodity("Corn", 75.0),
+            Commodity("Oats", 60.0),
+            Commodity("Oranges", 50.0),
+            Commodity("Soyabeans", 55.0),
+            Commodity("Sugar", 65.0),
+            Commodity("Wheat", 100.0),
         ]
-        self.stock_pile = {
-            commodity.name: random.randint(1, 10) for commodity in self.commodities
-        }
         self.scores = []
         self.round_number = 0
-        self.messages = []
-        self.market_trends = []
-        self.trading_stats = {
-            commodity.name: CommodityTradingStats(commodity.name)
-            for commodity in self.commodities
-        }
-        self.previous_round_stats = None
+
+    def distribute_cards(self):
+        for player_id in self.player_hands.keys():
+            for _ in range(9):
+                selected_commodity = random.choice(self.commodities).name
+                self.player_hands[player_id][selected_commodity] += 1
 
     def init_game(
         self,
         agent_1_cls: Agent,
         agent_2_cls: Agent,
     ):
-        agent_1 = agent_1_cls(
-            team_id=0,
-            agent_id=1,
-            agent_type_id=agent_1_cls.agent_type_id,
-            **self.agent_1_kwargs,
-        )
-        agent_2 = agent_2_cls(
-            team_id=1,
-            agent_id=2,
-            agent_type_id=agent_2_cls.agent_type_id,
-            **self.agent_2_kwargs,
-        )
+        # agent_1 = agent_1_cls(
+        #     team_id=0,
+        #     agent_id=1,
+        #     agent_type_id=agent_1_cls.agent_type_id,
+        #     **self.agent_1_kwargs,
+        # )
+        # agent_2 = agent_2_cls(
+        #     team_id=1,
+        #     agent_id=2,
+        #     agent_type_id=agent_2_cls.agent_type_id,
+        #     **self.agent_2_kwargs,
+        # )
+        agent_1 = agent_1_cls
+        agent_2 = agent_2_cls
         self.agents = [agent_1, agent_2]
+
+        for agent in self.agents:
+            self.player_hands[agent.agent_id] = {
+                commodity.name: 0 for commodity in self.commodities
+            }
+
         self.scores = [0.0] * len(self.agents)
 
-    def update_trading_stats(self, commodity_name, volume):
-        self.trading_stats[commodity_name].trades_count += 1
-        self.trading_stats[commodity_name].volume_traded += volume
+    def check_corners_update_score(self):
+        print(self.player_hands)
+        for agent_id, hand in self.player_hands.items():
+            for commodity, count in hand.items():
+                if count == 3:
+                    commodity_obj = next(
+                        (c for c in self.commodities if c.name == commodity), None
+                    )
+                    if commodity_obj:
+                        self.scores[
+                            self.agents.index(
+                                next(
+                                    agent
+                                    for agent in self.agents
+                                    if agent.agent_id == agent_id
+                                )
+                            )
+                        ] += commodity_obj.value
+                        print(
+                            f"Agent {agent_id} has cornered the market on {commodity}. Score updated."
+                        )
 
-    def calculate_market_trends_adjust_values(self):
-        if self.previous_round_stats:
-            for commodity_name, stats in self.trading_stats.items():
-                previous_stats = self.previous_round_stats.get(commodity_name)
-                commodity_obj = next(
-                    filter(lambda x: x.name == commodity_name, self.commodities), None
-                )
-
-                trade_count_change = stats.trades_count - previous_stats.trades_count
-                volume_traded_change = (
-                    stats.volume_traded - previous_stats.volume_traded
-                )
-
-                # Determine the trend based on the changes in trade count and volume traded
-                if trade_count_change > 0 and volume_traded_change > 0:
-                    trend = "up"
-                    adjustment_factor = 1.05 + min(
-                        volume_traded_change / 100, 0.1
-                    )  # max adjustment capped at 10%
-                    commodity_obj.base_value *= adjustment_factor
-                elif trade_count_change < 0 and volume_traded_change < 0:
-                    trend = "down"
-                    adjustment_factor = 0.95 - min(
-                        abs(volume_traded_change) / 100, 0.1
-                    )  # max adjustment capped at 10%
-                    commodity_obj.base_value *= adjustment_factor
-                else:
-                    trend = "stable"
-
-                self.market_trends.append(MarketTrend(commodity_name, trend))
-
-        self.previous_round_stats = self.trading_stats.copy()
-        self.trading_stats = {
-            name: CommodityTradingStats(name) for name in self.trading_stats.keys()
-        }
+                    self.distribute_cards()
+                    return True
+        return False
 
     def get_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
         observation_text = (
-            f"{agent.agent_id}, it's your turn. Stock Pile: {self.stock_pile}"
+            f"{agent.agent_id}, it's your turn. Hand: {self.player_hands}"
         )
         available_actions = AvailableActions(
-            instructions="Choose a commodity to trade",
+            instructions="Choose a card to trade",
             predefined={
                 commodity.name: f"Trade {commodity.name}"
                 for commodity in self.commodities
@@ -137,43 +117,32 @@ class PitGame(Game):
             openended={},
         )
         return (
-            Observation(text=observation_text, market_trends=self.market_trends),
+            Observation(text=observation_text),
             available_actions,
         )
 
-    def update(self, action: Action, available_actions: AvailableActions, agent: Agent):
+    def update(
+        self,
+        action: Action,
+        available_actions: AvailableActions,
+        agent: Agent,
+        other_agent: Agent,
+    ):
         chosen_commodity = action.action_id
         if chosen_commodity in available_actions.predefined:
             commodity = next(
                 (c for c in self.commodities if c.name == chosen_commodity), None
             )
             if commodity:
-                if self.stock_pile[chosen_commodity] > 0:
-                    self.stock_pile[chosen_commodity] -= 1
-                    fluctuated_value = commodity.base_value * random.uniform(
-                        *commodity.price_fluctuation
-                    )
-                    if random.random() < 0.1:
-                        if random.choice(["Bull", "Bear"]) == "Bull":
-                            fluctuated_value *= 1.2
-                            if self.show_state:
-                                print(
-                                    f"Bull effect! {chosen_commodity} value increased by 20%."
-                                )
-                        else:
-                            fluctuated_value *= 0.8
-                            if self.show_state:
-                                print(
-                                    f"Bear effect! {chosen_commodity} value decreased by 20%."
-                                )
-                    self.scores[self.agents.index(agent)] += fluctuated_value
+                print(self.player_hands)
+                if self.player_hands[agent.agent_id][chosen_commodity] > 0:
+                    self.player_hands[agent.agent_id][chosen_commodity] -= 1
+                    self.player_hands[other_agent.agent_id][chosen_commodity] += 1
                     if self.show_state:
-                        print(
-                            f"{agent.agent_id} traded {chosen_commodity} at {fluctuated_value}"
-                        )
+                        print(f"{agent.agent_id} traded {chosen_commodity}")
                 else:
                     if self.show_state:
-                        print(f"No more {chosen_commodity} in stock pile.")
+                        print(f"No more {chosen_commodity} in hand.")
         else:
             if self.show_state:
                 print("Invalid action. Choosing a random action instead.")
@@ -181,51 +150,47 @@ class PitGame(Game):
             commodity = next(
                 (c for c in self.commodities if c.name == chosen_commodity), None
             )
-            if commodity:
-                if self.stock_pile[chosen_commodity] > 0:
-                    self.stock_pile[chosen_commodity] -= 1
-                    fluctuated_value = commodity.base_value * random.uniform(
-                        *commodity.price_fluctuation
-                    )
-                    if random.random() < 0.1:
-                        if random.choice(["Bull", "Bear"]) == "Bull":
-                            fluctuated_value *= 1.2
-                            if self.show_state:
-                                print(
-                                    f"Bull effect! {chosen_commodity} value increased by 20%."
-                                )
-                        else:
-                            fluctuated_value *= 0.8
-                            if self.show_state:
-                                print(
-                                    f"Bear effect! {chosen_commodity} value decreased by 20%."
-                                )
-                    self.scores[self.agents.index(agent)] += fluctuated_value
-                    if self.show_state:
-                        print(
-                            f"{agent.agent_id} traded {chosen_commodity} at {fluctuated_value}"
-                        )
-                else:
-                    if self.show_state:
-                        print(f"No more {chosen_commodity} in stock pile.")
+            if self.player_hands[agent.agent_id][chosen_commodity] > 0:
+                self.player_hands[agent.agent_id][chosen_commodity] -= 1
+                self.player_hands[other_agent.agent_Id][chosen_commodity] += 1
+
+                if self.show_state:
+                    print(f"{agent.agent_id} traded {chosen_commodity}")
+            else:
+                if self.show_state:
+                    print(f"No more {chosen_commodity} in hand.")
 
     def play(self) -> Tuple[float, float]:
+        self.distribute_cards()
+
         while not self.game_is_over:
             self.round_number += 1
-            for agent in self.agents:
-                observation, available_actions = self.get_observation(agent)
+            current_agent = self.agents[(self.round_number - 1) % len(self.agents)]
+            other_agent = self.agents[1 - ((self.round_number - 1) % len(self.agents))]
 
-                action = agent.take_action(
-                    self.rules,
-                    observation,
-                    available_actions,
-                    show_state=self.show_state,
-                )
-                self.update(action, available_actions, agent)
-                self.calculate_market_trends_adjust_values()
-                if all(value == 0 for value in self.stock_pile.values()):
-                    self.game_is_over = True
+            observation, available_actions = self.get_observation(current_agent)
 
+            action = current_agent.take_action(
+                self.rules,
+                observation,
+                available_actions,
+                show_state=True,
+            )
+            self.update(action, available_actions, current_agent, other_agent)
+            print(self.scores)
+            if self.check_corners_update_score():
+                print(f"Round {self.round_number}: Corner detected, scores updated.")
+                break
+
+            print(f"End of round {self.round_number}. Scores: {self.scores}")
+
+            if any(score >= 500 for score in self.scores):
+                self.game_is_over = True
+                break
+
+        print(
+            f"Agent {self.agents[self.scores.index(max(self.scores))].agent_id} won with a score of {max(self.scores)}."
+        )
         total_score = sum(self.scores)
         normalized_scores = [score / total_score for score in self.scores]
         return tuple(normalized_scores)
