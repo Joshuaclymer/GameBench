@@ -51,32 +51,9 @@ class Card:
         self.tribe_members = tribe_members
 
         self.actions = actions
-        self.validate_actions()
 
         self.supply_pile = supply_pile 
         self.cost = cost
-
-        if supply_pile is not None and cost is not None:
-            raise ValueError("Card can have either 'supply_pile' or 'cost', not both.")
-        
-    def validate_actions(self):
-        standard_actions = 0
-        action_modifiers = 0
-        disabled_actions = 0
-
-        for action in self._actions:
-            if action.type == ActionType.STANDARD:
-                standard_actions += 1
-            elif action.type == ActionType.MODIFIER:
-                action_modifiers += 1
-            elif action.type == ActionType.DISABLED:
-                disabled_actions += 1
-
-        if standard_actions > 2 or action_modifiers > 1 or disabled_actions > 1:
-            raise ValueError("Invalid action configuration.")
-
-        if not self._actions:
-            raise ValueError("At least one action is required.")
         
     def __str__(self):
         s = ""
@@ -88,11 +65,12 @@ class Card:
         if self.actions:
             s += "Actions:\n"
             for action in self.actions:
-                s += f"{action.symbol}, {action.type}: {action.value}\n"
+                s += f"{self.actions[action].symbol}, {self.actions[action].type}: {self.actions[action].value}\n"
         if self.supply_pile:
             s += f"Supply Pile: {self.supply_pile}\n"
         if self.cost:
             s += "Cost:\n"
             for cost in self.cost:
                 s += f"{cost.type}: {cost.value}\n"
+        return s
 
