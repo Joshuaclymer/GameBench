@@ -16,6 +16,16 @@ class Observation:
 
 
 @dataclass
+class TradeProposal:
+    def __init__(self, proposer_id, responder_id, commodity, quantity):
+        self.proposer_id = proposer_id
+        self.responder_id = responder_id
+        self.commodity = commodity
+        self.quantity = quantity
+        self.status = "pending"  # Could be "pending", "accepted", or "rejected"
+
+
+@dataclass
 class PitGame(Game):
     rules: Rules = Rules(
         title="Pit",
@@ -32,6 +42,8 @@ class PitGame(Game):
     virtual_player_hands: Dict[int, Dict[str, int]] = field(default_factory=dict)
     virtual_player_scores: Dict[int, float] = field(default_factory=dict)
     agents: List[Agent] = field(default_factory=list)
+    pending_trades: List[TradeProposal] = field(default_factory=list)
+    last_trade_outcome: str = ""
 
     def __post_init__(self):
         self.commodities = [
@@ -44,6 +56,7 @@ class PitGame(Game):
         ]
         self.scores = []
         self.round_number = 0
+        self.pending_trades = []
 
     def setup_virtual_players(self):
         virtual_player_id = 0
@@ -78,6 +91,8 @@ class PitGame(Game):
                 selected_commodity = random.choice(self.commodities).name
                 self.virtual_player_hands[vp_id][selected_commodity] += 1
 
+        self.check_corners_update_score()
+
     def init_game(
         self,
         agent_1_cls: Agent,
@@ -98,6 +113,44 @@ class PitGame(Game):
         self.agents = [agent_1, agent_2]
         self.scores = [0.0] * len(self.agents)
         self.setup_virtual_players()
+
+    def propose_trade(self, proposer_id, responder_id, commodity, quantity):
+        proposal = TradeProposal(proposer_id, responder_id, commodity, quantity)
+        self.pending_trades.append(proposal)
+
+    def respond_to_trade(self, responder_id, proposal_id, accept):
+        proposal = next(
+            (
+                p
+                for p in self.pending_trades
+                if p.proposer_id == proposal_id and p.responder_id == responder_id
+            ),
+            None,
+        )
+        if proposal:
+            if accept:
+                proposal.status = "accepted"
+                self.execute_trade(proposal)
+            else:
+                proposal.status = "rejected"
+            self.pending_trades.remove(proposal)
+        if not accept:
+            self.last_trade_outcome = "The last trade proposal was rejected."
+            self.last_trade_outcome = ""
+
+    def execute_trade(self, proposal):
+        if proposal.status == "accepted":
+            for vp_id in self.agent_virtual_players[proposal.proposer_id]:
+                self.virtual_player_hands[vp_id][
+                    proposal.commodity
+                ] -= proposal.quantity
+            for vp_id in self.agent_virtual_players[proposal.responder_id]:
+                self.virtual_player_hands[vp_id][
+                    proposal.commodity
+                ] += proposal.quantity
+            self.check_corners_update_score()
+            self.last_trade_outcome = f"Trade proposal to trade {proposal.quantity} {proposal.commodity} was accepted."
+            self.last_trade_outcome = ""
 
     def check_corners_update_score(self):
         for vp_id, hand in self.virtual_player_hands.items():
@@ -147,20 +200,20 @@ class PitGame(Game):
             self.agent_virtual_players[agent.agent_id][0]
         ]
         hand_description = ", ".join(
-            [
-                f"{count} x {commodity}"
-                for commodity, count in agent_hand.items()
-                if count > 0
-            ]
+            f"{count} x {commodity}"
+            for commodity, count in agent_hand.items()
+            if count > 0
         )
 
-        observation_text = (
-            f"Agent {agent.agent_id}, it's your turn. Your hand: {hand_description}. "
-            f"You can trade up to 4 cards of the same commodity at once."
-        )
+        pending_trade_description = ""
+        for proposal in self.pending_trades:
+            if proposal.responder_id == agent.agent_id and proposal.status == "pending":
+                pending_trade_description = f"Pending trade: {proposal.quantity} x {proposal.commodity} from Agent {proposal.proposer_id}. Accept or Reject?"
+
+        observation_text = f"Agent {agent.agent_id}, it's your turn. Your hand: {hand_description}. {pending_trade_description}"
 
         available_actions = AvailableActions(
-            instructions="Choose a commodity and quantity to trade",
+            instructions="Choose a commodity and quantity to trade, or respond to pending trades",
             predefined={
                 f"{commodity.name}_{quantity}": f"Trade {quantity} {commodity.name}"
                 for commodity in self.commodities
@@ -168,6 +221,14 @@ class PitGame(Game):
             },
             openended={},
         )
+
+        if pending_trade_description:
+            available_actions.predefined["accept"] = "Accept trade proposal"
+            available_actions.predefined["reject"] = "Reject trade proposal"
+
+        if self.last_trade_outcome:
+            observation_text += f" {self.last_trade_outcome}"
+            self.last_trade_outcome = ""
 
         return Observation(text=observation_text), available_actions
 
@@ -178,93 +239,71 @@ class PitGame(Game):
         agent: Agent,
         other_agent: Agent,
     ):
-        print(action.action_id)
-        chosen_commodity, trade_quantity = action.action_id.split("_")
-        trade_quantity = int(trade_quantity)
-        print(chosen_commodity, trade_quantity)
+        action_parts = action.action_id.split("_")
 
-        if (
-            chosen_commodity in available_actions.predefined
-            and 1 <= trade_quantity <= 4
-        ):
-            for vp_id in self.agent_virtual_players[agent.agent_id]:
-                if self.virtual_player_hands[vp_id][chosen_commodity] >= trade_quantity:
-                    self.virtual_player_hands[vp_id][chosen_commodity] -= trade_quantity
-                    for other_vp_id in self.agent_virtual_players[other_agent.agent_id]:
-                        self.virtual_player_hands[other_vp_id][
-                            chosen_commodity
-                        ] += trade_quantity
-                        break
-                    if self.show_state:
+        if action.action_id in ["accept", "reject"]:
+            for proposal in self.pending_trades:
+                if (
+                    proposal.responder_id == agent.agent_id
+                    and proposal.status == "pending"
+                ):
+                    if action.action_id == "accept":
+                        self.execute_trade(proposal)
                         print(
-                            f"Virtual Player {vp_id} traded {trade_quantity} {chosen_commodity} with Virtual Player {other_vp_id}"
+                            f"Trade accepted between Agent {proposal.proposer_id} and Agent {agent.agent_id}."
                         )
-                    self.check_corners_update_score()
-                    break
+                    else:
+                        print(
+                            f"Trade rejected between Agent {proposal.proposer_id} and Agent {agent.agent_id}."
+                        )
+                    self.pending_trades.remove(proposal)
+                    return
+
+        elif len(action_parts) == 2:
+            commodity, quantity_str = action_parts
+            quantity = int(quantity_str)
+
+            if commodity in [c.name for c in self.commodities] and 1 <= quantity <= 4:
+                trade_proposal = TradeProposal(
+                    agent.agent_id, other_agent.agent_id, commodity, quantity
+                )
+                self.pending_trades.append(trade_proposal)
+                print(
+                    f"Trade proposal created by Agent {agent.agent_id} to trade {quantity} {commodity} with Agent {other_agent.agent_id}."
+                )
+            else:
+                print("Invalid trade proposal. No trade created.")
+
         else:
-            if self.show_state:
-                print("Invalid action. Choosing a random action instead.")
-            chosen_commodity, trade_quantity = random.choice(
-                list(available_actions.predefined.keys())
-            ).split("_")
-            trade_quantity = int(trade_quantity)
-            for vp_id in self.agent_virtual_players[agent.agent_id]:
-                if self.virtual_player_hands[vp_id][chosen_commodity] >= trade_quantity:
-                    self.virtual_player_hands[vp_id][chosen_commodity] -= trade_quantity
-                    traded = False
-
-                    for other_vp_id in self.agent_virtual_players[other_agent.agent_id]:
-                        if (
-                            sum(self.virtual_player_hands[other_vp_id].values())
-                            + trade_quantity
-                            <= 9
-                        ):
-                            self.virtual_player_hands[other_vp_id][
-                                chosen_commodity
-                            ] += trade_quantity
-                            traded = True
-                            if self.show_state:
-                                print(
-                                    f"Virtual Player {vp_id} randomly traded {trade_quantity} {chosen_commodity} cards with Virtual Player {other_vp_id}"
-                                )
-                            break
-
-                    if traded:
-                        self.check_corners_update_score()
-                        break
-                else:
-                    if self.show_state:
-                        print(
-                            f"Virtual Player {vp_id} doesn't have {trade_quantity} {chosen_commodity} cards to trade."
-                        )
+            print("Invalid action received.")
 
     def play(self) -> Tuple[float, float]:
         self.shuffle_cards()
 
         while not self.game_is_over:
-            self.round_number += 1
-            current_agent = self.agents[(self.round_number - 1) % len(self.agents)]
-            other_agent = self.agents[1 - ((self.round_number - 1) % len(self.agents))]
+            for current_agent in self.agents:
+                self.round_number += 1
 
-            observation, available_actions = self.get_observation(current_agent)
+                other_agent = next(
+                    agent for agent in self.agents if agent != current_agent
+                )
 
-            action = current_agent.take_action(
-                self.rules,
-                observation,
-                available_actions,
-                show_state=True,
-            )
-            self.update(action, available_actions, current_agent, other_agent)
-            print(self.scores)
+                observation, available_actions = self.get_observation(current_agent)
+                action = current_agent.take_action(
+                    self.rules, observation, available_actions, show_state=True
+                )
 
-            print(f"End of round {self.round_number}. Scores: {self.scores}")
+                self.update(action, available_actions, current_agent, other_agent)
+                print(self.virtual_player_hands)
+                self.check_corners_update_score()
+                print(f"End of round {self.round_number}. Scores: {self.scores}")
 
-            if True in [score >= 500 for score in self.scores]:
-                self.game_is_over = True
+                if any(score >= 500 for score in self.scores):
+                    self.game_is_over = True
+                    break
 
-        print(
-            f"Agent {self.agents[self.scores.index(max(self.scores))].agent_id} won with a score of {max(self.scores)}."
-        )
+        winning_agent_id = self.agents[self.scores.index(max(self.scores))].agent_id
+        print(f"Agent {winning_agent_id} won with a score of {max(self.scores)}.")
         total_score = sum(self.scores)
         normalized_scores = [score / total_score for score in self.scores]
         return tuple(normalized_scores)
