@@ -33,19 +33,14 @@ class PitGame(Game):
     def __post_init__(self):
         self.commodities = [
             Commodity("Barley", 85.0),
-            Commodity("Coffee", 80.0),
             Commodity("Corn", 75.0),
-            Commodity("Oats", 60.0),
-            Commodity("Oranges", 50.0),
             Commodity("Soyabeans", 55.0),
-            Commodity("Sugar", 65.0),
             Commodity("Wheat", 100.0),
             Commodity("Bull", 0.0),
             Commodity("Bear", 0.0),
         ]
         self.scores = []
         self.round_number = 0
-        self.max_possible = 0
 
     def shuffle_cards(self):
         for agent in self.agents:
@@ -85,18 +80,16 @@ class PitGame(Game):
             bull_card = hand.get("Bull", 0)
             bear_card = hand.get("Bear", 0)
             for commodity, count in hand.items():
-                is_corner = count == self.max_possible or (
-                    count == self.max_possible - 1 and bull_card
-                )
+                is_corner = count == 9 or (count == 8 and bull_card)
                 if is_corner:
                     commodity_obj = next(
                         (c for c in self.commodities if c.name == commodity), None
                     )
                     if commodity_obj:
                         score = commodity_obj.value
-                        if bull_card and count == self.max_possible - 1:
+                        if bull_card and count == 8:
                             print(f"Agent {agent_id} has a Bull Corner on {commodity}.")
-                        if bull_card and count == self.max_possible:
+                        if bull_card and count == 9:
                             score *= 2  # Double Bull Corner
                             print(
                                 f"Agent {agent_id} has a Double Bull Corner on {commodity}."
@@ -127,6 +120,8 @@ class PitGame(Game):
                 commodity.name: f"Trade {commodity.name}"
                 for commodity in self.commodities
             },
+            openended={},
+            instructions="Choose quantity of cards to trade",
             openended={},
         )
         return (
@@ -180,20 +175,6 @@ class PitGame(Game):
 
     def play(self) -> Tuple[float, float]:
         self.shuffle_cards()
-
-        if self.max_possible == 0:
-            sums = {}
-
-            for dct in self.player_hands.values():
-                for key, value in dct.items():
-                    if key not in ["Bull", "Bear"]:
-                        if key in sums:
-                            sums[key] += value
-                        else:
-                            sums[key] = value
-
-            self.max_possible = max(sums.values())
-            print(self.max_possible)
 
         while not self.game_is_over:
             self.round_number += 1
