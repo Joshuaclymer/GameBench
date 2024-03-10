@@ -3,6 +3,7 @@ from api.classes import Observation, Action, Agent, AvailableActions, Game, Rule
 from agents.human_agent import HumanAgent
 import api.util as util
 from games.air_land_sea.cards import Card, Deck
+import pprint
 
 def test():
     agent_1_path = "agents.human_agent.HumanAgent"
@@ -32,44 +33,57 @@ def test():
     game.player2.play(game.player2.hand[0], True, game.board.theaters[1])
     game.player2.play(game.player2.hand[0], True, game.board.theaters[2])
     game.player2.play(game.player2.hand[0], False, game.board.theaters[2])
-    # print(game.board.get_board_string())
 
-    game.board.theaters[2].player_cards[1][-1].flip()
-    # print(game.board.get_board_string())
-
-    observation, available_actions = game.get_observation(agent_2)
-    print(observation.text)
-    print(available_actions.predefined)
-    # print(observation.text)
+    game.board.theaters[0].player_cards[0][0].flip()
+    game.board.theaters[0].player_cards[1][0].flip()
 
     # after a card is played faceup or flipped faceup its tactical ability takes effect immediately
     # aka the effect manager is called
     # the effect manager is also called when a card is flipped facedown too (to get rid of it)
 
-    # first we need a way to always play the Support card in order to test it
-    # give player 1 a Support card regardless of what else is going on
+    # Testing Specific Cards
 
-    # support = Card('Support', 'Air', 1, 'Ongoing', 'You gain +3 strength in each adjacent theater')
-    # game.player1.hand.append(support)
-    # game.player2.hand.append(support)
-    # # print(game.player1.hand)
-    # # play to first theater
-    # game.player1.play(support, True, game.board.theaters[1])
-    # game.effect_manager.add_effect(support, game.player1.id)
-    # # play to second theater for p2
-    # game.player2.play(support, True, game.board.theaters[2])
-    # game.effect_manager.add_effect(support, game.player2.id)
-    # print(game.board.get_board_string())
-    # print("Effect cards")
-    # print(game.effect_manager.effect_cards)
-    # # print(game.board.search_ongoing_effect_location(support, game.effect_manager))
+    target = Card('Airdrop', 'Air', 2, 'Instant', 'The next time you play a card, you may play it to a non-matching theater')
+    game.player1.hand.append(target)
+    game.player2.hand.append(target)
+    # print(game.player1.hand)
+    # play to first theater
+    game.player1.play(target, True, game.board.theaters[1])
+    game.effect_manager.add_effect(target, game.player1.id)
+    # play to second theater for p2
+    game.player2.play(target, True, game.board.theaters[2])
+    game.effect_manager.add_effect(target, game.player2.id)
+    # print(game.board.get_board_string(game.player1.id))
+    print("Effect cards")
+    print(game.effect_manager.effect_cards)
+    # print(game.board.search_ongoing_effect_location(support, game.effect_manager))
 
-    # # print("testing get_adjacent_theaters")
-    # # print(game.board.get_adjacent_theaters(1))
+    # print("testing get_adjacent_theaters")
+    # print(game.board.get_adjacent_theaters(1))
 
-    # print("testing get_theater_strengths")
-    # print(game.board.get_theater_strengths(game.effect_manager))
+    observation, available_actions = game.get_observation(agent_1)
+    # observation, available_actions = game.get_observation(agent_2)
+    print("\n------------------------\n")
+    print("get observation")
+    print(observation.text)
+    # pprint.pprint(available_actions.predefined)
+    # print(observation.text)
 
+    print("testing get_theater_strengths")
+    print(game.board.get_theater_strengths(game.effect_manager))
+
+    print("testing modify_available_actions")
+    # pprint.pprint(available_actions.predefined)
+    modified_actions = game.effect_manager.modify_available_actions(available_actions, game.player1.hand, game.player1.id)
+    print("modified actions")
+    pprint.pprint(modified_actions.predefined)
+
+    action = Action(action_id="0")
+    card = game.find_card_from_action(action, modified_actions)
+    print("card from action")
+    print(card)
+    
+    # TODO: check if destroy trigger function works by testing both cards in test.py
 
     print("Test complete")
 

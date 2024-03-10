@@ -16,13 +16,13 @@ class Card:
 
     def __str__(self):
         card_info = f"{self.name} ({self.strength}"
-        if self.facedown:
-            card_info = "Facedown (2"
+        # TODO: move facedown logic to the theater class
         tactical_ablity_string = ""
-        if self.tactical_ability_type and not self.facedown:
+        # if self.tactical_ability_type and not self.facedown:
+        if self.tactical_ability_type:
             tactical_ablity_string = f", {self.tactical_ability_type}: {self.tactical_ability_description}"
         # $ represents the covered/uncovered status of the card (it will be manipulated by the theater class)
-        return f"{card_info}{tactical_ablity_string})"
+        return f"{card_info}, {self.theater}{tactical_ablity_string})"
 
     def __repr__(self):
         return self.__str__()
@@ -30,13 +30,13 @@ class Card:
     def flip(self):
         if self.facedown:
             # flip faceup
-            current_strength = self.strength
+            self.current_strength = self.strength
             self.facedown = False
         else:
             # flip facedown
-            current_strength = 2
+            self.current_strength = 2
             self.facedown = True
-        # TODO: flipping needs to change the strength of the theater
+        # TODO:
         # flipping needs to take card out of effects list or put it in
         # done by event manager
 
