@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import random
-from classes import Observation, Action, Agent, AvailableActions, Game, Rules
+from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
 @dataclass
