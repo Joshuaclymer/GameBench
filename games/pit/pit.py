@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Tuple, Dict
+from typing import List, Tuple, Dict
 import random
-from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
+from classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
 @dataclass
@@ -28,7 +28,10 @@ class PitGame(Game):
         additional_details=None,
     )
     id: str = "pit"
-    player_hands: Dict[int, Dict[str, int]] = field(default_factory=dict)
+    agent_virtual_players: Dict[int, List[int]] = field(default_factory=dict)
+    virtual_player_hands: Dict[int, Dict[str, int]] = field(default_factory=dict)
+    virtual_player_scores: Dict[int, float] = field(default_factory=dict)
+    agents: List[Agent] = field(default_factory=list)
 
     def __post_init__(self):
         self.commodities = [
@@ -42,16 +45,38 @@ class PitGame(Game):
         self.scores = []
         self.round_number = 0
 
-    def shuffle_cards(self):
+    def setup_virtual_players(self):
+        virtual_player_id = 0
         for agent in self.agents:
-            self.player_hands[agent.agent_id] = {
-                commodity.name: 0 for commodity in self.commodities
-            }
+            self.agent_virtual_players[agent.agent_id] = [
+                virtual_player_id,
+                virtual_player_id + 1,
+            ]
+            for vp_id in self.agent_virtual_players[agent.agent_id]:
+                self.virtual_player_scores[vp_id] = 0.0
+                self.virtual_player_hands[vp_id] = {
+                    commodity.name: 0 for commodity in self.commodities
+                }
+            virtual_player_id += 2
 
-        for player_id in self.player_hands.keys():
+    def shuffle_cards(self):
+        virtual_player_id = 0
+        for agent in self.agents:
+            self.agent_virtual_players[agent.agent_id] = [
+                virtual_player_id,
+                virtual_player_id + 1,
+            ]
+            for vp_id in self.agent_virtual_players[agent.agent_id]:
+                self.virtual_player_scores[vp_id] = 0.0
+                self.virtual_player_hands[vp_id] = {
+                    commodity.name: 0 for commodity in self.commodities
+                }
+            virtual_player_id += 2
+
+        for vp_id in self.virtual_player_hands.keys():
             for _ in range(9):
                 selected_commodity = random.choice(self.commodities).name
-                self.player_hands[player_id][selected_commodity] += 1
+                self.virtual_player_hands[vp_id][selected_commodity] += 1
 
     def init_game(
         self,
@@ -72,62 +97,66 @@ class PitGame(Game):
         )
         self.agents = [agent_1, agent_2]
         self.scores = [0.0] * len(self.agents)
+        self.setup_virtual_players()
 
     def check_corners_update_score(self):
-        print(self.player_hands)
-
-        for agent_id, hand in self.player_hands.items():
+        for vp_id, hand in self.virtual_player_hands.items():
             bull_card = hand.get("Bull", 0)
             bear_card = hand.get("Bear", 0)
             for commodity, count in hand.items():
-                is_corner = count == 9 or (count == 8 and bull_card)
+                is_corner = count == 4 or (count == 3 and bull_card)
                 if is_corner:
                     commodity_obj = next(
                         (c for c in self.commodities if c.name == commodity), None
                     )
                     if commodity_obj:
                         score = commodity_obj.value
-                        if bull_card and count == 8:
-                            print(f"Agent {agent_id} has a Bull Corner on {commodity}.")
-                        if bull_card and count == 9:
+                        if bull_card and count == 3:
+                            print(
+                                f"Virtual Player {vp_id} has a Bull Corner on {commodity}."
+                            )
+                        if bull_card and count == 4:
                             score *= 2  # Double Bull Corner
                             print(
-                                f"Agent {agent_id} has a Double Bull Corner on {commodity}."
+                                f"Virtual Player {vp_id} has a Double Bull Corner on {commodity}."
                             )
                         if bear_card:
                             score -= 20 * bear_card  # Penalty for holding Bear card
-                        self.scores[
-                            self.agents.index(
-                                next(
-                                    agent
-                                    for agent in self.agents
-                                    if agent.agent_id == agent_id
-                                )
-                            )
-                        ] += score
+
+                        self.virtual_player_scores[vp_id] += score
                         print(
-                            f"Agent {agent_id} has cornered the market on {commodity}. Score updated."
+                            f"Virtual Player {vp_id} has cornered the market on {commodity}. Score updated."
                         )
+
+                        for agent_id, vp_ids in self.agent_virtual_players.items():
+                            if vp_id in vp_ids:
+                                self.scores[
+                                    self.agents.index(
+                                        next(
+                                            agent
+                                            for agent in self.agents
+                                            if agent.agent_id == agent_id
+                                        )
+                                    )
+                                ] = sum(self.virtual_player_scores[vp] for vp in vp_ids)
+                                break
                         self.shuffle_cards()
 
     def get_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
-        observation_text = (
-            f"{agent.agent_id}, it's your turn. Hand: {self.player_hands}"
-        )
+        agent_vp_hands = {
+            vp_id: self.virtual_player_hands[vp_id]
+            for vp_id in self.agent_virtual_players[agent.agent_id]
+        }
+        observation_text = f"{agent.agent_id}, it's your turn. Hands: {agent_vp_hands}"
         available_actions = AvailableActions(
-            instructions="Choose a card to trade",
+            instructions="Choose a card and quantity to trade",
             predefined={
                 commodity.name: f"Trade {commodity.name}"
                 for commodity in self.commodities
             },
             openended={},
-            instructions="Choose quantity of cards to trade",
-            openended={},
         )
-        return (
-            Observation(text=observation_text),
-            available_actions,
-        )
+        return Observation(text=observation_text), available_actions
 
     def update(
         self,
@@ -138,40 +167,45 @@ class PitGame(Game):
     ):
         chosen_commodity = action.action_id
         if chosen_commodity in available_actions.predefined:
-            commodity = next(
-                (c for c in self.commodities if c.name == chosen_commodity), None
-            )
-            if commodity:
-                print(self.player_hands)
-                if self.player_hands[agent.agent_id][chosen_commodity] > 0:
-                    self.player_hands[agent.agent_id][chosen_commodity] -= 1
-                    self.player_hands[other_agent.agent_id][chosen_commodity] += 1
-
+            for vp_id in self.agent_virtual_players[agent.agent_id]:
+                if self.virtual_player_hands[vp_id][chosen_commodity] > 0:
+                    self.virtual_player_hands[vp_id][chosen_commodity] -= 1
+                    for other_vp_id in self.agent_virtual_players[other_agent.agent_id]:
+                        self.virtual_player_hands[other_vp_id][chosen_commodity] += 1
+                        break
                     if self.show_state:
-                        print(f"{agent.agent_id} traded {chosen_commodity}")
-
+                        print(
+                            f"Virtual Player {vp_id} traded {chosen_commodity} with Virtual Player {other_vp_id}"
+                        )
                     self.check_corners_update_score()
-                else:
-                    if self.show_state:
-                        print(f"No more {chosen_commodity} in hand.")
+                    break
         else:
             if self.show_state:
                 print("Invalid action. Choosing a random action instead.")
             chosen_commodity = random.choice(list(available_actions.predefined.keys()))
-            commodity = next(
-                (c for c in self.commodities if c.name == chosen_commodity), None
-            )
-            if self.player_hands[agent.agent_id][chosen_commodity] > 0:
-                self.player_hands[agent.agent_id][chosen_commodity] -= 1
-                self.player_hands[other_agent.agent_Id][chosen_commodity] += 1
-
-                if self.show_state:
-                    print(f"{agent.agent_id} traded {chosen_commodity}")
-
-                self.check_corners_update_score()
-            else:
-                if self.show_state:
-                    print(f"No more {chosen_commodity} in hand.")
+            for vp_id in self.agent_virtual_players[agent.agent_id]:
+                if self.virtual_player_hands[vp_id][chosen_commodity] > 0:
+                    self.virtual_player_hands[vp_id][chosen_commodity] -= 1
+                    traded = False
+                    for other_vp_id in self.agent_virtual_players[other_agent.agent_id]:
+                        if sum(self.virtual_player_hands[other_vp_id].values()) < 9:
+                            self.virtual_player_hands[other_vp_id][
+                                chosen_commodity
+                            ] += 1
+                            traded = True
+                            if self.show_state:
+                                print(
+                                    f"Virtual Player {vp_id} traded {chosen_commodity} with Virtual Player {other_vp_id}"
+                                )
+                            break
+                    if traded:
+                        self.check_corners_update_score()
+                        break
+                else:
+                    if self.show_state:
+                        print(
+                            f"Virtual Player {vp_id} has no more {chosen_commodity} to trade."
+                        )
 
     def play(self) -> Tuple[float, float]:
         self.shuffle_cards()
