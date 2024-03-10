@@ -13,6 +13,8 @@ Description-Content-Type: text/markdown
 Requires-Dist: fire
 Requires-Dist: Pillow
 Requires-Dist: openai
+Requires-Dist: santorinai
+Requires-Dist: colorama
 
 # Setup
 In the repo root:

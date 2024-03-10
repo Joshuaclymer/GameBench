@@ -124,7 +124,7 @@ class OpenAITextAgent(Agent):
 
         prompt += "\nTo summarize, if you choose a predefined action, you must return json with an 'action' key which contains one of the following valid actions:\n"
         prompt += str(list(available_actions.predefined))
-        prompt += "\nOr if you choose an openended action, you must return json with an 'action' key which contains one of the following valid actions and an 'openeded_response' key which contains your reponse to the prompt:\n"
+        prompt += "\nOr if you choose an openended action, you must return json with an 'action' key which contains one of the following valid actions and an 'openended_response' key which contains your response to the prompt:\n"
         prompt += str(list(available_actions.openended))
         messages.append({"role": "user", "content": prompt})
 
