@@ -81,8 +81,10 @@ def play_game(agent_1_path, agent_2_path, game_path, num_matches = 1, save_resul
             util.save_json(matches, "matches.json")
             print("Saved match information")
 
-            agent_1_rating = agent_1_rating + K * (player_1_score - agent_1_expected_score)
+            agent_1_rating = agent_1_rating + K * (player_1_score - agent_1_expected_score) 
             agent_2_rating = agent_2_rating + K * (player_2_score - agent_2_expected_score)
+            # Without below line, we get a KeyError: '<game_class.id>'
+            all_ratings.setdefault(game_class.id, {}) 
             all_ratings[game_class.id][agent_1_id] = agent_1_rating
             all_ratings[game_class.id][agent_2_id] = agent_2_rating
             print("Updated elos:")

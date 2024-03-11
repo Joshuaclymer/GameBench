@@ -8,7 +8,7 @@ from api.classes import Action, Agent, AvailableActions, Observation, Rules
 class RandomAgent(Agent):
     agent_type_id : str = "random"
 
-    def take_action(self, rules : Rules, observation: Observation, available_actions: AvailableActions, show_state : bool):
+    def take_action(self, rules : Rules, observation: Observation, available_actions: AvailableActions, show_state : bool) -> Action:
         actions = list(available_actions.predefined.keys())
         try:
             action_id = random.choice(actions)
