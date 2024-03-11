@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import random
-from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
+from classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
 @dataclass
@@ -22,7 +22,7 @@ class TradeProposal:
         self.responder_id = responder_id
         self.commodity = commodity
         self.quantity = quantity
-        self.status = "pending"  # Could be "pending", "accepted", or "rejected"
+        self.status = "pending"
 
 
 @dataclass
@@ -57,6 +57,8 @@ class PitGame(Game):
         self.scores = []
         self.round_number = 0
         self.pending_trades = []
+        self.max_possible = 4  # actual value: 9
+        self.winning_score = 150  # actual value: 500
 
     def setup_virtual_players(self):
         virtual_player_id = 0
@@ -90,8 +92,6 @@ class PitGame(Game):
             for _ in range(9):
                 selected_commodity = random.choice(self.commodities).name
                 self.virtual_player_hands[vp_id][selected_commodity] += 1
-
-        self.check_corners_update_score()
 
     def init_game(
         self,
@@ -148,8 +148,8 @@ class PitGame(Game):
                 self.virtual_player_hands[vp_id][
                     proposal.commodity
                 ] += proposal.quantity
-            self.check_corners_update_score()
             self.last_trade_outcome = f"Trade proposal to trade {proposal.quantity} {proposal.commodity} was accepted."
+            self.check_corners_update_score()
             self.last_trade_outcome = ""
 
     def check_corners_update_score(self):
@@ -157,18 +157,20 @@ class PitGame(Game):
             bull_card = hand.get("Bull", 0)
             bear_card = hand.get("Bear", 0)
             for commodity, count in hand.items():
-                is_corner = count == 9 or (count == 8 and bull_card)
+                is_corner = count == self.max_possible or (
+                    count == self.max_possible - 1 and bull_card
+                )
                 if is_corner:
                     commodity_obj = next(
                         (c for c in self.commodities if c.name == commodity), None
                     )
                     if commodity_obj:
                         score = commodity_obj.value
-                        if bull_card and count == 8:
+                        if bull_card and count == self.max_possible - 1:
                             print(
                                 f"Virtual Player {vp_id} has a Bull Corner on {commodity}."
                             )
-                        if bull_card and count == 9:
+                        if bull_card and count == self.max_possible:
                             score *= 2  # Double Bull Corner
                             print(
                                 f"Virtual Player {vp_id} has a Double Bull Corner on {commodity}."
@@ -295,10 +297,11 @@ class PitGame(Game):
 
                 self.update(action, available_actions, current_agent, other_agent)
                 print(self.virtual_player_hands)
+
                 self.check_corners_update_score()
                 print(f"End of round {self.round_number}. Scores: {self.scores}")
 
-                if any(score >= 500 for score in self.scores):
+                if any(score >= self.winning_score for score in self.scores):
                     self.game_is_over = True
                     break
 
