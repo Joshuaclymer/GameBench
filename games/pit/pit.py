@@ -18,7 +18,6 @@ class Observation:
 @dataclass
 class TradeProposal:
     proposer_id: int
-    responder_id: int
     offered_commodity: str
     requested_commodity: str
     quantity: int
@@ -97,26 +96,25 @@ class PitGame(Game):
         agent_1_cls: Agent,
         agent_2_cls: Agent,
     ):
-        # agent_1 = agent_1_cls(
-        #     team_id=0,
-        #     agent_id=1,
-        #     agent_type_id=agent_1_cls.agent_type_id,
-        #     **self.agent_1_kwargs,
-        # )
-        # agent_2 = agent_2_cls(
-        #     team_id=1,
-        #     agent_id=2,
-        #     agent_type_id=agent_2_cls.agent_type_id,
-        #     **self.agent_2_kwargs,
-        # )
-        self.agents = [agent_1_cls, agent_2_cls]
+        agent_1 = agent_1_cls(
+            team_id=0,
+            agent_id=1,
+            agent_type_id=agent_1_cls.agent_type_id,
+            **self.agent_1_kwargs,
+        )
+        agent_2 = agent_2_cls(
+            team_id=1,
+            agent_id=2,
+            agent_type_id=agent_2_cls.agent_type_id,
+            **self.agent_2_kwargs,
+        )
+        self.agents = [agent_1, agent_2]
         self.scores = [0.0] * len(self.agents)
         self.setup_virtual_players()
 
     def propose_trade(
         self,
         proposer_id,
-        responder_id,
         offered_commodity,
         requested_commodity,
         quantity,
@@ -125,10 +123,6 @@ class PitGame(Game):
             f"Proposer (Agent {proposer_id}) Hand before trade:",
             self.virtual_player_hands[self.agent_virtual_players[proposer_id][0]],
         )
-        print(
-            f"Responder (Agent {responder_id}) Hand before trade:",
-            self.virtual_player_hands[self.agent_virtual_players[responder_id][0]],
-        )
         self.pending_trades = [
             proposal
             for proposal in self.pending_trades
@@ -136,9 +130,12 @@ class PitGame(Game):
         ]
 
         proposal = TradeProposal(
-            proposer_id, responder_id, offered_commodity, requested_commodity, quantity
+            proposer_id, offered_commodity, requested_commodity, quantity
         )
         self.pending_trades.append(proposal)
+        print(
+            f"Agent {proposer_id} proposed a trade offering {quantity} {offered_commodity} for {quantity} {requested_commodity}."
+        )
 
     def respond_to_trade(self, responder_id, proposal_id, accept):
         proposal = next(
@@ -232,8 +229,9 @@ class PitGame(Game):
 
         pending_trade_description = ""
         for proposal in self.pending_trades:
-            if proposal.responder_id == agent.agent_id and proposal.status == "pending":
-                pending_trade_description = f"Pending trade: Offer {proposal.quantity} {proposal.offered_commodity} for {proposal.requested_commodity} from Agent {proposal.proposer_id}. Accept or Reject?"
+            # Check if the current agent is not the proposer of the trade
+            if agent.agent_id != proposal.proposer_id and proposal.status == "pending":
+                pending_trade_description += f"Pending trade: Offer {proposal.quantity} {proposal.offered_commodity} for {proposal.requested_commodity} from Agent {proposal.proposer_id}. Accept or Reject? "
 
         observation_text = f"Agent {agent.agent_id}, it's your turn. Your hand: {hand_description}. {pending_trade_description}"
 
@@ -270,9 +268,9 @@ class PitGame(Game):
         if action.action_id in ["accept", "reject"]:
             for proposal in self.pending_trades:
                 if (
-                    proposal.responder_id == agent.agent_id
+                    agent.agent_id != proposal.proposer_id
                     and proposal.status == "pending"
-                ):
+                ):  # Ensure agent is not the proposer
                     if action.action_id == "accept":
                         self.execute_trade(proposal)
                         print(
@@ -280,39 +278,22 @@ class PitGame(Game):
                         )
                     else:
                         print(
-                            f"Trade rejected between Agent {proposal.proposer_id} and Agent {agent.agent_id}."
+                            f"Trade rejected by Agent {agent.agent_id} for proposal from Agent {proposal.proposer_id}."
                         )
                     self.pending_trades.remove(proposal)
-                    return
-
-        # if len(action_parts) == 2:
-        #     commodity, quantity_str = action_parts
-        #     quantity = int(quantity_str)
-        #     if commodity in [c.name for c in self.commodities] and 1 <= quantity <= 4:
-        #         self.propose_trade(agent.agent_id, None, commodity, quantity)
-        #     else:
-        #         print("Invalid trade proposal. No trade created.")
+                    break
 
         elif len(action_parts) == 5 and action_parts[0] == "Offer":
             offered_commodity = action_parts[1]
             requested_commodity = action_parts[3]
             quantity = int(action_parts[4])
 
-            if offered_commodity in [
-                c.name for c in self.commodities
-            ] and requested_commodity in [c.name for c in self.commodities]:
-                self.propose_trade(
-                    agent.agent_id,
-                    other_agent.agent_id,
-                    offered_commodity,
-                    requested_commodity,
-                    quantity,
-                )
-                print(
-                    f"Trade proposal created by Agent {agent.agent_id} to offer {quantity} {offered_commodity} for {quantity} {requested_commodity} with Agent {other_agent.agent_id}."
-                )
-            else:
-                print("Invalid trade proposal. No trade created.")
+            self.propose_trade(
+                agent.agent_id, offered_commodity, requested_commodity, quantity
+            )
+            print(
+                f"Agent {agent.agent_id} proposed a trade offering {quantity} {offered_commodity} for {quantity} {requested_commodity}."
+            )
 
         else:
             print("Invalid action received.")
