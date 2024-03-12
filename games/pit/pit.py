@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import random
-from classes import Observation, Action, Agent, AvailableActions, Game, Rules
+from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
 @dataclass
@@ -290,9 +290,6 @@ class PitGame(Game):
 
             self.propose_trade(
                 agent.agent_id, offered_commodity, requested_commodity, quantity
-            )
-            print(
-                f"Agent {agent.agent_id} proposed a trade offering {quantity} {offered_commodity} for {quantity} {requested_commodity}."
             )
 
         else:
