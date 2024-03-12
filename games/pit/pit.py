@@ -17,12 +17,11 @@ class Observation:
 
 @dataclass
 class TradeProposal:
-    def __init__(self, proposer_id, responder_id, commodity, quantity):
-        self.proposer_id = proposer_id
-        self.responder_id = responder_id
-        self.commodity = commodity
-        self.quantity = quantity
-        self.status = "pending"
+    proposer_id: int
+    responder_id: int
+    commodity: str
+    quantity: int
+    status: str = "pending"
 
 
 @dataclass
@@ -57,8 +56,8 @@ class PitGame(Game):
         self.scores = []
         self.round_number = 0
         self.pending_trades = []
-        self.max_possible = 4  # actual value: 9
-        self.winning_score = 150  # actual value: 500
+        self.max_possible = 9  # actual value: 9
+        self.winning_score = 500  # actual value: 500
 
     def setup_virtual_players(self):
         virtual_player_id = 0
@@ -75,46 +74,51 @@ class PitGame(Game):
             virtual_player_id += 2
 
     def shuffle_cards(self):
-        virtual_player_id = 0
-        for agent in self.agents:
-            self.agent_virtual_players[agent.agent_id] = [
-                virtual_player_id,
-                virtual_player_id + 1,
-            ]
-            for vp_id in self.agent_virtual_players[agent.agent_id]:
-                self.virtual_player_scores[vp_id] = 0.0
-                self.virtual_player_hands[vp_id] = {
-                    commodity.name: 0 for commodity in self.commodities
-                }
-            virtual_player_id += 2
+        deck = [
+            commodity.name for commodity in self.commodities[:-2] for _ in range(9)
+        ] + ["Bull", "Bear"]
+
+        random.shuffle(deck)
 
         for vp_id in self.virtual_player_hands.keys():
-            for _ in range(9):
-                selected_commodity = random.choice(self.commodities).name
-                self.virtual_player_hands[vp_id][selected_commodity] += 1
+            self.virtual_player_hands[vp_id] = {
+                commodity.name: 0 for commodity in self.commodities
+            }
+
+        vp_ids = list(self.virtual_player_hands.keys())
+        for card in deck:
+            vp_id = vp_ids.pop(0)
+            self.virtual_player_hands[vp_id][card] += 1
+            vp_ids.append(vp_id)
 
     def init_game(
         self,
         agent_1_cls: Agent,
         agent_2_cls: Agent,
     ):
-        agent_1 = agent_1_cls(
-            team_id=0,
-            agent_id=1,
-            agent_type_id=agent_1_cls.agent_type_id,
-            **self.agent_1_kwargs,
-        )
-        agent_2 = agent_2_cls(
-            team_id=1,
-            agent_id=2,
-            agent_type_id=agent_2_cls.agent_type_id,
-            **self.agent_2_kwargs,
-        )
-        self.agents = [agent_1, agent_2]
+        # agent_1 = agent_1_cls(
+        #     team_id=0,
+        #     agent_id=1,
+        #     agent_type_id=agent_1_cls.agent_type_id,
+        #     **self.agent_1_kwargs,
+        # )
+        # agent_2 = agent_2_cls(
+        #     team_id=1,
+        #     agent_id=2,
+        #     agent_type_id=agent_2_cls.agent_type_id,
+        #     **self.agent_2_kwargs,
+        # )
+        self.agents = [agent_1_cls, agent_2_cls]
         self.scores = [0.0] * len(self.agents)
         self.setup_virtual_players()
 
     def propose_trade(self, proposer_id, responder_id, commodity, quantity):
+        self.pending_trades = [
+            proposal
+            for proposal in self.pending_trades
+            if proposal.proposer_id != proposer_id
+        ]
+
         proposal = TradeProposal(proposer_id, responder_id, commodity, quantity)
         self.pending_trades.append(proposal)
 
@@ -296,8 +300,6 @@ class PitGame(Game):
                 )
 
                 self.update(action, available_actions, current_agent, other_agent)
-                print(self.virtual_player_hands)
-
                 self.check_corners_update_score()
                 print(f"End of round {self.round_number}. Scores: {self.scores}")
 
