@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import random
-from classes import Observation, Action, Agent, AvailableActions, Game, Rules
+from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
 @dataclass
@@ -96,23 +96,31 @@ class PitGame(Game):
         agent_1_cls: Agent,
         agent_2_cls: Agent,
     ):
-        # agent_1 = agent_1_cls(
-        #     team_id=0,
-        #     agent_id=1,
-        #     agent_type_id=agent_1_cls.agent_type_id,
-        #     **self.agent_1_kwargs,
-        # )
-        # agent_2 = agent_2_cls(
-        #     team_id=1,
-        #     agent_id=2,
-        #     agent_type_id=agent_2_cls.agent_type_id,
-        #     **self.agent_2_kwargs,
-        # )
-        self.agents = [agent_1_cls, agent_2_cls]
+        agent_1 = agent_1_cls(
+            team_id=0,
+            agent_id=1,
+            agent_type_id=agent_1_cls.agent_type_id,
+            **self.agent_1_kwargs,
+        )
+        agent_2 = agent_2_cls(
+            team_id=1,
+            agent_id=2,
+            agent_type_id=agent_2_cls.agent_type_id,
+            **self.agent_2_kwargs,
+        )
+        self.agents = [agent_1, agent_2]
         self.scores = [0.0] * len(self.agents)
         self.setup_virtual_players()
 
     def propose_trade(self, proposer_id, responder_id, commodity, quantity):
+        print(
+            f"Proposer (Agent {proposer_id}) Hand before trade:",
+            self.virtual_player_hands[self.agent_virtual_players[proposer_id][0]],
+        )
+        print(
+            f"Responder (Agent {responder_id}) Hand before trade:",
+            self.virtual_player_hands[self.agent_virtual_players[responder_id][0]],
+        )
         self.pending_trades = [
             proposal
             for proposal in self.pending_trades
@@ -143,6 +151,7 @@ class PitGame(Game):
             self.last_trade_outcome = ""
 
     def execute_trade(self, proposal):
+        print("Executing trade:", proposal)
         if proposal.status == "accepted":
             for vp_id in self.agent_virtual_players[proposal.proposer_id]:
                 self.virtual_player_hands[vp_id][
@@ -270,10 +279,9 @@ class PitGame(Game):
             quantity = int(quantity_str)
 
             if commodity in [c.name for c in self.commodities] and 1 <= quantity <= 4:
-                trade_proposal = TradeProposal(
+                self.propose_trade(
                     agent.agent_id, other_agent.agent_id, commodity, quantity
                 )
-                self.pending_trades.append(trade_proposal)
                 print(
                     f"Trade proposal created by Agent {agent.agent_id} to trade {quantity} {commodity} with Agent {other_agent.agent_id}."
                 )
