@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import random
-from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
+from classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
 @dataclass
@@ -19,7 +19,8 @@ class Observation:
 class TradeProposal:
     proposer_id: int
     responder_id: int
-    commodity: str
+    offered_commodity: str
+    requested_commodity: str
     quantity: int
     status: str = "pending"
 
@@ -96,23 +97,30 @@ class PitGame(Game):
         agent_1_cls: Agent,
         agent_2_cls: Agent,
     ):
-        agent_1 = agent_1_cls(
-            team_id=0,
-            agent_id=1,
-            agent_type_id=agent_1_cls.agent_type_id,
-            **self.agent_1_kwargs,
-        )
-        agent_2 = agent_2_cls(
-            team_id=1,
-            agent_id=2,
-            agent_type_id=agent_2_cls.agent_type_id,
-            **self.agent_2_kwargs,
-        )
-        self.agents = [agent_1, agent_2]
+        # agent_1 = agent_1_cls(
+        #     team_id=0,
+        #     agent_id=1,
+        #     agent_type_id=agent_1_cls.agent_type_id,
+        #     **self.agent_1_kwargs,
+        # )
+        # agent_2 = agent_2_cls(
+        #     team_id=1,
+        #     agent_id=2,
+        #     agent_type_id=agent_2_cls.agent_type_id,
+        #     **self.agent_2_kwargs,
+        # )
+        self.agents = [agent_1_cls, agent_2_cls]
         self.scores = [0.0] * len(self.agents)
         self.setup_virtual_players()
 
-    def propose_trade(self, proposer_id, responder_id, commodity, quantity):
+    def propose_trade(
+        self,
+        proposer_id,
+        responder_id,
+        offered_commodity,
+        requested_commodity,
+        quantity,
+    ):
         print(
             f"Proposer (Agent {proposer_id}) Hand before trade:",
             self.virtual_player_hands[self.agent_virtual_players[proposer_id][0]],
@@ -127,7 +135,9 @@ class PitGame(Game):
             if proposal.proposer_id != proposer_id
         ]
 
-        proposal = TradeProposal(proposer_id, responder_id, commodity, quantity)
+        proposal = TradeProposal(
+            proposer_id, responder_id, offered_commodity, requested_commodity, quantity
+        )
         self.pending_trades.append(proposal)
 
     def respond_to_trade(self, responder_id, proposal_id, accept):
@@ -223,27 +233,27 @@ class PitGame(Game):
         pending_trade_description = ""
         for proposal in self.pending_trades:
             if proposal.responder_id == agent.agent_id and proposal.status == "pending":
-                pending_trade_description = f"Pending trade: {proposal.quantity} x {proposal.commodity} from Agent {proposal.proposer_id}. Accept or Reject?"
+                pending_trade_description = f"Pending trade: Offer {proposal.quantity} {proposal.offered_commodity} for {proposal.requested_commodity} from Agent {proposal.proposer_id}. Accept or Reject?"
 
         observation_text = f"Agent {agent.agent_id}, it's your turn. Your hand: {hand_description}. {pending_trade_description}"
 
         available_actions = AvailableActions(
-            instructions="Choose a commodity and quantity to trade, or respond to pending trades",
-            predefined={
-                f"{commodity.name}_{quantity}": f"Trade {quantity} {commodity.name}"
-                for commodity in self.commodities
-                for quantity in range(1, 5)
-            },
+            instructions="Choose commodities and quantities to trade, or respond to pending trades",
+            predefined={},
             openended={},
         )
+
+        for offer_commodity in self.commodities:
+            for request_commodity in self.commodities:
+                if offer_commodity.name != request_commodity.name:
+                    for quantity in range(1, 5):
+                        action_id = f"Offer_{offer_commodity.name}_Request_{request_commodity.name}_{quantity}"
+                        action_description = f"Offer {quantity} {offer_commodity.name} for {quantity} {request_commodity.name}"
+                        available_actions.predefined[action_id] = action_description
 
         if pending_trade_description:
             available_actions.predefined["accept"] = "Accept trade proposal"
             available_actions.predefined["reject"] = "Reject trade proposal"
-
-        if self.last_trade_outcome:
-            observation_text += f" {self.last_trade_outcome}"
-            self.last_trade_outcome = ""
 
         return Observation(text=observation_text), available_actions
 
@@ -255,6 +265,7 @@ class PitGame(Game):
         other_agent: Agent,
     ):
         action_parts = action.action_id.split("_")
+        print(action_parts)
 
         if action.action_id in ["accept", "reject"]:
             for proposal in self.pending_trades:
@@ -274,16 +285,31 @@ class PitGame(Game):
                     self.pending_trades.remove(proposal)
                     return
 
-        elif len(action_parts) == 2:
-            commodity, quantity_str = action_parts
-            quantity = int(quantity_str)
+        # if len(action_parts) == 2:
+        #     commodity, quantity_str = action_parts
+        #     quantity = int(quantity_str)
+        #     if commodity in [c.name for c in self.commodities] and 1 <= quantity <= 4:
+        #         self.propose_trade(agent.agent_id, None, commodity, quantity)
+        #     else:
+        #         print("Invalid trade proposal. No trade created.")
 
-            if commodity in [c.name for c in self.commodities] and 1 <= quantity <= 4:
+        elif len(action_parts) == 5 and action_parts[0] == "Offer":
+            offered_commodity = action_parts[1]
+            requested_commodity = action_parts[3]
+            quantity = int(action_parts[4])
+
+            if offered_commodity in [
+                c.name for c in self.commodities
+            ] and requested_commodity in [c.name for c in self.commodities]:
                 self.propose_trade(
-                    agent.agent_id, other_agent.agent_id, commodity, quantity
+                    agent.agent_id,
+                    other_agent.agent_id,
+                    offered_commodity,
+                    requested_commodity,
+                    quantity,
                 )
                 print(
-                    f"Trade proposal created by Agent {agent.agent_id} to trade {quantity} {commodity} with Agent {other_agent.agent_id}."
+                    f"Trade proposal created by Agent {agent.agent_id} to offer {quantity} {offered_commodity} for {quantity} {requested_commodity} with Agent {other_agent.agent_id}."
                 )
             else:
                 print("Invalid trade proposal. No trade created.")
