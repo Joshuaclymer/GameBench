@@ -34,7 +34,7 @@ def test():
     game.player2.play(game.player2.hand[0], True, game.board.theaters[2])
     game.player2.play(game.player2.hand[0], False, game.board.theaters[2])
 
-    game.board.theaters[0].player_cards[0][0].flip()
+    # game.board.theaters[0].player_cards[0][0].flip()
     game.board.theaters[0].player_cards[1][0].flip()
 
     # after a card is played faceup or flipped faceup its tactical ability takes effect immediately
@@ -43,14 +43,18 @@ def test():
 
     # Testing Specific Cards
 
-    target = Card('Airdrop', 'Air', 2, 'Instant', 'The next time you play a card, you may play it to a non-matching theater')
+    target = Card('Manuever', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater')
+    game.player1.hand.append(target)
     game.player1.hand.append(target)
     game.player2.hand.append(target)
-    # print(game.player1.hand)
-    # play to first theater
+    print("Player 1 hand")
+    print(game.player1.hand)
+    # play to second theater
     game.player1.play(target, True, game.board.theaters[1])
+    print("Player 1 hand after play")
+    print(game.player1.hand)
     game.effect_manager.add_effect(target, game.player1.id)
-    # play to second theater for p2
+    # play to third theater for p2
     game.player2.play(target, True, game.board.theaters[2])
     game.effect_manager.add_effect(target, game.player2.id)
     # print(game.board.get_board_string(game.player1.id))
@@ -61,29 +65,55 @@ def test():
     # print("testing get_adjacent_theaters")
     # print(game.board.get_adjacent_theaters(1))
 
+    # testing get observation
     observation, available_actions = game.get_observation(agent_1)
     # observation, available_actions = game.get_observation(agent_2)
     print("\n------------------------\n")
     print("get observation")
+    pprint.pprint(available_actions.predefined)
     print(observation.text)
-    # pprint.pprint(available_actions.predefined)
-    # print(observation.text)
 
-    print("testing get_theater_strengths")
-    print(game.board.get_theater_strengths(game.effect_manager))
+    # print("testing get_theater_strengths")
+    # print(game.board.get_theater_strengths(game.effect_manager))
 
-    print("testing modify_available_actions")
-    # pprint.pprint(available_actions.predefined)
-    modified_actions = game.effect_manager.modify_available_actions(available_actions, game.player1.hand, game.player1.id)
-    print("modified actions")
-    pprint.pprint(modified_actions.predefined)
+    # testing modify_available_actions
+    # print("testing modify_available_actions")
+    # # pprint.pprint(available_actions.predefined)
+    # modified_actions = game.effect_manager.modify_available_actions(available_actions, game.player1.hand, game.player1.id)
+    # print("modified actions")
+    # pprint.pprint(modified_actions.predefined)
 
-    action = Action(action_id="0")
-    card = game.find_card_from_action(action, modified_actions)
-    print("card from action")
-    print(card)
-    
-    # TODO: check if destroy trigger function works by testing both cards in test.py
+    # testing find_card_from_action
+    # action = Action(action_id="0")
+    # card = game.find_card_from_action(action, modified_actions)
+    # print("card from action")
+    # print(card)
+
+    # Pick an action
+    action = Action(action_id="5")
+
+    # testing check destroy trigger
+    # print("testing check destroy trigger")
+    # print(game.check_destroy_triggers(action, available_actions))
+
+    # testing find faceup or facedown status
+    # print("testing find faceup or facedown status")
+    # print(game.find_faceup_or_facedown_from_action(action, available_actions))
+
+    # test play_card_from_action
+    # print("testing play_card_from_action")
+    played_card, played_to_theater = game.play_card_from_action(action, available_actions, agent_1)
+    # print("observation of next player")
+    # next_observation, next_available_actions = game.get_observation(agent_2)
+    # # pprint.pprint(next_available_actions.predefined)
+    # print(next_observation.text)
+    # TODO: build out update method for easier testing
+
+    # Testing resolve effect
+    print("testing resolve effect")
+    game.resolve_effect(played_card, agent_1, played_to_theater)
+
+    # TODO: test if resolve effect adds an effect if flipping faceup
 
     print("Test complete")
 

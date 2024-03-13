@@ -17,10 +17,3 @@ class Player:
         if not faceup:
             card.flip()
         theater.player_cards[self.id].append(card)
-
-    # TODO: make a function that outputs where a card can be played?
-    # we need to handle a few effects
-        # play to an adjacent theater Reinforce, 
-        # play to any theater Air Drop
-
-    # handle restraints to where a card can be played when generating available actions

@@ -90,10 +90,13 @@ class Board:
             return_string += theater.get_theater_string(owner_id) + "\n"
         return return_string
 
-    def get_theater(self, theater_id: str):
-        # return the theater with the given id
-        pass
-    
+    def get_theater_by_name(self, theater_name: str) -> Theater:
+        # return the theater with the given name
+        for theater in self.theaters:
+            if theater.name == theater_name:
+                return theater
+        return None
+
     def search_ongoing_effect_location(self, card: Card, effect_manager: EffectManager) -> List[Optional[int]]:
         # this function checks if a card is in play and in effect manager as well as which theater it is in
         target_theater = [None, None]
@@ -122,6 +125,13 @@ class Board:
             return [0, 2]
         # For theaters at the ends (0 and 2), they only have one adjacent theater (1)
         return [1]
+    
+    def get_theater_index(self, theater_name: str) -> int:
+        # return the index of the theater with the given name
+        for index, theater in enumerate(self.theaters):
+            if theater.name == theater_name:
+                return index
+        return None
     
 
     def get_theater_strengths(self, effect_manager: EffectManager) -> List[Tuple[int, int]]:

@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import List, Dict, Optional, Tuple
 from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 import ast
-from .board import Board
+from .board import Board, Theater
 from .player import Player
 from .cards import Card, Deck
 import random
@@ -125,7 +125,7 @@ class AirLandSea(Game):
         # { 'Play {card.name}' : 'Play {card} faceup to {card.theater}'}}
         cards_to_play = {}
         for action_id, card in enumerate(hand):
-            cards_to_play[str(action_id)] = f"Play {card} faceup to {card.theater}"
+            cards_to_play[str(action_id)] = f"Play {card} faceup to {card.theater}."
         # Facedown cards can be played to any theater, make 3 actions for each card for each of the 3 theaters.
         # facedown action_id must increase counting up from len(hand)
         for action_id, card in enumerate(hand, start=len(hand)):
@@ -135,8 +135,10 @@ class AirLandSea(Game):
         for action_id, card in enumerate(hand, start=len(hand)*3):
             cards_to_play[str(action_id)] = f"Play {card} facedown to Sea. Strength will be 2 while facedown."
 
+        # TODO: add action to withdraw
+
         available_actions = AvailableActions(
-            instructions = "Select a card from your hand to play onto its associated theater { 'Card Name': 'Theater' }",
+            instructions = "Select a card from your hand to play to a theater",
             predefined = cards_to_play,
             openended = {}
         )
@@ -149,7 +151,9 @@ class AirLandSea(Game):
         # can use name and theater to find the card
         # name will suffice except for Manuever
         # find name in string (comes after "Play" and before the '(')
-        card_name_pattern = r'Play\s+([^(]+)\s+\('
+
+        # card_name_pattern = r'Play\s+([^(]+)\s+\(' # old
+        card_name_pattern = r"(?:Play|Flip)\s+([^(]+)\s+\(" # checks between Play or Flip and the '('
         theater_pattern = r'\d,\s+(\w+)\s*[),]?'
         card_name_match = re.search(card_name_pattern, action_desc)
         if card_name_match:
@@ -162,6 +166,7 @@ class AirLandSea(Game):
         else:
             theater = None
 
+        print("inside find_card_from_action")
         print("card name:", card_name + ".end")
         print("theater:", theater + ".end")
         search_deck = Deck()
@@ -169,6 +174,30 @@ class AirLandSea(Game):
             if card.name == card_name and card.theater == theater:
                 return card
         return None
+
+    def find_theater_played_from_action(self, action : Action, available_actions: AvailableActions) -> str:
+        # returns string of theater name
+        action_id = action.action_id
+        action_desc = available_actions.predefined[action_id]
+        theater_pattern = r'to (\w+)\.' # after the word "to" and before the period
+        if action_desc.startswith("Flip"):
+            theater_pattern = r'\)\s+in\s+(\w+)' # the word after the ')' and 'in'
+        theater_match = re.search(theater_pattern, action_desc)
+        if theater_match:
+            theater = theater_match.group(1)
+        else:
+            theater = None
+        print("inside find_theater_played_from_action")
+        print("theater:", theater)
+        return theater
+
+    def find_faceup_or_facedown_from_action(self, action : Action, available_actions : AvailableActions) -> bool:
+        action_id = action.action_id
+        action_desc = available_actions.predefined[action_id]
+        if 'faceup' not in action_desc:
+            return "facedown"
+        else:
+            return "faceup"
 
     def check_destroy_triggers(self, action : Action, available_actions : AvailableActions):
         # returns a flag indicating whether to destroy the card or not
@@ -191,9 +220,10 @@ class AirLandSea(Game):
                 # destroy the card
                 destroy = True
         if any(card.name == 'Blockade' for player_cards in self.effect_manager.effect_cards for card in player_cards):
-            just_played_card = find_card_from_action(action, available_actions)
+            just_played_card = self.find_card_from_action(action, available_actions)
             # find location of Blockade card
-            blockade_location = self.board.search_ongoing_effect_location('Blockade', self.effect_manager)
+            blockade = Card('Blockade', 'Sea', 5, 'Ongoing', 'If any player plays a card to an adjacent theater occupied by at least 3 other cards, destroy that card')
+            blockade_location = self.board.search_ongoing_effect_location(blockade, self.effect_manager)
             # blockade_location looks like [p1_theater_id, p2_theater_id]
             # doesn't matter which player's it is, just need to find the adjacent theaters of both if they both exist
             # find adjacent theaters to the Blockade card's current position
@@ -202,26 +232,53 @@ class AirLandSea(Game):
             # merge the two lists
             adjacent_theaters = list(set(adjacent_theaters_p1 + adjacent_theaters_p2))
             
-            just_played_card_location = None
             # find location of just_played_card
-            for player_id in range(2):
-                for theater in self.board.theaters:
-                    if just_played_card in theater.player_cards[player.id]:
-                        just_played_card_location = theater.id
+            just_played_card_location = self.find_theater_played_from_action(action, available_actions) # str
 
-            for theater in adjacent_theaters:
-                if len(theater.player_cards[0]) + len(theater.player_cards[1]) >= 3 and theater.id == just_played_card_location:
+            # access theaters by indices
+
+            for theater_ind in adjacent_theaters:
+                if len(self.board.theaters[theater_ind].player_1_cards) + len(self.board.theaters[theater_ind].player_2_cards) >= 3 and self.board.theaters[theater_ind].name == just_played_card_location:
                     destroy = True
         return destroy
-
+    
     # I pass in observation + available actions to agent, then it will choose one
     def update(self, action : Action, available_actions : AvailableActions, agent : Agent):
         #  To make dissapearing and reappearing work for ongoing effects (by flip)
             # on card flip, call add effect and resolve effect
             # this will be done when i we process agent output in update()
         pass
+    
+    def play_card_from_action(self, action : Action, available_actions : AvailableActions, agent : Agent):
+        player = self.get_player_by_agent_id(agent.agent_id)
+        # take in action and available action string and turn it into playing a card
+        card = self.find_card_from_action(action, available_actions) # Card Object
+        theater_played_str = self.find_theater_played_from_action(action, available_actions) # theater name as string
+        theater = self.board.get_theater_by_name(theater_played_str)
+        faceup_or_facedown = self.find_faceup_or_facedown_from_action(action, available_actions) # string
+        is_faceup = True if faceup_or_facedown == 'faceup' else False
 
-    def resolve_effect(self, card : Card, player_id : int):
+        player.play(card, is_faceup, theater)
+        return card, theater
+    
+    def flip_card_from_action(self, action : Action, available_actions : AvailableActions, agent : Agent):
+        # find card name
+        card = self.find_card_from_action(action, available_actions)
+        # find theater
+        theater_chosen_str = self.find_theater_played_from_action(action, available_actions) # string
+        theater = self.board.get_theater_by_name(theater_chosen_str)
+        # apply flip
+        for player in self.players:
+            for current_card in theater.player_cards[player.id]:
+                if current_card == card:
+                    current_card.flip()
+                    return current_card, theater
+        return None, None
+
+    def resolve_effect(self, card : Card, agent : Agent, theater : Theater):
+        # takes in the card that was just played, the agent that played it, and the theater it was played to
+        player = self.get_player_by_agent_id(agent.agent_id)
+        opponent = self.get_player_by_agent_id(1 - agent.agent_id)
         # applies game logic of tactical abilities that happen immediately
         # does not handle
             # Support (calculated at end of game)
@@ -231,50 +288,111 @@ class AirLandSea(Game):
         # Handles
         # Manuever, Ambush, Transport, Redeploy, Reinforce, Disrupt (immediate extra action)
 
-        # the extra action procedures are to be coded in the game class
-
-        # TODO: how do i decompose this to make code less repetitive?
-        # only code that run's twice would be the standard play routine (play and Redeploy)
-        # normal loop is
+        # normal loop:
             # get_observation
             # modify_available_actions
             # get agent output action
-            # apply action
+                # check if withdraw
             # check_destroy_triggers
-                # if destroy = True don't proceed
+            # apply action
             # add_effect
             # resolve_effect
-        # but with flip during resolve effect, we do extra action loop (Manuever, Ambush)
+
+
+        # the extra action procedures are to be coded in the game class
+
+        if card.name == 'Manuever':
+            # flip an uncovered card in an adjacent theater
+                # find which theater is adjacent to the theater the card was played in
+            # get_observation + modified available actions dict
+                # call get observation normally on the player
+                # generate available actions for the player that are only to flip an uncovered card in an adjacent theater
+            # get agent output action
+            # apply flip
+            # add effect
+            # resolve effect
+            observation, _ = self.get_observation(agent)
+            # modify available actions to only allow flipping an uncovered card in an adjacent theater
+            # generate actions to flip an uncovered card in an adjacent theater
+            uncovered_cards = []
+            cards_to_flip = {}
+            theater_index = self.board.get_theater_index(theater.name)
+            adjacent_theaters_indices = self.board.get_adjacent_theaters(theater_index)
+            adjacent_theaters = []
+            for theater_ind in adjacent_theaters_indices:
+                adjacent_theaters.append(self.board.theaters[theater_ind])
+            # go through cards in each theater and find uncovered cards
+            # uncovered just means it is the last in the list (index is -1)
+            for theater in adjacent_theaters:
+                for player_id in range(2):
+                    if theater.player_cards[player_id]:
+                        uncovered_card = theater.player_cards[player_id][-1]
+                        uncovered_cards.append((uncovered_card, theater))
+
+            for action_id, (card, theater) in enumerate(uncovered_cards):
+                if card.facedown:
+                    cards_to_flip[str(action_id)] = f"Flip {card} in {theater.name} faceup."
+                elif not card.facedown:
+                    # faceup
+                    cards_to_flip[str(action_id)] = f"Flip {card} in {theater.name} facedown."
+                else:
+                    print("error: card is neither faceup nor facedown")
+
+            manuever_available_actions = AvailableActions(
+                instructions = "Select an uncovered card from an adjacent theater to flip.",
+                predefined = cards_to_flip,
+                openended = {}
+            )
+            print("manuever_available_actions")
+            print(manuever_available_actions.predefined)
+            # call take action
+            agent_output = agent.take_action(self.rules, observation, manuever_available_actions, True)
+            flipped_card, target_theater = self.flip_card_from_action(agent_output, manuever_available_actions, agent)
+            if flipped_card and not flipped_card.facedown:
+                # add effect if flipped faceup
+                self.effect_manager.add_effect(flipped_card, player.id)
+                # resolve effect (if flipped faceup)
+                self.resolve_effect(flipped_card, agent, target_theater)
+        elif card.name == 'Ambush':
+            # flip any uncovered card
             # get_observation + modified available actions dict
             # get agent output action
             # apply flip
-            # add_effect
-            # resolve_effect
-        # move extra action (Transport)
+            # add effect
+            # resolve effect
+            pass
+        elif card.name == 'Transport':
+            # move 1 of your cards to a different theater
             # get_observation + modified available actions dict
             # get agent output action
             # apply move
-        # return extra action (Redeploy)
+            pass
+        elif card.name == 'Redeploy':
+            # return 1 of your facedown cards to your hand. If you do, play a card
             # Return
                 # get_observation + modified available actions dict
                 # get agent output action
                 # apply return
-            # play (normal loop)
+            # play (normal loop) (maybe this is just calling the update function again on the same player)
                 # get_observation
                 # modify_available_actions
                 # get agent output action
-                # apply action
                 # check_destroy_triggers
+                # apply action
                 # add_effect
                 # resolve_effect
-        # draw and play facedown (Reinforce)
+            pass
+        elif card.name == 'Reinforce':
+            # draw 1 card and play it facedown to an adjacent theater
             # draw new card
             # play (but only facedown actions)
                 # get_observation + modified available actions dict (only facedown)
                 # get agent output action
-                # apply action
                 # check_destroy_triggers
-        # Disrupt
+                # apply action
+            pass
+        elif card.name == 'Disrupt':
+            # Starting with you, both players choose and flip 1 of their uncovered cards
             # owner -> get_observation + modified available actions dict
             # get agent output action
             # apply flip
@@ -285,7 +403,9 @@ class AirLandSea(Game):
             # apply flip
             # add effect (if flipped faceup)
             # resolve effect (if flipped faceup)
-        pass 
+            pass
+        else:
+            pass
 
     # Returns the scores for agent_1 and agent_2 after the game is finished.
     # the high level gameplay loop
@@ -344,55 +464,4 @@ class AirLandSea(Game):
 
         # the extra action procedures are to be coded in the game class
 
-        # TODO: how do i decompose this to make code less repetitive?
-        # normal loop is
-            # get_observation
-            # modify_available_actions
-            # get agent output action
-            # apply action
-            # post_play_triggers
-            # add_effect
-            # resolve_effect
-        # but with flip during resolve effect, we do extra action loop (Manuever, Ambush)
-            # get_observation + modified available actions dict
-            # get agent output action
-            # apply flip
-            # add_effect
-            # resolve_effect
-        # move extra action (Transport)
-            # get_observation + modified available actions dict
-            # get agent output action
-            # apply move
-        # return extra action (Redeploy)
-            # Return
-                # get_observation + modified available actions dict
-                # get agent output action
-                # apply return
-            # play (normal loop)
-                # get_observation
-                # modify_available_actions
-                # get agent output action
-                # apply action
-                # post_play_triggers
-                # add_effect
-                # resolve_effect
-        # draw and play facedown (Reinforce)
-            # draw new card
-            # play (but only facedown actions)
-                # get_observation + modified available actions dict (only facedown)
-                # get agent output action
-                # apply action
-                # post_play_triggers
-        # Disrupt
-            # owner -> get_observation + modified available actions dict
-            # get agent output action
-            # apply flip
-            # add effect (if flipped faceup)
-            # resolve effect (if flipped faceup)
-            # opponent -> get_observation + modified available actions dict
-            # get agent output action
-            # apply flip
-            # add effect (if flipped faceup)
-            # resolve effect (if flipped faceup)
-            
         pass
