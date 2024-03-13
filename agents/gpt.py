@@ -8,6 +8,7 @@ import json
 from PIL import Image
 import base64
 from io import BytesIO
+import re
 
 
 action_format_instructions_no_openended = """\
@@ -219,11 +220,11 @@ class OpenAITextAgent(Agent):
 
             if action["action"] in valid_actions:
                 self.print("GPT chose valid action", action)
-                explain = re.findall(r"Explain\((H\d+)\)", result["action"])
+                explain = re.findall(r"Explain\((H\d+)\)", action["action"])
                 if len(explain):
                     self.print("GPT is asking for explanation.")
                     rule = details_dict[explain[0]]
-                    desc = rules.additional_details[desc]
+                    desc = rules.additional_details[rule]
                     messages.append({"role": "user", "content": desc})
                     continue
                 result = action
