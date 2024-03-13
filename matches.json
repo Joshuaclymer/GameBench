@@ -1,242 +1,217 @@
 [
     {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.5,
-        "gpt-4": 0.5
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 0.5,
-        "gpt-4": 0.5
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
-    },
-    {
-        "game": "tic_tac_toe",
-        "random": 1.0,
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
         "gpt-4": 0.0
     },
     {
-        "game": "tic_tac_toe",
-        "random": 0.0,
-        "gpt-4": 1.0
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "gpt-4": 0.0
     },
     {
-        "game": "two_rooms_and_a_boom",
-        "gpt-4": 1,
-        "gpt-3.5": 0
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "gpt-4": 0.0
     },
     {
-        "game": "two_rooms_and_a_boom",
-        "gpt-4": 0,
-        "gpt-3.5": 1
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "gpt-4": 0.0
     },
     {
-        "game": "two_rooms_and_a_boom",
-        "gpt-4": 1,
-        "gpt-3.5": 0
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "gpt-4": 0.0
     },
     {
-        "game": "two_rooms_and_a_boom",
-        "gpt-4": 0,
-        "gpt-3.5": 1
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "gpt-4": 0.0
     },
     {
-        "game": "two_rooms_and_a_boom",
-        "gpt-4": 0,
-        "gpt-3.5": 1
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "gpt-4": 0.0
     },
     {
-        "game": "two_rooms_and_a_boom",
-        "gpt-4": 0,
-        "gpt-3.5": 1
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "gpt-4": 0.0
     },
     {
-        "game": "two_rooms_and_a_boom",
-        "gpt-4": 0,
-        "gpt-3.5": 1
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "gpt-4": 0.0
     },
     {
-        "game": "two_rooms_and_a_boom",
-        "gpt-4": 1,
-        "gpt-3.5": 0
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "gpt-4": 0.0
     },
     {
-        "game": "two_rooms_and_a_boom",
-        "gpt-4": 0,
-        "gpt-3.5": 1
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt-4-cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt-4-cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt-4-cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt-4-cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt-4-cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 1.0,
+        "gpt-3.5-bap": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt-3.5-bap": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt-3.5-bap": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 1.0,
+        "gpt-3.5-bap": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt-3.5-bap": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3cot": 1.0
     }
 ]
