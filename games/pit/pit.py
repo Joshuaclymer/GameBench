@@ -19,7 +19,6 @@ class Observation:
 class TradeProposal:
     proposer_id: int
     offered_commodity: str
-    requested_commodity: str
     quantity: int
     status: str = "pending"
 
@@ -112,13 +111,7 @@ class PitGame(Game):
         self.scores = [0.0] * len(self.agents)
         self.setup_virtual_players()
 
-    def propose_trade(
-        self,
-        proposer_id,
-        offered_commodity,
-        requested_commodity,
-        quantity,
-    ):
+    def propose_trade(self, proposer_id, offered_commodity, quantity):
         print(
             f"Proposer (Agent {proposer_id}) Hand before trade:",
             self.virtual_player_hands[self.agent_virtual_players[proposer_id][0]],
@@ -128,49 +121,47 @@ class PitGame(Game):
             for proposal in self.pending_trades
             if proposal.proposer_id != proposer_id
         ]
-
-        proposal = TradeProposal(
-            proposer_id, offered_commodity, requested_commodity, quantity
-        )
+        proposal = TradeProposal(proposer_id, offered_commodity, quantity)
         self.pending_trades.append(proposal)
         print(
-            f"Agent {proposer_id} proposed a trade offering {quantity} {offered_commodity} for {quantity} {requested_commodity}."
+            f"Agent {proposer_id} proposed a trade offering {quantity} {offered_commodity}."
         )
 
-    def respond_to_trade(self, responder_id, proposal_id, accept):
+    def respond_to_trade(
+        self, responder_id, proposal_id, accept, offered_commodity=None
+    ):
         proposal = next(
-            (
-                p
-                for p in self.pending_trades
-                if p.proposer_id == proposal_id and p.responder_id == responder_id
-            ),
-            None,
+            (p for p in self.pending_trades if p.proposer_id == proposal_id), None
         )
-        if proposal:
-            if accept:
-                proposal.status = "accepted"
-                self.execute_trade(proposal)
-            else:
-                proposal.status = "rejected"
+        if proposal and accept and offered_commodity:
+            self.execute_trade(proposal, responder_id, offered_commodity)
             self.pending_trades.remove(proposal)
-        if not accept:
-            self.last_trade_outcome = "The last trade proposal was rejected."
-            self.last_trade_outcome = ""
+        elif proposal:
+            self.pending_trades.remove(proposal)
 
-    def execute_trade(self, proposal):
-        print("Executing trade:", proposal)
+    def execute_trade(self, proposal, responding_agent_id, responding_agent_commodity):
         if proposal.status == "accepted":
-            for vp_id in self.agent_virtual_players[proposal.proposer_id]:
-                self.virtual_player_hands[vp_id][
-                    proposal.commodity
+            proposer_vp_ids = self.agent_virtual_players[proposal.proposer_id]
+            responder_vp_ids = self.agent_virtual_players[responding_agent_id]
+
+            for proposer_vp_id in proposer_vp_ids:
+                self.virtual_player_hands[proposer_vp_id][
+                    proposal.offered_commodity
                 ] -= proposal.quantity
-            for vp_id in self.agent_virtual_players[proposal.responder_id]:
-                self.virtual_player_hands[vp_id][
-                    proposal.commodity
+                self.virtual_player_hands[proposer_vp_id][
+                    responding_agent_commodity
                 ] += proposal.quantity
-            self.last_trade_outcome = f"Trade proposal to trade {proposal.quantity} {proposal.commodity} was accepted."
+
+            for responder_vp_id in responder_vp_ids:
+                self.virtual_player_hands[responder_vp_id][
+                    responding_agent_commodity
+                ] -= proposal.quantity
+                self.virtual_player_hands[responder_vp_id][
+                    proposal.offered_commodity
+                ] += proposal.quantity
+
+            self.last_trade_outcome = f"Trade completed between Agent {proposal.proposer_id} and Agent {responding_agent_id}."
             self.check_corners_update_score()
-            self.last_trade_outcome = ""
 
     def check_corners_update_score(self):
         for vp_id, hand in self.virtual_player_hands.items():
@@ -229,9 +220,9 @@ class PitGame(Game):
 
         pending_trade_description = ""
         for proposal in self.pending_trades:
-            # Check if the current agent is not the proposer of the trade
+            # Check if the current agent is not the proposer of the trade and the trade is pending
             if agent.agent_id != proposal.proposer_id and proposal.status == "pending":
-                pending_trade_description += f"Pending trade: Offer {proposal.quantity} {proposal.offered_commodity} for {proposal.requested_commodity} from Agent {proposal.proposer_id}. Accept or Reject? "
+                pending_trade_description += f"Pending trade: Offer {proposal.quantity} {proposal.offered_commodity} from Agent {proposal.proposer_id}. Accept or Reject? "
 
         observation_text = f"Agent {agent.agent_id}, it's your turn. Your hand: {hand_description}. {pending_trade_description}"
 
@@ -241,13 +232,12 @@ class PitGame(Game):
             openended={},
         )
 
-        for offer_commodity in self.commodities:
-            for request_commodity in self.commodities:
-                if offer_commodity.name != request_commodity.name:
-                    for quantity in range(1, 5):
-                        action_id = f"Offer_{offer_commodity.name}_Request_{request_commodity.name}_{quantity}"
-                        action_description = f"Offer {quantity} {offer_commodity.name} for {quantity} {request_commodity.name}"
-                        available_actions.predefined[action_id] = action_description
+        # Loop to create action IDs for offering commodities
+        for commodity in self.commodities:
+            for quantity in range(1, 5):
+                action_id = f"Offer_{commodity.name}_{quantity}"
+                action_description = f"Offer {quantity} {commodity.name}"
+                available_actions.predefined[action_id] = action_description
 
         if pending_trade_description:
             available_actions.predefined["accept"] = "Accept trade proposal"
@@ -263,7 +253,6 @@ class PitGame(Game):
         other_agent: Agent,
     ):
         action_parts = action.action_id.split("_")
-        print(action_parts)
 
         if action.action_id in ["accept", "reject"]:
             for proposal in self.pending_trades:
@@ -272,7 +261,10 @@ class PitGame(Game):
                     and proposal.status == "pending"
                 ):  # Ensure agent is not the proposer
                     if action.action_id == "accept":
-                        self.execute_trade(proposal)
+                        # Here, you'll need to pass additional parameters for responding agent ID and commodity when calling execute_trade
+                        self.execute_trade(
+                            proposal, agent.agent_id, None
+                        )  # Placeholder for the responding agent's commodity
                         print(
                             f"Trade accepted between Agent {proposal.proposer_id} and Agent {agent.agent_id}."
                         )
@@ -283,14 +275,12 @@ class PitGame(Game):
                     self.pending_trades.remove(proposal)
                     break
 
-        elif len(action_parts) == 5 and action_parts[0] == "Offer":
+        elif len(action_parts) == 3 and action_parts[0] == "Offer":
             offered_commodity = action_parts[1]
-            requested_commodity = action_parts[3]
-            quantity = int(action_parts[4])
+            quantity = int(action_parts[2])
 
-            self.propose_trade(
-                agent.agent_id, offered_commodity, requested_commodity, quantity
-            )
+            # Since you're not using 'requested_commodity' anymore, it's not included in propose_trade
+            self.propose_trade(agent.agent_id, offered_commodity, quantity)
 
         else:
             print("Invalid action received.")
