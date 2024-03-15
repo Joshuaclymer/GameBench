@@ -43,9 +43,9 @@ class Theater:
                 card_string = str(card)
                 # only if the owner is looking at their own card that is also facedown
                 if card.facedown == True: 
-                    card_string = re.sub(r' \(\d', f"] (2-[{card.strength}]", card_string)
+                    card_string = re.sub(r' \(\d', f"> (2-<{card.strength}>", card_string)
                     if player_id == owner_id:
-                        card_string = "Facedown-[" + card_string
+                        card_string = "Facedown-<" + card_string
                     else: 
                         # viewing as opponent
                         # when viewing as opponent just make the whole card string equal "Facedown (2)"
@@ -77,7 +77,9 @@ class Board:
 
     def __post_init__(self):
         # shuffle theaters into random order
-        random.shuffle(self.theaters)
+        # random.shuffle(self.theaters)
+        # TODO: change back to random when playing for real
+        pass
 
     def rotate_theater(self):
         # rotate the theaters clockwise
@@ -112,6 +114,14 @@ class Board:
             return None
         return target_theater
 
+    def search_card(self, card_name: str, theater_name: str) -> Card:
+        # return the card with the given name and theater
+        theater = self.get_theater_by_name(theater_name)
+        for player_id in range(2):
+            for card in theater.player_cards[player_id]:
+                if card.name == card_name and card.theater == theater_name:
+                    return card
+        return None
     
     def get_adjacent_theaters(self, theater_index) -> List[int]:
         """

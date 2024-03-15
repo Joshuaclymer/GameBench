@@ -16,81 +16,96 @@ def test():
     agent_2 = game.agents[1]
     # print("Game id:",game.id)
 
-    # testing theater string
-    # print(game.board.theaters[0].get_theater_string())
-    # testing flip function
-    # game.board.theaters[0].player_cards[1][-1].flip()
-    # test board string function
-    # print(game.board.get_board_string())
+    # constant testing environment
+    game.player1.hand = [Card('Support', 'Air', 1, 'Ongoing', 'You gain +3 strength in each adjacent theater'),
+                            Card('Air Drop', 'Air', 2, 'Instant', 'The next time you play a card, you may play it to a non-matching theater'),
+                            Card('Manuever', 'Air', 3, 'Instant', 'Flip an uncovered card in an adjacent theater'),
+                            Card('Aerodrome', 'Air', 4, 'Ongoing', 'You may play cards of strength 3 or less to non-matching theaters'),
+                            Card('Containment', 'Air', 5, 'Ongoing', 'If any player plays a facedown card, destroy that card'),
+                            Card('Transport', 'Sea', 1, 'Instant', 'You may move 1 of your cards to a different theater')]
+    
+    game.player2.hand = [Card('Ambush', 'Land', 2, 'Instant', 'Flip any uncovered card'),
+                            Card('Escalation', 'Sea', 2, 'Ongoing', 'All your facedown cards are now strength 4'),
+                            Card('Manuever', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater'),
+                            Card('Redeploy', 'Sea', 4, 'Instant', 'You may return 1 of your facedown cards to your hand. If you do, play a card'),
+                            Card('Blockade', 'Sea', 5, 'Ongoing', 'If any player plays a card to an adjacent theater occupied by at least 3 other cards, destroy that card'),
+                            Card('Super Battleship', 'Sea', 6)]
 
-    # print("hand sizes")
-    # print(len(game.player1.hand))
-    # print(len(game.player2.hand))
-
-    game.player1.play(game.player1.hand[0], True, game.board.theaters[0])
-    game.player2.play(game.player2.hand[0], True, game.board.theaters[0])
-    game.player2.play(game.player2.hand[0], True, game.board.theaters[0])
-    game.player2.play(game.player2.hand[0], True, game.board.theaters[1])
-    game.player2.play(game.player2.hand[0], True, game.board.theaters[2])
-    game.player2.play(game.player2.hand[0], False, game.board.theaters[2])
-
-    # game.board.theaters[0].player_cards[0][0].flip()
-    game.board.theaters[0].player_cards[1][0].flip()
-
+    game.player1.play(game.player1.hand[4], True, game.board.theaters[0])
+    game.player2.play(game.player2.hand[2], False, game.board.theaters[1])
     # after a card is played faceup or flipped faceup its tactical ability takes effect immediately
     # aka the effect manager is called
     # the effect manager is also called when a card is flipped facedown too (to get rid of it)
 
     # Testing Specific Cards
-
     target = Card('Manuever', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater')
-    game.player1.hand.append(target)
-    game.player1.hand.append(target)
-    game.player2.hand.append(target)
-    print("Player 1 hand")
-    print(game.player1.hand)
+    # target1 = Card('Aerodrome', 'Air', 4, 'Ongoing', 'You may play cards of strength 3 or less to non-matching theaters')
+    # target2 = Card('Redeploy', 'Sea', 4, 'Instant', 'You may return 1 of your facedown cards to your hand. If you do, play a card')
+    # game.player1.hand.append(target1)
+    # game.player2.hand.append(target2)
+    # game.player1.hand.append(target)
+    # print("Player 1 hand")
+    # print(game.player1.hand)
     # play to second theater
-    game.player1.play(target, True, game.board.theaters[1])
-    print("Player 1 hand after play")
-    print(game.player1.hand)
-    game.effect_manager.add_effect(target, game.player1.id)
+    # print("playing to second theater for p1")
+    # game.player1.play(target1, False, game.board.theaters[1])
+    # print("Player 1 hand after play")
+    # print(game.player1.hand)
+    # game.effect_manager.add_effect(target1, game.player1.id)
     # play to third theater for p2
-    game.player2.play(target, True, game.board.theaters[2])
-    game.effect_manager.add_effect(target, game.player2.id)
+    # print("playing to third theater for p2")
+    # game.player2.play(target2, False, game.board.theaters[2])
+    # game.effect_manager.add_effect(target2, game.player2.id)
     # print(game.board.get_board_string(game.player1.id))
-    print("Effect cards")
-    print(game.effect_manager.effect_cards)
+    # print("Effect cards")
+    # print(game.effect_manager.effect_cards)
     # print(game.board.search_ongoing_effect_location(support, game.effect_manager))
 
     # print("testing get_adjacent_theaters")
     # print(game.board.get_adjacent_theaters(1))
 
-    # testing get observation
-    observation, available_actions = game.get_observation(agent_1)
-    # observation, available_actions = game.get_observation(agent_2)
-    print("\n------------------------\n")
-    print("get observation")
-    pprint.pprint(available_actions.predefined)
-    print(observation.text)
-
     # print("testing get_theater_strengths")
     # print(game.board.get_theater_strengths(game.effect_manager))
 
-    # testing modify_available_actions
-    # print("testing modify_available_actions")
-    # # pprint.pprint(available_actions.predefined)
-    # modified_actions = game.effect_manager.modify_available_actions(available_actions, game.player1.hand, game.player1.id)
-    # print("modified actions")
-    # pprint.pprint(modified_actions.predefined)
+    current_agent_turn = agent_1
+    while True:
+        current_player = game.get_player_by_agent_id(current_agent_turn.agent_id)
+        print("current agent turn")
+        print(current_agent_turn.agent_id)
+        # testing get observation
+        observation, available_actions = game.get_observation(current_agent_turn)
+        # observation, available_actions = game.get_observation(agent_2)
+        print("\n------------------------\n")
+        print("get observation")
+        pprint.pprint(available_actions.predefined)
+        print(observation.text)
 
-    # testing find_card_from_action
-    # action = Action(action_id="0")
-    # card = game.find_card_from_action(action, modified_actions)
-    # print("card from action")
-    # print(card)
+        # testing modify_available_actions
+        # print("testing modify_available_actions")
+        # # pprint.pprint(available_actions.predefined)
+        print("calling modify available actions on:", current_player.id)
+        modified_actions = game.effect_manager.modify_available_actions(available_actions, current_player.hand, current_player.id)
+        # print("modified actions")
+        # pprint.pprint(modified_actions.predefined)
 
-    # Pick an action
-    action = Action(action_id="5")
+        # testing find_card_from_action
+        # action = Action(action_id="0")
+        # card = game.find_card_from_action(action, modified_actions)
+        # print("card from action")
+        # print(card)
+
+        # Pick an action
+        # action = Action(action_id="5")
+        action = current_agent_turn.take_action(game.rules, observation, modified_actions, True)
+        game.update(action, modified_actions, current_agent_turn)
+        # switch players
+        if current_agent_turn == agent_1:
+            print("changing turn from p1 to p2")
+            current_agent_turn = agent_2
+        else:
+            print("changing turn from p2 to p1")
+            current_agent_turn = agent_1
+
 
     # testing check destroy trigger
     # print("testing check destroy trigger")
@@ -102,18 +117,18 @@ def test():
 
     # test play_card_from_action
     # print("testing play_card_from_action")
-    played_card, played_to_theater = game.play_card_from_action(action, available_actions, agent_1)
+    # played_card, played_to_theater = game.play_card_from_action(action, available_actions, agent_1)
+    # game.effect_manager.add_effect(played_card, agent_1.agent_id)
     # print("observation of next player")
     # next_observation, next_available_actions = game.get_observation(agent_2)
     # # pprint.pprint(next_available_actions.predefined)
     # print(next_observation.text)
-    # TODO: build out update method for easier testing
 
     # Testing resolve effect
-    print("testing resolve effect")
-    game.resolve_effect(played_card, agent_1, played_to_theater)
+    # print("testing resolve effect")
+    # game.resolve_effect(played_card, agent_1, played_to_theater)
 
-    # TODO: test if resolve effect adds an effect if flipping faceup
+        print(game.board.get_board_string(agent_1.agent_id))
 
     print("Test complete")
 

@@ -17,3 +17,11 @@ class Player:
         if not faceup:
             card.flip()
         theater.player_cards[self.id].append(card)
+        print("Player", self.id + 1, "played", card, "to", theater.name, "Faceup:", faceup)
+
+    # i have theater type and card name
+    def search_hand(self, card_name: str, theater_name: str) -> Card:
+        for card in self.hand:
+            if card.name == card_name and card.theater == theater_name:
+                return card
+        return None

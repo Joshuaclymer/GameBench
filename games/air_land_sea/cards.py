@@ -16,7 +16,6 @@ class Card:
 
     def __str__(self):
         card_info = f"{self.name} ({self.strength}"
-        # TODO: move facedown logic to the theater class
         tactical_ablity_string = ""
         # if self.tactical_ability_type and not self.facedown:
         if self.tactical_ability_type:
@@ -29,16 +28,15 @@ class Card:
     
     def flip(self):
         if self.facedown:
+            print("flipping faceup")
             # flip faceup
             self.current_strength = self.strength
             self.facedown = False
         else:
+            print("flipping facedown")
             # flip facedown
             self.current_strength = 2
             self.facedown = True
-        # TODO:
-        # flipping needs to take card out of effects list or put it in
-        # done by event manager
 
 @dataclass
 class Deck:
