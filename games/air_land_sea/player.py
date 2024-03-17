@@ -7,7 +7,7 @@ from games.air_land_sea.board import Theater
 @dataclass
 class Player:
     id: int # either 0 or 1
-    supreme_commander: int
+    supreme_commander: int # either 0 or 1
     agent: Agent = None
     hand: List[Card] = field(default_factory=list)
     victory_points: int = 0

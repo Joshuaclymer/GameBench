@@ -39,12 +39,24 @@ class Theater:
             total_string = ""
             for i, card in enumerate(cards):
                 # TODO: apply Escalation, Cover Fire (strength increasing) to str(card)
+                # TODO: start with Escalation (will need to add functionality to get_theater_strengths in board.py)
+                """
+                display
+                counting
+                it is in effect manager
+                the options are, manipulate current_strength or don't
+                we would check for if a player has Escalation in effect manager,
+                """
+
+
+                # might be easier to affect the current strength in the card class, only problem is how to handle dissipation
+                # all of owner's facedown cards are strength 4
                 # owner sees the normal card but with "Facedown-" in front of the name and strength set to 2
                 card_string = str(card)
                 # only if the owner is looking at their own card that is also facedown
                 if card.facedown == True: 
                     card_string = re.sub(r' \(\d', f"> (2-<{card.strength}>", card_string)
-                    if player_id == owner_id:
+                    if (owner_id == player_id) or (owner_id == 3):
                         card_string = "Facedown-<" + card_string
                     else: 
                         # viewing as opponent
@@ -73,7 +85,7 @@ class Board:
         Theater('Sea'),
         Theater('Land')
     ])
-    ongoing_effects: List[Card] = field(default_factory=list) # ongoing effects that affect the board
+    # ongoing_effects: List[Card] = field(default_factory=list) # ongoing effects that affect the board
 
     def __post_init__(self):
         # shuffle theaters into random order
@@ -81,9 +93,16 @@ class Board:
         # TODO: change back to random when playing for real
         pass
 
-    def rotate_theater(self):
+    def clear_cards(self):
+        for theater in self.theaters:
+            theater.player_1_cards.clear()
+            theater.player_2_cards.clear()
+            for player_id in range(2):
+                theater.player_cards[player_id].clear()
+
+    def rotate_theaters(self):
         # rotate the theaters clockwise
-        self.theater_order.append(self.theaters.pop(0))
+        self.theaters.append(self.theaters.pop(0))
 
     def get_board_string(self, owner_id: int):
         # return a string representation of the board
@@ -116,11 +135,17 @@ class Board:
 
     def search_card(self, card_name: str, theater_name: str) -> Card:
         # return the card with the given name and theater
-        theater = self.get_theater_by_name(theater_name)
+        # theater = self.get_theater_by_name(theater_name)
+
+        # print("inside board.search_card - card_name:{}, theater_name:{}".format(card_name, theater_name))
+        # print("found theater:{}".format(theater))
+
         for player_id in range(2):
-            for card in theater.player_cards[player_id]:
-                if card.name == card_name and card.theater == theater_name:
-                    return card
+            for theater in self.theaters:
+                for card in theater.player_cards[player_id]:
+                    if card.name == card_name and card.theater == theater_name:
+                        return card
+        # print("inside board.search_card: could not find card in any theater")
         return None
     
     def get_adjacent_theaters(self, theater_index) -> List[int]:
@@ -152,6 +177,9 @@ class Board:
         theater_strengths = [[], [], []]
         support = Card('Support', 'Air', 1, 'Ongoing', 'You gain +3 strength in each adjacent theater')
         support_search = self.search_ongoing_effect_location(support, effect_manager)
+        escalation = Card('Escalation', 'Sea', 2, 'Ongoing', 'All your facedown cards are now strength 4')
+        escalation_search = self.search_ongoing_effect_location(escalation, effect_manager)
+        # TODO: this is one way, compute at end and display correctly, but do not change current_strength
         # find adjacent theaters if Support is in play to apply its effect
         # say we get [None, 0] (player 2 has Support in the third theater)
         for player_id in range(2):
@@ -171,3 +199,15 @@ class Board:
                         strength += 3
                 theater_strengths[index].append(strength)
         return theater_strengths
+
+    def move_card(self, card : Card, to_theater : Theater):
+        # move card to the theater on the same side it is already on
+        for player_id in range(2):
+            for theater in self.theaters:
+                if card in theater.player_cards[player_id]:
+                    theater.player_cards[player_id].remove(card)
+                    # apparently to_theater is the same as the theater it is already in
+                    to_theater.player_cards[player_id].append(card)
+                    # print("inside move_card: moved card")
+                    return
+        # print("could not find card in any theater")

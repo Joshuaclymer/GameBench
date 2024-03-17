@@ -17,28 +17,31 @@ def test():
     # print("Game id:",game.id)
 
     # constant testing environment
-    game.player1.hand = [Card('Support', 'Air', 1, 'Ongoing', 'You gain +3 strength in each adjacent theater'),
+    game.player1.hand = [Card('Redeploy', 'Sea', 4, 'Instant', 'You may return 1 of your facedown cards to your hand. If you do, play a card'),
                             Card('Air Drop', 'Air', 2, 'Instant', 'The next time you play a card, you may play it to a non-matching theater'),
-                            Card('Manuever', 'Air', 3, 'Instant', 'Flip an uncovered card in an adjacent theater'),
-                            Card('Aerodrome', 'Air', 4, 'Ongoing', 'You may play cards of strength 3 or less to non-matching theaters'),
+                            Card('Maneuver', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater'),
+                            # Card('Aerodrome', 'Air', 4, 'Ongoing', 'You may play cards of strength 3 or less to non-matching theaters'),
                             Card('Containment', 'Air', 5, 'Ongoing', 'If any player plays a facedown card, destroy that card'),
+                            # Card('Reinforce', 'Land', 1, 'Instant', 'Draw 1 card and play it facedown to an adjacent theater'),
+                            # Card("Heavy Bombers", "Air", 6),
+                            Card('Disrupt', 'Land', 5, 'Ongoing', 'Starting with you, both players choose and flip 1 of their uncovered cards'),
                             Card('Transport', 'Sea', 1, 'Instant', 'You may move 1 of your cards to a different theater')]
     
     game.player2.hand = [Card('Ambush', 'Land', 2, 'Instant', 'Flip any uncovered card'),
                             Card('Escalation', 'Sea', 2, 'Ongoing', 'All your facedown cards are now strength 4'),
-                            Card('Manuever', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater'),
-                            Card('Redeploy', 'Sea', 4, 'Instant', 'You may return 1 of your facedown cards to your hand. If you do, play a card'),
+                            Card('Maneuver', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater'),
                             Card('Blockade', 'Sea', 5, 'Ongoing', 'If any player plays a card to an adjacent theater occupied by at least 3 other cards, destroy that card'),
-                            Card('Super Battleship', 'Sea', 6)]
+                            # Card('Reinforce', 'Land', 1, 'Instant', 'Draw 1 card and play it facedown to an adjacent theater'),
+                            Card('Support', 'Air', 1, 'Ongoing', 'You gain +3 strength in each adjacent theater'),]
 
-    game.player1.play(game.player1.hand[4], True, game.board.theaters[0])
+    game.player1.play(game.player1.hand[1], False, game.board.theaters[0])
     game.player2.play(game.player2.hand[2], False, game.board.theaters[1])
     # after a card is played faceup or flipped faceup its tactical ability takes effect immediately
     # aka the effect manager is called
     # the effect manager is also called when a card is flipped facedown too (to get rid of it)
 
     # Testing Specific Cards
-    target = Card('Manuever', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater')
+    target = Card('Maneuver', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater')
     # target1 = Card('Aerodrome', 'Air', 4, 'Ongoing', 'You may play cards of strength 3 or less to non-matching theaters')
     # target2 = Card('Redeploy', 'Sea', 4, 'Instant', 'You may return 1 of your facedown cards to your hand. If you do, play a card')
     # game.player1.hand.append(target1)
@@ -66,12 +69,21 @@ def test():
 
     # print("testing get_theater_strengths")
     # print(game.board.get_theater_strengths(game.effect_manager))
+    
+    # analyzing the bug:
+    """
+    player 1 plays redeploy to return air drop to their hand
+    player 1 then plays maneuver faceup to land
+    player 1 flips redeploy facedown
+    """
 
     current_agent_turn = agent_1
     while True:
         current_player = game.get_player_by_agent_id(current_agent_turn.agent_id)
         print("current agent turn")
         print(current_agent_turn.agent_id)
+        print("effects in play")
+        print(game.effect_manager.effect_cards)
         # testing get observation
         observation, available_actions = game.get_observation(current_agent_turn)
         # observation, available_actions = game.get_observation(agent_2)
@@ -129,6 +141,13 @@ def test():
     # game.resolve_effect(played_card, agent_1, played_to_theater)
 
         print(game.board.get_board_string(agent_1.agent_id))
+    
+            # predefined action output:
+                # Action object with "action_id" == "guess_18"
+            # openended action output:
+                # Action object with action_id == "submit_clue"
+                # and openended_response == "conflict,2" # string
+            # need to reference available actions using action_id to see if the action was to play a facedown card
 
     print("Test complete")
 
