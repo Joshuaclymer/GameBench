@@ -213,5 +213,110 @@
         "game": "sea_battle",
         "gpt-4": 0.0,
         "gpt3cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3b&p": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3b&p": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3b&p": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3b&p": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "gpt3b&p": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4-cot": 1.0,
+        "gpt-3.5-bap": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4-cot": 1.0,
+        "gpt-3.5-bap": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4-cot": 1.0,
+        "gpt-3.5-bap": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4-cot": 1.0,
+        "gpt-3.5-bap": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4-cot": 1.0,
+        "gpt-3.5-bap": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4-cot": 0.0,
+        "gpt3cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4-cot": 1.0,
+        "gpt3cot": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4-cot": 1.0,
+        "gpt3cot": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-4-cot": 1.0,
+        "gpt3cot": 0.0
     }
 ]
