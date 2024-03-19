@@ -152,7 +152,11 @@ class CodenamesGame:
             raise ValueError("Agent is not a spymaster.")
 
         if action.action_id == "submit_clue":
-            clue, num_guesses = action.openended_response.split(",")
+            try:
+                clue, num_guesses = action.openended_response.split(",")
+            except ValueError:
+                clue = "None"
+                num_guesses = 1
             num_guesses = int(num_guesses)
             if num_guesses < 0:
                 raise ValueError("Number of guesses must be non-negative.")
