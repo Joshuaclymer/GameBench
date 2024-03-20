@@ -100,6 +100,7 @@ class OpenAITextAgent(Agent):
                 buffered = BytesIO()
                 image.save(buffered, format="JPEG")
                 base64_image = base64.b64encode(buffered.getvalue())
+
                 imagedesc = completions(
                     model="gpt-4-vision-preview",
                     messages=[
@@ -292,6 +293,18 @@ class GPT4COT(OpenAITextAgent):
 class GPT4BAP(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
     agent_type_id: str = "gpt-3.5-bap"
+    mode: int = 2
+
+@dataclass
+class GPT3ChainOfThought(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt3cot"
+    mode: int = 1
+
+@dataclass
+class GPT3BabbleAndPrune(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt3b&p"
     mode: int = 2
 
 @dataclass

@@ -30,7 +30,7 @@ class Agent:
     agent_type_id : str
 
     @abstractmethod
-    def take_action(self, rules : dict, observation: Observation, available_actions : AvailableActions):
+    def take_action(self, rules : dict, observation: Observation, available_actions : AvailableActions, show_state : bool) -> Action:
         pass
 
 @dataclass
