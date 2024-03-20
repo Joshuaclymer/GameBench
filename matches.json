@@ -463,5 +463,15 @@
         "game": "sea_battle",
         "gpt3cot": 0.0,
         "gpt3b&p": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt-3.5": 1.0,
+        "random": 0.0
     }
 ]
