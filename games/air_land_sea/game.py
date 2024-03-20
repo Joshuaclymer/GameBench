@@ -1034,5 +1034,14 @@ class AirLandSea(Game):
                 if self.show_state:
                     print("Game Over!")
                     print("Player", victor.id + 1, "has won the game!")
+
+        #  Normalize the scores
+        total_victory_points = self.player1.victory_points + self.player2.victory_points
+        normalized_score = (float(self.player1.victory_points / total_victory_points), float(self.player2.victory_points / total_victory_points))
+        if self.show_state:
+            print("Player 1 VPs:", self.player1.victory_points)
+            print("Player 2 VPs:", self.player2.victory_points)
+            print("Player 1 normalized score:", normalized_score[0])
+            print("Player 2 normalized score:", normalized_score[1])
         # return scores on game end
-        return float(self.players[0].victory_points), float(self.players[1].victory_points)
+        return normalized_score
