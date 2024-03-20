@@ -37,14 +37,14 @@ class AirLandSea(Game):
             "Type of Battle Cards": ("There are three types of cards: 'Air,' 'Land,' and 'Sea' cards, which relate to the three Theaters. Normally, you may only play a card 'face up' to its matching Theater: Air cards in the Air Theater, and so on."),
             "Facedown Cards": ("Cards can also be played 'facedown' as a 'wild card' in any Theater. Facedown cards always have a Strength of 2. 'Facedown' cards do not have any Tactical Abilities. You may see your own facedown cards at any time, but you may not see your opponent's 'facedown' cards."),
             "Covered Cards": ("When a card is played to a Theater that already contains cards, the newly played card is placed so that it overlaps the previously played card, while still showing the top portion of it. Any card overlapped by another is called a 'covered card.' Similarly, any card that is not overlapped by another card is referred to as 'uncovered.'"),
-            "Resolving Battle": ("During a Battle, players take turns starting with the player who has the 1st Player Supreme Commander card.\n"
+            "Resolving Battle": ("During a Battle, players take turns starting with the player who has the 1st Player me Commander card.\n"
                 "On your turn, you must take only one of these three actions: Deploy, Improvise, Withdraw.\n"
                 "Once you have finished your action, your opponent begins their turn. The players continue to alternate taking turns until one of them withdraws or both players have played all of their cards."),
             "Possible actions:": ("Deploy: Play one card from your hand, 'face up.' When you play a card, you must follow these deployment restrictions: You can only play cards on your side of the Theater boards. The card must be the same type as the Theater you play it to. If you have other cards in that Theater already, you must place the new card so that it covers (partially overlaps) those cards.\n"
                 "Improvise: Play one card from your hand, 'facedown', to any Theater. 'Facedown' cards are treated as 'wild cards' and can be played to any Theater regardless of which type they are.\n"
-                "Withdraw: If you think your chances of winning the current Battle are low, you may withdraw. If you do, your opponent wins the Battle and gains VPs depending on how many cards are left in your hand. See the Supreme Commander cards for more specific information."),
-            "Supreme Commander Cards": ("Supreme Commander Cards: The 1st Player Supreme Commander wins tied Theaters and gains the following number of VPs based on the number of cards left in their opponent's hand if their opponent withdraws: 5+ cards = 2 VPs, 3-4 cards = 3 VPs, 2 cards = 4 VPs, 0-1 cards = 6 VPs.\n"
-                "The 2nd Player Supreme Commander loses tied Theaters and gains the following number of VPs based on the number of cards left in their opponent’s hand if their opponent withdraws: 4+ cards = 2 VPs, 2-3 cards = 3 VPs, 1 card = 4 VPs, 0 cards = 6 VPs."),
+                "Withdraw: If you think your chances of winning the current Battle are low, you may withdraw. If you do, your opponent wins the Battle and gains VPs depending on how many cards are left in your hand. See the me Commander cards for more specific information."),
+            "me Commander Cards": ("Supreme Commander Cards: The 1st Player Supreme Commander wins tied Theaters and gains the following number of VPs based on the number of cards left in their opponent's hand if their opponent withdraws: 5+ cards = 2 VPs, 3-4 cards = 3 VPs, 2 cards = 4 VPs, 0-1 cards = 6 VPs.\n"
+                "The 2nd Player me Commander loses tied Theaters and gains the following number of VPs based on the number of cards left in their opponent’s hand if their opponent withdraws: 4+ cards = 2 VPs, 2-3 cards = 3 VPs, 1 card = 4 VPs, 0 cards = 6 VPs."),
             "Tactical Abilities": ("Most cards have Tactical Abilities described on the card. When you play a card face up from your hand, or if a facedown card is flipped over, its Tactical Ability takes effect immediately. There are two kinds of Tactical Abilities: 'Instant' and 'Ongoing', indicated on the card.\n"
                 "You must carry out the effects of a Tactical Ability unless they contain the word 'may'.\n"
                 "If a Tactical Ability is impossible to perform, that ability is ignored and has no effect."),
@@ -64,16 +64,32 @@ class AirLandSea(Game):
                 "Move: When a card is moved to a different Theater. It stays on the same side of the Theaters it was already on and remains owned by the same player. Moved cards are placed on top of any cards already in the Theater it was moved to. It covers those cards."),
             "Ending Battles": ("There are two ways a Battle can end: If a player withdraws, their opponent wins the Battle. Or if both players have played all of the cards in their hand. At this point, the player who controls the most Theaters wins the Battle."
                 "In order to control a Theater, you must have a higher total Strength there than your opponent has in that Theater. If your Strengths are tied, the 1st Player wins the tie and controls that Theater. If there are no cards on either side of the Theater, the 1st player controls that Theater."),
-            "Scoring Victory Points": ("If neither player withdraws, the winner of the Battle scores 6 VPs. If one of the players withdraws, the other player scores VPs based on the number of cards left in the withdrawing player's hand (see the Supreme Commander Cards for details). After scoring VPs, check if the victor has enough VPs to win the game (12 VPs). If they don’t, fight another Battle."),
-            "Setting up Battles": ("All cards are collected and shuffled together to create a new deck. Deal each player a new hand of 6 cards. Next, the Theater cards are rotated clockwise so that the rightmost Theater is moved to the far left of the Theater lineup. Lastly, players swap Supreme Commander cards. The player who was 1st in the last battle is now 2nd."),
+            "Scoring Victory Points": ("If neither player withdraws, the winner of the Battle scores 6 VPs. If one of the players withdraws, the other player scores VPs based on the number of cards left in the withdrawing player's hand (see the me Commander Cards for details). After scoring VPs, check if the victor has enough VPs to win the game (12 VPs). If they don’t, fight another Battle."),
+            "Setting up Battles": ("All cards are collected and shuffled together to create a new deck. Deal each player a new hand of 6 cards. Next, the Theater cards are rotated clockwise so that the rightmost Theater is moved to the far left of the Theater lineup. Lastly, players swap me Commander cards. The player who was 1st in the last battle is now 2nd."),
         }
     )
     id : str = "air_land_sea"
     # first key is the player who won's supreme commander
     # subkey is the number of cards in the loser's hand
     withdrawal_points: Dict[int, Dict[int, int]] = field(default_factory=lambda: {
-        0 : {5: 2, 4: 3, 3: 3, 2: 4, 0: 6},
-        1 : {4: 2, 3: 3, 2: 3, 1: 4, 0: 6}
+        0 : {
+            6: 2, 
+            5: 2, 
+            4: 3, 
+            3: 3, 
+            2: 4, 
+            1: 6,
+            0: 6
+            },
+        1 : {
+            6: 2, 
+            5: 2, 
+            4: 2, 
+            3: 3, 
+            2: 3, 
+            1: 4, 
+            0: 6
+            }
     })
 
     def init_game(self, agent1 : Agent, agent2 : Agent):
@@ -95,6 +111,57 @@ class AirLandSea(Game):
                 return player
         return None
 
+    def apply_strength_effects(self):
+        # called in get_observation
+        # applies increase in current strength from Escalation and Cover Fire to applicable cards
+        # check effect manager for existence and index of escalation and(or) cover fire
+
+        # Use ongoing effect location to determine if in play and in effect manager and for who and where
+        escalation = self.board.search_card("Escalation", "Sea")
+        escalation_search = self.board.search_ongoing_effect_location(escalation, self.effect_manager)
+        cover_fire = self.board.search_card("Cover Fire", "Land")
+        cover_fire_search = self.board.search_ongoing_effect_location(cover_fire, self.effect_manager)
+
+        # find all facedown cards in one player's side of the board and set current strength to 4
+        # but if escalation is not, then set all facedown cards to 2?
+        if escalation_search:
+            escalation_player_ids = [player_id for player_id, theater_ind in enumerate(escalation_search) if theater_ind]
+            if self.show_state:
+                print("escalation_player_ids:", escalation_player_ids)
+            for player_id in escalation_player_ids:
+                for theater in self.board.theaters:
+                    for card in theater.player_cards[player_id]:
+                        if card.facedown:
+                            card.current_strength = 4
+        else:
+            for player in self.players:
+                for theater in self.board.theaters:
+                    for card in theater.player_cards[player.id]:
+                        if card.facedown:
+                            card.current_strength = 2
+        
+        # find covered cards by cover_fire then make their current strength 4
+        if cover_fire_search:
+            cover_fire_player_ids = [player_id for player_id, theater_ind in enumerate(cover_fire_search) if theater_ind]
+            if self.show_state:
+                print("cover fire search:", cover_fire_search)
+                print("cover fire player ids:", cover_fire_player_ids)
+            for player_id in cover_fire_player_ids:
+                theater_cards = self.board.theaters[cover_fire_search[player_id]].player_cards[player_id]
+                cover_fire_ind = theater_cards.index(cover_fire)
+                cards_to_affect = theater_cards[:cover_fire_ind]
+                if self.show_state:
+                    print("cards to affect:", cards_to_affect)
+                for card in cards_to_affect:
+                    card.current_strength = 4
+        else:
+            for player in self.players:
+                for theater in self.board.theaters:
+                    for card in theater.player_cards[player.id]:
+                        if not card.facedown:
+                            card.current_strength = card.strength
+            pass
+
     # generate observation and available actions for the agent
     def get_observation(self, agent : Agent) -> Tuple[Observation, AvailableActions]:
         player = self.get_player_by_agent_id(agent.agent_id)
@@ -111,13 +178,15 @@ class AirLandSea(Game):
         # print("victory points:",victory_points)
         # the opponent sees the name as facedown
         # but the player sees the normal card but with "Facedown-" in front of the name and strength set to 2
+        self.apply_strength_effects()
         board_string = self.board.get_board_string(player.id)
         hand_string = ""
         for card in hand:
             hand_string += "  "+ str(card) + "\n"
 
         observation_text = (
-            "Player " + str(player.id + 1) + "'s action\n"
+            "\n"
+            "----- Player " + str(player.id + 1) + "'s action -----\n"
             "Current Hand: \n" + hand_string + ""
             "Current Supreme Commander: " + supreme_commander + "\n"
             "Current Victory Points: " + victory_points + "\n"
@@ -134,11 +203,11 @@ class AirLandSea(Game):
         # Facedown cards can be played to any theater, make 3 actions for each card for each of the 3 theaters.
         # facedown action_id must increase counting up from len(hand)
         for action_id, card in enumerate(hand, start=len(hand)):
-            cards_to_play[str(action_id)] = f"Play {card} facedown to Air. Strength will be 2 while facedown. Improvise."
+            cards_to_play[str(action_id)] = f"Play {card} facedown to Air. Improvise."
         for action_id, card in enumerate(hand, start=len(hand)*2):
-            cards_to_play[str(action_id)] = f"Play {card} facedown to Land. Strength will be 2 while facedown. Improvise."
+            cards_to_play[str(action_id)] = f"Play {card} facedown to Land. Improvise."
         for action_id, card in enumerate(hand, start=len(hand)*3):
-            cards_to_play[str(action_id)] = f"Play {card} facedown to Sea. Strength will be 2 while facedown. Improvise."
+            cards_to_play[str(action_id)] = f"Play {card} facedown to Sea. Improvise."
 
         cards_to_play[str(len(hand)*4)] = "Withdraw from the battle. Opponent scores VPs based on the number of cards left in your hand."
 
@@ -342,7 +411,7 @@ class AirLandSea(Game):
         faceup_or_facedown = self.find_faceup_or_facedown_from_action(action, available_actions) # string
         is_faceup = True if faceup_or_facedown == 'faceup' else False
 
-        player.play(card, is_faceup, theater)
+        player.play(card, is_faceup, theater, self.show_state)
         return card, theater
     
     def flip_card_from_action(self, action : Action, available_actions : AvailableActions, agent : Agent) -> Tuple[Card, Theater]:
@@ -363,8 +432,17 @@ class AirLandSea(Game):
                 if current_card == card:
                     # print("found card")
                     current_card.flip()
-                    if (current_card in self.effect_manager.effect_cards[player.id]) and current_card.facedown:
+                    if (current_card in self.effect_manager.effect_cards[player.id]) and current_card.facedown and current_card.name != "Air Drop":
+                        # if self.show_state:
+                        #     print("effect cards before removing effect:")
+                        #     print(self.effect_manager.effect_cards[player.id])
+                        #     pass
                         self.effect_manager.remove_effect(current_card, player.id)
+                        # if self.show_state:
+                        #     print("removing effect:", current_card)
+                        #     print("effect cards after removing effect:")
+                        #     print(self.effect_manager.effect_cards[player.id])
+                        #     pass
                     return current_card, theater
         return None, None
 
@@ -375,7 +453,7 @@ class AirLandSea(Game):
 
         self.effect_manager.add_effect(input_card, agent.agent_id)
         if self.show_state:
-            print("effect cards")
+            print("inside resolve_effect - effect cards after adding effect:")
             print(self.effect_manager.effect_cards)
         # applies game logic of tactical abilities that happen immediately
         # does not handle
@@ -461,13 +539,14 @@ class AirLandSea(Game):
                     print("no cards to flip")
                 self.effect_manager.remove_effect(input_card, player.id)
                 return
-            agent_output = agent.take_action(self.rules, observation, maneuver_available_actions, show_state=self.show_state)
+            # agent_output = agent.take_action(self.rules, observation, maneuver_available_actions, show_state=self.show_state)
+            agent_output = self.take_action_wrapper(agent, observation, maneuver_available_actions)
             # print("player", player.id + 1)
             flipped_card, target_theater = self.flip_card_from_action(agent_output, maneuver_available_actions, agent)
             # print(input_card)
             # print(id(input_card))
             self.effect_manager.remove_effect(input_card, player.id)
-            if flipped_card and not flipped_card.facedown:
+            if flipped_card and not flipped_card.facedown and not (flipped_card.name == "Heavy Bombers" or flipped_card.name == "Super Battleship" or flipped_card.name == "Heavy Tanks"):
                 # search target_theater for the card and identify who owns it
                 for flipped_owner in self.players:
                     if flipped_card in target_theater.player_cards[flipped_owner.id]:
@@ -526,14 +605,15 @@ class AirLandSea(Game):
                     print("no cards to flip")
                 self.effect_manager.remove_effect(input_card, player.id)
                 return
-            agent_output = agent.take_action(self.rules, observation, ambush_available_actions, True)
+            # agent_output = agent.take_action(self.rules, observation, ambush_available_actions, True)
+            agent_output = self.take_action_wrapper(agent, observation, ambush_available_actions)
             # print("player", player.id + 1)
             flipped_card, target_theater = self.flip_card_from_action(agent_output, ambush_available_actions, agent)
             # print(input_card)
             # print(id(input_card))
             if input_card in self.effect_manager.effect_cards[player.id]:
                 self.effect_manager.remove_effect(input_card, player.id)
-            if flipped_card and not flipped_card.facedown:
+            if flipped_card and not flipped_card.facedown and not (flipped_card.name == "Heavy Bombers" or flipped_card.name == "Super Battleship" or flipped_card.name == "Heavy Tanks"):
                 # search target_theater for the card and identify who owns it
                 for flipped_owner in self.players:
                     if flipped_card in target_theater.player_cards[flipped_owner.id]:
@@ -577,7 +657,8 @@ class AirLandSea(Game):
                 pprint.pprint(transport_available_actions.predefined)
             
             # get agent output action
-            action = agent.take_action(self.rules, observation, transport_available_actions, show_state=self.show_state)
+            # action = agent.take_action(self.rules, observation, transport_available_actions, show_state=self.show_state)
+            action = self.take_action_wrapper(agent, observation, transport_available_actions)
             # apply move
             found_card = self.find_card_from_action(action, transport_available_actions, agent)
             if not found_card:
@@ -624,7 +705,8 @@ class AirLandSea(Game):
                 print("redeploy_available_actions")
                 pprint.pprint(redeploy_available_actions.predefined)
             # get agent output action
-            action = agent.take_action(self.rules, observation, redeploy_available_actions, show_state=self.show_state)
+            # action = agent.take_action(self.rules, observation, redeploy_available_actions, show_state=self.show_state)
+            action = self.take_action_wrapper(agent, observation, redeploy_available_actions)
 
             # apply return
             if action.action_id == str(action_id):
@@ -651,14 +733,20 @@ class AirLandSea(Game):
                         # do effect
                         # remove_effect
             observation, available_actions = self.get_observation(agent)
-            # print("\n------------------------\n")
-            # print("get observation")
-            # print("calling modify available actions on:", player.id)
+
+            # remove withdraw from available actions here
+            # print("available actions before removing withdraw")
+            # pprint.pprint(available_actions.predefined)
+            available_actions.predefined.pop(str(len(player.hand)*4))
+            # print("available actions after removing withdraw")
+            # pprint.pprint(available_actions.predefined)
             modified_actions = self.effect_manager.modify_available_actions(available_actions, player.hand, player.id)
             if self.show_state:
                 print(observation.text)
+                print("Actions after checking for Air Drop and Aerodrome ongoing effects:")
                 pprint.pprint(modified_actions.predefined)
-            action = agent.take_action(self.rules, observation, modified_actions, show_state=self.show_state)
+            # action = agent.take_action(self.rules, observation, modified_actions, show_state=self.show_state)
+            action = self.take_action_wrapper(agent, observation, modified_actions)
             self.update(action, modified_actions, agent)
             if input_card in self.effect_manager.effect_cards[player.id]:
                 self.effect_manager.remove_effect(input_card, player.id)
@@ -672,9 +760,15 @@ class AirLandSea(Game):
                 # update
                     # check_destroy_triggers
                     # apply action
+            
             drawn_card = self.deck.draw()
             player.hand.append(drawn_card)
             observation, _ = self.get_observation(agent)
+
+            if self.show_state:
+                print("inside reinforce")
+                print("drawing a card from self.deck")
+                print(drawn_card)
 
             # generate available actions to play the drawn card facedown to an adjacent theater
             theater_ind = self.board.get_theater_index(theater.name)
@@ -685,7 +779,7 @@ class AirLandSea(Game):
 
             places_to_play = {}
             for action_id, target_theater in enumerate(adjacent_theaters):
-                places_to_play[str(action_id)] = f"Play {drawn_card} facedown to {target_theater.name}. Strength will be 2 while facedown."
+                places_to_play[str(action_id)] = f"Play {drawn_card} facedown to {target_theater.name}."
 
             reinforce_available_actions = AvailableActions(
                 instructions = "Select an adjacent theater to play the drawn card facedown.",
@@ -698,10 +792,11 @@ class AirLandSea(Game):
                 pprint.pprint(reinforce_available_actions.predefined)
 
             # get agent output action
-            action = agent.take_action(self.rules, observation, reinforce_available_actions, show_state=self.show_state)
+            # action = agent.take_action(self.rules, observation, reinforce_available_actions, show_state=self.show_state)
+            action = self.take_action_wrapper(agent, observation, reinforce_available_actions)
             # play the drawn card facedown to the target theater
             target_theater = self.find_theater_played_from_action(action, reinforce_available_actions)
-            player.play(drawn_card, False, target_theater)
+            player.play(drawn_card, False, target_theater, self.show_state)
             self.effect_manager.remove_effect(input_card, player.id)
             pass
         elif input_card.name == 'Disrupt':
@@ -751,13 +846,14 @@ class AirLandSea(Game):
                     return None
 
                 # get agent output action
-                action = current_agent.take_action(self.rules, observation, disrupt_available_actions, show_state=self.show_state)
+                # action = current_agent.take_action(self.rules, observation, disrupt_available_actions, show_state=self.show_state)
+                action = self.take_action_wrapper(agent, observation, disrupt_available_actions)
 
                 # apply flip
                 flipped_card, target_theater = self.flip_card_from_action(action, disrupt_available_actions, current_agent)   
                 # add effect (if flipped faceup)
                 # move the resolve effect call on flipped card to end
-                if not flipped_card.facedown:
+                if not flipped_card.facedown and not (flipped_card.name == "Heavy Bombers" or flipped_card.name == "Super Battleship" or flipped_card.name == "Heavy Tanks"):
                     # return so we can resolve effect later for the player who owns the flipped card
                     # self.resolve_effect(flipped_card, current_agent, target_theater)
                     return flipped_card, current_agent, target_theater
@@ -765,10 +861,14 @@ class AirLandSea(Game):
             
             effect_stack = []
             # Player's flip
+            if self.show_state:
+                print(f"Calling {player.id} disrupt flip")
             player_param_tuple = disrupt_flip(player, agent)
             if player_param_tuple:
                 effect_stack.append(player_param_tuple)
             # opponent's flip
+            if self.show_state:
+                print(f"Calling {opponent.id} disrupt flip")
             opponent_param_tuple = disrupt_flip(opponent, opponent.agent)
             if opponent_param_tuple:
                 effect_stack.append(opponent_param_tuple)
@@ -784,50 +884,39 @@ class AirLandSea(Game):
         else:
             pass
 
-    def take_action_wrapper(self, agent : Agent, observation : Observation, available_actions : AvailableActions) -> Action:
-        valid_action = False
+    def take_action_wrapper(self, agent: Agent, observation: Observation, available_actions: AvailableActions) -> Action:
+        # check if the action id is in the available actions
+        # if not, let it try two more times (inside here)
+        # if third time is invalid, choose randomly
         num_tries = 0
-        while not valid_action:
-            action = agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-            num_tries += 1
-            if action:
+        while num_tries < 3:
+            try:
+                action = agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
                 if action.action_id in available_actions.predefined:
-                    valid_action = True
-            if num_tries >= 3:
-                # make a random choice of the available actions
-                action = Action(action_id=random.choice(list(available_actions.predefined.keys())))
-        return action
-
-    # def take_action_wrapper(self, agent: Agent, observation: Observation, available_actions: AvailableActions) -> Action:
-    #     # check if the action id is in the available actions
-    #     # if not, let it try two more times (inside here)
-    #     # if third time is invalid, choose randomly
-    #     num_tries = 0
-    #     while num_tries < 3:
-    #         try:
-    #             action = agent.take_action(self.rules, observation, available_actions, show_state=self.show_state)
-    #             if action.action_id in available_actions.predefined:
-    #                 # If the action is valid, return it immediately
-    #                 return action
-    #             else:
-    #                 # If the action_id is not in available actions, raise ValueError to trigger except block
-    #                 raise ValueError("Invalid action selected.")
-    #         except (IndexError, ValueError):
-    #             # Handle invalid action selection, either from user input or any other issue
-    #             if self.show_state:
-    #                 print("Invalid action selected. Please try again.")
-    #             num_tries += 1
-    #     # If the loop exits due to reaching the maximum number of tries, choose a random action
-    #     if self.show_state:
-    #         print("Selecting a random action due to repeated invalid selections.")
-    #     random_action_id = choice(list(available_actions.predefined.keys()))
-    #     return Action(action_id=random_action_id)
+                    # If the action is valid, return it immediately
+                    if self.show_state:
+                        print("Action selected:", action.action_id)
+                    return action
+                else:
+                    # If the action_id is not in available actions, raise ValueError to trigger except block
+                    raise IndexError("Invalid action selected.")
+            except Exception as e:
+                # Handle invalid action selection, either from user input or any other issue
+                if self.show_state:
+                    print(e)
+                    print("Invalid action selected. Please try again.")
+                num_tries += 1
+        # If the loop exits due to reaching the maximum number of tries, choose a random action
+        random_action_id = random.choice(list(available_actions.predefined.keys()))
+        if self.show_state:
+            print("Selecting a random action due to repeated invalid selections.")
+            print("Random action selected:", random_action_id)
+        return Action(action_id=random_action_id)
 
     def battle_setup(self):
         # clear board & clear each theater's cards
         self.board.clear_cards()
         self.deck = Deck() 
-        self.deck.shuffle() # TODO: shuffled on init
         # clear hands & deal new hands
         for player in self.players:
             player.hand = []
@@ -867,11 +956,14 @@ class AirLandSea(Game):
                 observation, available_actions = self.get_observation(current_agent_turn)
                 modified_actions = self.effect_manager.modify_available_actions(available_actions, current_player.hand, current_player.id)
                 if self.show_state:
-                    print("\n")
                     print(observation.text)
+                    print("Current Effects in Play:",self.effect_manager.effect_cards)
+                    print("printing actions after checking for Air Drop and Aerodrome ongoing effects")
                     pprint.pprint(modified_actions.predefined)
-                # action = self.take_action_wrapper(current_agent_turn, observation, modified_actions)
-                action = current_agent_turn.take_action(self.rules, observation, modified_actions, show_state=self.show_state)
+                action = self.take_action_wrapper(current_agent_turn, observation, modified_actions)
+                # action = current_agent_turn.take_action(self.rules, observation, modified_actions, show_state=self.show_state)
+                if self.show_state:
+                    print("action taken:", action)
                 withdrawn_agent = self.update(action, modified_actions, current_agent_turn)
                 # check if both players have 0 cards in hand or player withdrew to end battle
                 if withdrawn_agent or (len(self.players[0].hand) == 0 and len(self.players[1].hand) == 0):
@@ -893,10 +985,13 @@ class AirLandSea(Game):
                 loser = self.get_player_by_agent_id(withdrawn_agent.agent_id)
                 # add victory points to opponent
                 loser_hand_size = len(loser.hand)
-                victor.victory_points += self.withdrawal_points[victor.supreme_commander][loser_hand_size]
+                gained_victory_points = self.withdrawal_points[victor.supreme_commander][loser_hand_size]
+                victor.victory_points += gained_victory_points
                 if self.show_state:
                     print("Player", withdrawn_agent.agent_id + 1, "withdrew!")
-                    print("Player", victor.id + 1, "gained", self.withdrawal_points[victor.supreme_commander][loser_hand_size], "VPs!")
+                    print("Player", victor.id + 1, "won the battle and gained", gained_victory_points,"VPs!")
+                    print("Player", victor.id + 1, "VPs:", victor.victory_points - gained_victory_points, "-->", victor.victory_points)
+                    print("Player", loser.id + 1, "VPs:", loser.victory_points)
             else:
                 theater_strengths = self.board.get_theater_strengths(self.effect_manager)
                 # find victor and loser
@@ -941,30 +1036,3 @@ class AirLandSea(Game):
                     print("Player", victor.id + 1, "has won the game!")
         # return scores on game end
         return float(self.players[0].victory_points), float(self.players[1].victory_points)
-
-
-            # reach 12 victory points to win
-            # must track victory points of each player
-                # check after each battle if a player has reached 12 victory points
-            # must track who is the supreme commander (influences victory points players get from withdrawing)
-                # supreme commander goes first and wins ties in theaters
-            # must track current position of theaters (in order to rotate them clockwise after each battle)
-                # must randomly place 3 theaters in beginning of game
-            # must track each player's hand (each gets 6 in beginning of battle)
-
-            # at end of battle, compare strength scores in each theater to determine theater winner and overall battle winner
-            # end of battle is when there are no more cards to play
-
-            # normal loop:
-                # get_observation
-                # modify_available_actions
-                # get agent output action
-                    # check if withdraw
-                # update
-                    # check_destroy_triggers
-                    # apply action
-                    # resolve_effect
-                        # add_effect
-                        # do effect
-                        # remove effect            
-        pass

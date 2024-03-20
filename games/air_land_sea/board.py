@@ -38,33 +38,23 @@ class Theater:
         def process_cards(cards, player_id, owner_id):
             total_string = ""
             for i, card in enumerate(cards):
-                # TODO: apply Escalation, Cover Fire (strength increasing) to str(card)
-                # TODO: start with Escalation (will need to add functionality to get_theater_strengths in board.py)
-                """
-                display
-                counting
-                it is in effect manager
-                the options are, manipulate current_strength or don't
-                we would check for if a player has Escalation in effect manager,
-                """
-
-
                 # might be easier to affect the current strength in the card class, only problem is how to handle dissipation
                 # all of owner's facedown cards are strength 4
                 # owner sees the normal card but with "Facedown-" in front of the name and strength set to 2
                 card_string = str(card)
                 # only if the owner is looking at their own card that is also facedown
                 if card.facedown == True: 
-                    card_string = re.sub(r' \(\d', f"> (2-<{card.strength}>", card_string)
+                    card_string = re.sub(r' \(\d', f"> ({card.current_strength}-<{card.strength}>", card_string)
                     if (owner_id == player_id) or (owner_id == 3):
                         card_string = "Facedown-<" + card_string
                     else: 
                         # viewing as opponent
                         # when viewing as opponent just make the whole card string equal "Facedown (2)"
-                        card_string = "Facedown (2)"
+                        card_string = f"Facedown ({card.current_strength})"
                 # replace $ with "uncovered" or "covered"
                 card_status = "uncovered" if self.is_uncovered(card, player_id) else "covered"
                 card_string = card_string.replace(")", ", " + card_status + ")")
+                card_string = re.sub(r' \(\d', f" ({card.current_strength}", card_string)
                 # handle commas
                 if i == 0:
                     total_string += card_string
@@ -89,8 +79,7 @@ class Board:
 
     def __post_init__(self):
         # shuffle theaters into random order
-        # random.shuffle(self.theaters)
-        # TODO: change back to random when playing for real
+        random.shuffle(self.theaters)
         pass
 
     def clear_cards(self):
@@ -177,9 +166,6 @@ class Board:
         theater_strengths = [[], [], []]
         support = Card('Support', 'Air', 1, 'Ongoing', 'You gain +3 strength in each adjacent theater')
         support_search = self.search_ongoing_effect_location(support, effect_manager)
-        escalation = Card('Escalation', 'Sea', 2, 'Ongoing', 'All your facedown cards are now strength 4')
-        escalation_search = self.search_ongoing_effect_location(escalation, effect_manager)
-        # TODO: this is one way, compute at end and display correctly, but do not change current_strength
         # find adjacent theaters if Support is in play to apply its effect
         # say we get [None, 0] (player 2 has Support in the third theater)
         for player_id in range(2):
@@ -189,14 +175,14 @@ class Board:
             # calculate the strength of each theater based on the cards in it normally
             for index, theater in enumerate(self.theaters):
                 strength = 0
-                # TODO: apply Escalation, Cover Fire (strength increasing)
                 for card in theater.player_cards[player_id]:
                     strength += card.current_strength
                     # print(f'theater: {index}, card: {card.name}, current_strength: {card.current_strength}, strength: {card.strength}, facedown: {card.facedown}')
                 # apply Support effect if necessary
                 if support_search is not None:
-                    if index in adj_theaters:
-                        strength += 3
+                    if support_search[player_id] is not None:
+                        if index in adj_theaters:
+                            strength += 3
                 theater_strengths[index].append(strength)
         return theater_strengths
 

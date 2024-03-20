@@ -10,7 +10,9 @@ def test():
     agent_2_path = "agents.human_agent.HumanAgent"
     agent_1_class = util.import_class(agent_1_path)
     agent_2_class = util.import_class(agent_2_path)
-    game = AirLandSea()
+    game = AirLandSea(show_state=True)
+    print("show state:", game.show_state)
+    print(game.show_state)
     game.init_game(agent_1_class, agent_2_class)
     agent_1 = game.agents[0]
     agent_2 = game.agents[1]
@@ -18,24 +20,29 @@ def test():
 
     # constant testing environment
     game.player1.hand = [Card('Redeploy', 'Sea', 4, 'Instant', 'You may return 1 of your facedown cards to your hand. If you do, play a card'),
-                            Card('Air Drop', 'Air', 2, 'Instant', 'The next time you play a card, you may play it to a non-matching theater'),
-                            Card('Maneuver', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater'),
-                            # Card('Aerodrome', 'Air', 4, 'Ongoing', 'You may play cards of strength 3 or less to non-matching theaters'),
-                            Card('Containment', 'Air', 5, 'Ongoing', 'If any player plays a facedown card, destroy that card'),
-                            # Card('Reinforce', 'Land', 1, 'Instant', 'Draw 1 card and play it facedown to an adjacent theater'),
-                            # Card("Heavy Bombers", "Air", 6),
-                            Card('Disrupt', 'Land', 5, 'Ongoing', 'Starting with you, both players choose and flip 1 of their uncovered cards'),
+                            # Card('Maneuver', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater'),
+                            Card('Aerodrome', 'Air', 4, 'Ongoing', 'You may play cards of strength 3 or less to non-matching theaters'),
+                            Card('Cover Fire', 'Land', 4, 'Ongoing', 'All cards covered by this card are now strength 4'),
+                            # Card('Containment', 'Air', 5, 'Ongoing', 'If any player plays a facedown card, destroy that card'),
+                            Card('Reinforce', 'Land', 1, 'Instant', 'Draw 1 card and play it facedown to an adjacent theater'),
+                            Card("Heavy Bombers", "Air", 6),
+                            # Card('Disrupt', 'Land', 5, 'Ongoing', 'Starting with you, both players choose and flip 1 of their uncovered cards'),
+                            Card('Escalation', 'Sea', 2, 'Ongoing', 'All your facedown cards are now strength 4'),
                             Card('Transport', 'Sea', 1, 'Instant', 'You may move 1 of your cards to a different theater')]
     
     game.player2.hand = [Card('Ambush', 'Land', 2, 'Instant', 'Flip any uncovered card'),
-                            Card('Escalation', 'Sea', 2, 'Ongoing', 'All your facedown cards are now strength 4'),
                             Card('Maneuver', 'Sea', 3, 'Instant', 'Flip an uncovered card in an adjacent theater'),
                             Card('Blockade', 'Sea', 5, 'Ongoing', 'If any player plays a card to an adjacent theater occupied by at least 3 other cards, destroy that card'),
-                            # Card('Reinforce', 'Land', 1, 'Instant', 'Draw 1 card and play it facedown to an adjacent theater'),
+                            Card('Air Drop', 'Air', 2, 'Instant', 'The next time you play a card, you may play it to a non-matching theater'),
+                            Card('Reinforce', 'Land', 1, 'Instant', 'Draw 1 card and play it facedown to an adjacent theater'),
                             Card('Support', 'Air', 1, 'Ongoing', 'You gain +3 strength in each adjacent theater'),]
 
-    game.player1.play(game.player1.hand[1], False, game.board.theaters[0])
-    game.player2.play(game.player2.hand[2], False, game.board.theaters[1])
+    game.player1.play(game.player1.hand[0], False, game.board.theaters[1], self.show_state)
+    game.player1.play(game.player1.hand[3], True, game.board.theaters[2], self.show_state)
+    game.player1.play(game.player1.hand[3], True, game.board.theaters[2], self.show_state)
+    game.player2.play(game.player2.hand[2], False, game.board.theaters[1], self.show_state)
+    game.player2.play(game.player2.hand[0], False, game.board.theaters[0], self.show_state)
+    game.player2.play(game.player2.hand[0], False, game.board.theaters[2], self.show_state)
     # after a card is played faceup or flipped faceup its tactical ability takes effect immediately
     # aka the effect manager is called
     # the effect manager is also called when a card is flipped facedown too (to get rid of it)
@@ -51,13 +58,13 @@ def test():
     # print(game.player1.hand)
     # play to second theater
     # print("playing to second theater for p1")
-    # game.player1.play(target1, False, game.board.theaters[1])
+    # game.player1.play(target1, False, game.board.theaters[1], self.show_state)
     # print("Player 1 hand after play")
     # print(game.player1.hand)
     # game.effect_manager.add_effect(target1, game.player1.id)
     # play to third theater for p2
     # print("playing to third theater for p2")
-    # game.player2.play(target2, False, game.board.theaters[2])
+    # game.player2.play(target2, False, game.board.theaters[2], self.show_state)
     # game.effect_manager.add_effect(target2, game.player2.id)
     # print(game.board.get_board_string(game.player1.id))
     # print("Effect cards")
@@ -110,6 +117,8 @@ def test():
         # action = Action(action_id="5")
         action = current_agent_turn.take_action(game.rules, observation, modified_actions, True)
         game.update(action, modified_actions, current_agent_turn)
+        if game.player1.hand == [] and game.player2.hand == []:
+            break
         # switch players
         if current_agent_turn == agent_1:
             print("changing turn from p1 to p2")
@@ -148,6 +157,10 @@ def test():
                 # Action object with action_id == "submit_clue"
                 # and openended_response == "conflict,2" # string
             # need to reference available actions using action_id to see if the action was to play a facedown card
+
+    print("Game over")
+    print(game.board.get_board_string(3))
+    print(game.board.get_theater_strengths(game.effect_manager))
 
     print("Test complete")
 
