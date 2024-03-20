@@ -39,7 +39,7 @@ def completions(*args, **kwargs):
     model = kwargs["model"]
     tokens[f"{model}_input"] += ret.usage.prompt_tokens
     tokens[f"{model}_output"] += ret.usage.completion_tokens
-    print(tokens)
+    print("*******************", tokens)
     return ret
 
 @dataclass
@@ -211,7 +211,7 @@ class OpenAITextAgent(Agent):
             self.print("GPT responded with", response)
 
             try:
-                action = ast.literal_eval(response)
+                action = ast.literal_eval(response.strip())
                 action["action"]
             except:
                 self.print("GPT returned invalid JSON")
