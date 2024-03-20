@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass, field
 from api.classes import Agent, AvailableActions, Action, Observation, Rules
 import random
@@ -31,6 +32,15 @@ openai_client = openai.Client(
     api_key=util.load_json("credentials.json")["openai_api_key"]
 )
 
+tokens = defaultdict(int)
+def completions(*args, **kwargs):
+    ret = openai_client.chat.completions.create(*args, **kwargs)
+
+    model = kwargs["model"]
+    tokens[f"{model}_input"] += ret.usage.prompt_tokens
+    tokens[f"{model}_output"] += ret.usage.completion_tokens
+    print("*******************", tokens)
+    return ret
 
 @dataclass
 class OpenAITextAgent(Agent):
@@ -90,7 +100,8 @@ class OpenAITextAgent(Agent):
                 buffered = BytesIO()
                 image.save(buffered, format="JPEG")
                 base64_image = base64.b64encode(buffered.getvalue())
-                imagedesc = openai_client.chat.completions.create(
+
+                imagedesc = completions(
                     model="gpt-4-vision-preview",
                     messages=[
                         {
@@ -143,7 +154,7 @@ class OpenAITextAgent(Agent):
             messages.append({"role": "user", "content": prompt})
 
             response = (
-                openai_client.chat.completions.create(
+                completions(
                     model=self.openai_model
                     if observation.image is None
                     else "gpt-4-vision-preview",
@@ -164,7 +175,7 @@ class OpenAITextAgent(Agent):
 
             messages.append({"role": "user", "content": prompt})
             response = (
-                openai_client.chat.completions.create(
+                completions(
                     model=self.openai_model
                     if observation.image is None
                     else "gpt-4-vision-preview",
@@ -187,7 +198,7 @@ class OpenAITextAgent(Agent):
         result = None
         for _ in range(self.max_retries):
             response = (
-                openai_client.chat.completions.create(
+                completions(
                     model=self.openai_model
                     if observation.image is None
                     else "gpt-4-vision-preview",
@@ -201,7 +212,7 @@ class OpenAITextAgent(Agent):
             self.print("GPT responded with", response)
 
             try:
-                action = ast.literal_eval(response)
+                action = ast.literal_eval(response.strip())
                 action["action"]
             except:
                 self.print("GPT returned invalid JSON")
@@ -282,6 +293,18 @@ class GPT4COT(OpenAITextAgent):
 class GPT4BAP(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
     agent_type_id: str = "gpt-3.5-bap"
+    mode: int = 2
+
+@dataclass
+class GPT3ChainOfThought(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt3cot"
+    mode: int = 1
+
+@dataclass
+class GPT3BabbleAndPrune(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt3b&p"
     mode: int = 2
 
 @dataclass
