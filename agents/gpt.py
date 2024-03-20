@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass, field
 from api.classes import Agent, AvailableActions, Action, Observation, Rules
 import random
@@ -5,6 +6,10 @@ import openai
 import api.util as util
 import ast
 import json
+from PIL import Image
+import base64
+from io import BytesIO
+import re
 
 
 action_format_instructions_no_openended = """\
@@ -27,6 +32,15 @@ openai_client = openai.Client(
     api_key=util.load_json("credentials.json")["openai_api_key"]
 )
 
+tokens = defaultdict(int)
+def completions(*args, **kwargs):
+    ret = openai_client.chat.completions.create(*args, **kwargs)
+
+    model = kwargs["model"]
+    tokens[f"{model}_input"] += ret.usage.prompt_tokens
+    tokens[f"{model}_output"] += ret.usage.completion_tokens
+    print("*******************", tokens)
+    return ret
 
 @dataclass
 class OpenAITextAgent(Agent):
@@ -48,15 +62,65 @@ class OpenAITextAgent(Agent):
         available_actions: AvailableActions,
         show_state: bool,
     ):
+        messages = [{"role": "system", "content": self.system_message}]
         valid_actions = []
         prompt = f"You are playing a game called {rules.title}. The rules are as follows:\n{rules.summary}\n"
         if rules.additional_details != None:
             prompt += "The following are headings with additional information about the rules that you can expand by taking the action Explain(<heading key>).\n"
-            details_dict = {f"H{i+1}": topic for i, topic in enumerate(rules.additional_details)}
+            details_dict = {
+                f"H{i+1}": topic for i, topic in enumerate(rules.additional_details)
+            }
             prompt += json.dumps(details_dict, indent=4)
             valid_actions.extend(f"Explain({h})" for h in list(details_dict.keys()))
 
         prompt += f"\n# Observation\nThe following describes the current state of the game:\n{observation.text}\n"
+        if observation.image is not None:
+            if self.openai_model == "gpt-4-1106-preview":
+                self.print("Image observation recieved.")
+                buffered = BytesIO()
+                observation.image.save(buffered, format="JPEG")
+                base64_image = base64.b64encode(buffered.getvalue())
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                },
+                            },
+                        ],
+                    }
+                )
+                prompt = ""
+            else:
+                self.print("Image observation recieved. Using GPT4 to generate text description.")
+                buffered = BytesIO()
+                image.save(buffered, format="JPEG")
+                base64_image = base64.b64encode(buffered.getvalue())
+                imagedesc = completions(
+                    model="gpt-4-vision-preview",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": prompt
+                                },
+                                {
+                                    "type": "image",
+                                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                                },
+                            ],
+                        }
+                    ],
+                ).choices[0].message.content
+                prompt += imagedesc
+                observation.image = None
+
         assert available_actions.predefined != {} or available_actions.openended != {}
         prompt += f"\n# Actions\n"
         prompt += f"{available_actions.instructions}\n"
@@ -83,16 +147,17 @@ class OpenAITextAgent(Agent):
         ):
             prompt += "Return the action Explain(<action>) to receive additional info about what any of the above actions do.\n"
 
-        messages = [{"role": "system", "content": self.system_message}]
-
         # Chain of Thought
         if self.mode == 1:
             prompt += "First, let's reason out loud about which action you should take to maximize your probability of winning."
             messages.append({"role": "user", "content": prompt})
 
             response = (
-                openai_client.chat.completions.create(
-                    model=self.openai_model, messages=messages
+                completions(
+                    model=self.openai_model
+                    if observation.image is None
+                    else "gpt-4-vision-preview",
+                    messages=messages,
                 )
                 .choices[0]
                 .message.content
@@ -109,8 +174,11 @@ class OpenAITextAgent(Agent):
 
             messages.append({"role": "user", "content": prompt})
             response = (
-                openai_client.chat.completions.create(
-                    model=self.openai_model, messages=messages
+                completions(
+                    model=self.openai_model
+                    if observation.image is None
+                    else "gpt-4-vision-preview",
+                    messages=messages,
                 )
                 .choices[0]
                 .message.content
@@ -118,9 +186,7 @@ class OpenAITextAgent(Agent):
             messages.append({"role": "assistant", "content": response})
             prompt = ""
 
-            self.print(
-                f"GPT listed the following actions as possibilities: {response}"
-            )
+            self.print(f"GPT listed the following actions as possibilities: {response}")
 
         prompt += "\nTo summarize, if you choose a predefined action, you must return json with an 'action' key which contains one of the following valid actions:\n"
         prompt += str(list(available_actions.predefined))
@@ -131,8 +197,10 @@ class OpenAITextAgent(Agent):
         result = None
         for _ in range(self.max_retries):
             response = (
-                openai_client.chat.completions.create(
-                    model=self.openai_model,
+                completions(
+                    model=self.openai_model
+                    if observation.image is None
+                    else "gpt-4-vision-preview",
                     response_format={"type": "json_object"},
                     messages=messages,
                 )
@@ -143,19 +211,32 @@ class OpenAITextAgent(Agent):
             self.print("GPT responded with", response)
 
             try:
-                action = ast.literal_eval(response)
+                action = ast.literal_eval(response.strip())
+                action["action"]
             except:
                 self.print("GPT returned invalid JSON")
                 continue
 
-            if action["action"] in available_actions.openended and "openended_response" not in action:
-                self.print("GPT chose openended action but didn't include response", action)
+            if (
+                action["action"] in available_actions.openended
+                and "openended_response" not in action
+            ):
+                self.print(
+                    "GPT chose openended action but didn't include response", action
+                )
                 error_message = "You chose an openended action, and so your json must have an 'openended_response' key."
                 messages.append({"role": "user", "content": error_message})
                 continue
 
             if action["action"] in valid_actions:
                 self.print("GPT chose valid action", action)
+                explain = re.findall(r"Explain\((H\d+)\)", action["action"])
+                if len(explain):
+                    self.print("GPT is asking for explanation.")
+                    rule = details_dict[explain[0]]
+                    desc = rules.additional_details[rule]
+                    messages.append({"role": "user", "content": desc})
+                    continue
                 result = action
                 break
 
@@ -170,6 +251,7 @@ class OpenAITextAgent(Agent):
                 f"WARNING: GPT returned an a random action after {self.max_retries} tries"
             )
             return Action(action_id=None)
+
         return Action(
             action_id=result["action"],
             openended_response=result.get("openended_response"),
@@ -187,15 +269,39 @@ class GPT4Text(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
     agent_type_id: str = "gpt-4"
 
-
 @dataclass
-class ChainOfThought(OpenAITextAgent):
-    openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "cot"
+class GPT3COT(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt-3.5-cot"
     mode: int = 1
 
 @dataclass
-class BabbleAndPrune(OpenAITextAgent):
+class GPT3BAP(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "b&p"
+    agent_type_id: str = "gpt-3.5-bap"
+    mode: int = 2
+
+@dataclass
+class GPT4COT(OpenAITextAgent):
+    openai_model: str = "gpt-4-1106-preview"
+    agent_type_id: str = "gpt-4-cot"
+    mode: int = 1
+
+
+@dataclass
+class GPT4BAP(OpenAITextAgent):
+    openai_model: str = "gpt-4-1106-preview"
+    agent_type_id: str = "gpt-3.5-bap"
+    mode: int = 2
+
+@dataclass
+class GPT3ChainOfThought(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt3cot"
+    mode: int = 1
+
+@dataclass
+class GPT3BabbleAndPrune(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt3b&p"
     mode: int = 2
