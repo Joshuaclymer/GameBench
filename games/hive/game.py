@@ -251,7 +251,6 @@ class HiveGame(Game):
             return self.process_list_placement_action(action_id, agent)
         elif action_id.startswith("list_move"):
             return self.process_list_moves_action(action_id, agent)
-            
         else:
             raise ValueError("Invalid action")
 
@@ -335,7 +334,6 @@ class HiveGame(Game):
             if self.board.is_queen_surrounded(player.team_id):
                 return True
         return False
-    
 
     def play(self):
         """

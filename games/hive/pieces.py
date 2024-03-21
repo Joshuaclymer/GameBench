@@ -150,7 +150,7 @@ class SoldierAnt(HivePiece):
         current_hex = self.find_current_hex(board)
         if current_hex is None:
             return []
-    
+          
         return self.find_moves(current_hex, board, set(), current_hex)
 
     def find_moves(self, current_hex, board, visited, start_hex):

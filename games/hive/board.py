@@ -257,7 +257,7 @@ class HiveBoard:
         self.board[to_hex] = piece  # Move the piece to the destination
 
         one_hive = self.is_one_hive()
-
+        
         self.board[from_hex] = piece  
 
         del self.board[to_hex]
