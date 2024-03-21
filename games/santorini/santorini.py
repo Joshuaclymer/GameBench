@@ -50,8 +50,8 @@ class Santorini(Game):
 
     def init_game(self, agent_1: Agent, agent_2: Agent):
         self.agents = [
-            agent_1(team_id=0, agent_id=0, **self.agent_1_kwargs),
-            agent_2(team_id=1, agent_id=1, **self.agent_2_kwargs),
+            agent_1(team_id=1, agent_id=0, **self.agent_1_kwargs),
+            agent_2(team_id=2, agent_id=1, **self.agent_2_kwargs),
         ]
         self.board = Board(2)
 
