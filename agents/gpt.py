@@ -260,61 +260,37 @@ class OpenAITextAgent(Agent):
 
 
 @dataclass
-class ChatGPTText(OpenAITextAgent):
+class GPT3(OpenAITextAgent):
     openai_model: str = "gpt-3.5-turbo-1106"
-    agent_type_id: str = "gpt-3.5"
-
+    agent_type_id: str = "gpt3"
+    mode: int = 0
 
 @dataclass
-class GPT4Text(OpenAITextAgent):
+class GPT3CoT(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt3-cot"
+    mode: int = 0
+
+@dataclass
+class GPT3BaP(OpenAITextAgent):
+    openai_model: str = "gpt-3.5-turbo-1106"
+    agent_type_id: str = "gpt3-bap"
+    mode: int = 0
+
+@dataclass
+class GPT4(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "gpt-4"
+    agent_type_id: str = "gpt4"
+    mode: int = 0
 
 @dataclass
-class GPT3COT(OpenAITextAgent):
-    openai_model: str = "gpt-3.5-turbo-1106"
-    agent_type_id: str = "gpt-3.5-cot"
-    mode: int = 1
-
-@dataclass
-class GPT3BAP(OpenAITextAgent):
+class GPT4CoT(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "gpt-3.5-bap"
-    mode: int = 2
+    agent_type_id: str = "gpt4-cot"
+    mode: int = 0
 
 @dataclass
-class GPT4COT(OpenAITextAgent):
+class GPT4BaP(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "gpt-4-cot"
-    mode: int = 1
-
-
-@dataclass
-class GPT4BAP(OpenAITextAgent):
-    openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "gpt-3.5-bap"
-    mode: int = 2
-
-@dataclass
-class GPT3ChainOfThought(OpenAITextAgent):
-    openai_model: str = "gpt-3.5-turbo-1106"
-    agent_type_id: str = "gpt3cot"
-    mode: int = 1
-
-@dataclass
-class GPT3BabbleAndPrune(OpenAITextAgent):
-    openai_model: str = "gpt-3.5-turbo-1106"
-    agent_type_id: str = "gpt3b&p"
-    mode: int = 2
-
-@dataclass
-class GPT3ChainOfThought(OpenAITextAgent):
-    openai_model: str = "gpt-3.5-turbo-1106"
-    agent_type_id: str = "gpt3cot"
-    mode: int = 1
-
-@dataclass
-class GPT3BabbleAndPrune(OpenAITextAgent):
-    openai_model: str = "gpt-3.5-turbo-1106"
-    agent_type_id: str = "gpt3b&p"
-    mode: int = 2
+    agent_type_id: str = "gpt4-bap"
+    mode: int = 0
