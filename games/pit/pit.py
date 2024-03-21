@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import random
+import uuid
 from api.classes import Observation, Action, Agent, AvailableActions, Game, Rules
 
 
@@ -11,16 +12,12 @@ class Commodity:
 
 
 @dataclass
-class Observation:
-    text: str
-
-
-@dataclass
 class TradeProposal:
     proposer_id: int
     offered_commodity: str
     quantity: int
     status: str = "pending"
+    trade_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
 @dataclass
@@ -123,21 +120,30 @@ class PitGame(Game):
         ]
         proposal = TradeProposal(proposer_id, offered_commodity, quantity)
         self.pending_trades.append(proposal)
-        print(
-            f"Agent {proposer_id} proposed a trade offering {quantity} {offered_commodity}."
+        if self.show_state:
+            print(
+                f"Agent {proposer_id} proposed a trade offering {quantity} {offered_commodity}."
+            )
+
+    def respond_to_trade(self, responder_id, trade_id, accept, offered_commodity=None):
+        proposal = next(
+            (p for p in self.pending_trades if p.trade_id == trade_id), None
         )
 
-    def respond_to_trade(
-        self, responder_id, proposal_id, accept, offered_commodity=None
-    ):
-        proposal = next(
-            (p for p in self.pending_trades if p.proposer_id == proposal_id), None
-        )
         if proposal and accept and offered_commodity:
+            if self.show_state:
+                print(f"Agent {responder_id} accepts trade proposal {trade_id}.")
+            proposal.status = "accepted"
             self.execute_trade(proposal, responder_id, offered_commodity)
-            self.pending_trades.remove(proposal)
+            self.pending_trades = [
+                p for p in self.pending_trades if p.trade_id != trade_id
+            ]
         elif proposal:
-            self.pending_trades.remove(proposal)
+            if self.show_state:
+                print(f"Agent {responder_id} rejects trade proposal {trade_id}.")
+            self.pending_trades = [
+                p for p in self.pending_trades if p.trade_id != trade_id
+            ]
 
     def execute_trade(self, proposal, responding_agent_id, responding_agent_commodity):
         if proposal.status == "accepted":
@@ -160,6 +166,11 @@ class PitGame(Game):
                     proposal.offered_commodity
                 ] += proposal.quantity
 
+            if self.show_state:
+                print(
+                    f"Trade completed: Agent {proposal.proposer_id} offered {proposal.quantity} {proposal.offered_commodity} and Agent {responding_agent_id} offered back {proposal.quantity} {responding_agent_commodity}."
+                )
+
             self.last_trade_outcome = f"Trade completed between Agent {proposal.proposer_id} and Agent {responding_agent_id}."
             self.check_corners_update_score()
 
@@ -178,21 +189,24 @@ class PitGame(Game):
                     if commodity_obj:
                         score = commodity_obj.value
                         if bull_card and count == self.max_possible - 1:
-                            print(
-                                f"Virtual Player {vp_id} has a Bull Corner on {commodity}."
-                            )
+                            if self.show_state:
+                                print(
+                                    f"Virtual Player {vp_id} has a Bull Corner on {commodity}."
+                                )
                         if bull_card and count == self.max_possible:
                             score *= 2  # Double Bull Corner
-                            print(
-                                f"Virtual Player {vp_id} has a Double Bull Corner on {commodity}."
-                            )
+                            if self.show_state:
+                                print(
+                                    f"Virtual Player {vp_id} has a Double Bull Corner on {commodity}."
+                                )
                         if bear_card:
                             score -= 20 * bear_card  # Penalty for holding Bear card
 
                         self.virtual_player_scores[vp_id] += score
-                        print(
-                            f"Virtual Player {vp_id} has cornered the market on {commodity}. Score updated."
-                        )
+                        if self.show_state:
+                            print(
+                                f"Virtual Player {vp_id} has cornered the market on {commodity}. Score updated."
+                            )
 
                         for agent_id, vp_ids in self.agent_virtual_players.items():
                             if vp_id in vp_ids:
@@ -218,72 +232,67 @@ class PitGame(Game):
             if count > 0
         )
 
-        pending_trade_description = ""
-        for proposal in self.pending_trades:
-            # Check if the current agent is not the proposer of the trade and the trade is pending
-            if agent.agent_id != proposal.proposer_id and proposal.status == "pending":
-                pending_trade_description += f"Pending trade: Offer {proposal.quantity} {proposal.offered_commodity} from Agent {proposal.proposer_id}. Accept or Reject? "
-
-        observation_text = f"Agent {agent.agent_id}, it's your turn. Your hand: {hand_description}. {pending_trade_description}"
-
         available_actions = AvailableActions(
-            instructions="Choose commodities and quantities to trade, or respond to pending trades",
+            instructions="Choose commodities and quantities to trade, respond to pending trades, or indicate which commodity you're willing to trade.",
             predefined={},
             openended={},
         )
 
-        # Loop to create action IDs for offering commodities
         for commodity in self.commodities:
             for quantity in range(1, 5):
                 action_id = f"Offer_{commodity.name}_{quantity}"
                 action_description = f"Offer {quantity} {commodity.name}"
                 available_actions.predefined[action_id] = action_description
 
-        if pending_trade_description:
-            available_actions.predefined["accept"] = "Accept trade proposal"
-            available_actions.predefined["reject"] = "Reject trade proposal"
+        pending_trade_descriptions = []
+        for i, proposal in enumerate(self.pending_trades, 1):
+            if agent.agent_id != proposal.proposer_id and proposal.status == "pending":
+                for commodity, count in agent_hand.items():
+                    if (
+                        count >= proposal.quantity
+                        and commodity != proposal.offered_commodity
+                    ):  # Checking if agent has enough to trade
+                        trade_description = f"{i}: Offer {proposal.quantity} {proposal.offered_commodity} for {count} {commodity}"
+                        pending_trade_descriptions.append(trade_description)
+                        accept_action_id = f"Accept_{i}_{commodity}_{proposal.quantity}"
+                        available_actions.predefined[accept_action_id] = (
+                            f"Accept trade {i}: Offer your {count} {commodity} for {proposal.quantity} {proposal.offered_commodity}"
+                        )
+                        reject_action_id = f"Reject_{i}"
+                        available_actions.predefined[reject_action_id] = (
+                            f"Reject trade {i}"
+                        )
 
+        observation_text = f"Agent {agent.agent_id}, it's your turn. Your hand: {hand_description}. {' '.join(pending_trade_descriptions)}"
         return Observation(text=observation_text), available_actions
 
-    def update(
-        self,
-        action: Action,
-        available_actions: AvailableActions,
-        agent: Agent,
-        other_agent: Agent,
-    ):
+    def update(self, action: Action, available_actions: AvailableActions, agent: Agent):
         action_parts = action.action_id.split("_")
 
-        if action.action_id in ["accept", "reject"]:
-            for proposal in self.pending_trades:
-                if (
-                    agent.agent_id != proposal.proposer_id
-                    and proposal.status == "pending"
-                ):  # Ensure agent is not the proposer
-                    if action.action_id == "accept":
-                        # Here, you'll need to pass additional parameters for responding agent ID and commodity when calling execute_trade
-                        self.execute_trade(
-                            proposal, agent.agent_id, None
-                        )  # Placeholder for the responding agent's commodity
-                        print(
-                            f"Trade accepted between Agent {proposal.proposer_id} and Agent {agent.agent_id}."
-                        )
-                    else:
-                        print(
-                            f"Trade rejected by Agent {agent.agent_id} for proposal from Agent {proposal.proposer_id}."
-                        )
-                    self.pending_trades.remove(proposal)
-                    break
+        if "Accept" in action.action_id or "Reject" in action.action_id:
+            trade_index = int(action_parts[1]) - 1
+            proposal = self.pending_trades[trade_index]
+
+            if "Accept" in action.action_id and agent.agent_id != proposal.proposer_id:
+                responding_commodity = action_parts[2]
+                quantity = int(action_parts[3])
+
+                proposal.status = "accepted"
+
+                self.respond_to_trade(
+                    agent.agent_id, proposal.trade_id, True, responding_commodity
+                )
+            elif "Reject" in action.action_id:
+                self.respond_to_trade(agent.agent_id, proposal.proposer_id, False)
 
         elif len(action_parts) == 3 and action_parts[0] == "Offer":
             offered_commodity = action_parts[1]
             quantity = int(action_parts[2])
-
-            # Since you're not using 'requested_commodity' anymore, it's not included in propose_trade
             self.propose_trade(agent.agent_id, offered_commodity, quantity)
 
         else:
-            print("Invalid action received.")
+            if self.show_state:
+                print("Invalid action received.")
 
     def play(self) -> Tuple[float, float]:
         self.shuffle_cards()
@@ -292,18 +301,16 @@ class PitGame(Game):
             for current_agent in self.agents:
                 self.round_number += 1
 
-                other_agent = next(
-                    agent for agent in self.agents if agent != current_agent
-                )
-
                 observation, available_actions = self.get_observation(current_agent)
                 action = current_agent.take_action(
                     self.rules, observation, available_actions, show_state=True
                 )
 
-                self.update(action, available_actions, current_agent, other_agent)
+                self.update(action, available_actions, current_agent)
                 self.check_corners_update_score()
-                print(f"End of round {self.round_number}. Scores: {self.scores}")
+
+                if self.show_state:
+                    print(f"End of round {self.round_number}. Scores: {self.scores}")
 
                 if any(score >= self.winning_score for score in self.scores):
                     self.game_is_over = True
