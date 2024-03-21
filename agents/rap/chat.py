@@ -71,7 +71,7 @@ def openai_api(model="gpt-4-1106-preview") -> tuple[CompletionsFunction, Probabi
 
         top_logprobs = (
             openai_client.chat.completions.create(
-                model="gpt-3.5-turbo-1106",
+                model=model,
                 messages=context,
                 logprobs=True,
                 top_logprobs=n,
@@ -156,7 +156,7 @@ def image_description(image: Image, rules: Rules) -> str:
                 "content": [
                     {
                         "type": "text",
-                        "text": "You are playing a game called {rules.title}. The rules are as follows: {rules.summary}.\nThis image is your observation of the game. Describe what's going on in the image.",
+                        "text": f"You are playing a game called {rules.title}. The rules are as follows: {rules.summary}.\nThis image is your observation of the game. Describe what's going on in the image.",
                     },
                     {
                         "type": "image",
