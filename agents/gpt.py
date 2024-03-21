@@ -269,13 +269,13 @@ class GPT3(OpenAITextAgent):
 class GPT3CoT(OpenAITextAgent):
     openai_model: str = "gpt-3.5-turbo-1106"
     agent_type_id: str = "gpt3-cot"
-    mode: int = 0
+    mode: int = 1
 
 @dataclass
 class GPT3BaP(OpenAITextAgent):
     openai_model: str = "gpt-3.5-turbo-1106"
     agent_type_id: str = "gpt3-bap"
-    mode: int = 0
+    mode: int = 2
 
 @dataclass
 class GPT4(OpenAITextAgent):
@@ -287,10 +287,10 @@ class GPT4(OpenAITextAgent):
 class GPT4CoT(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
     agent_type_id: str = "gpt4-cot"
-    mode: int = 0
+    mode: int = 1
 
 @dataclass
 class GPT4BaP(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
     agent_type_id: str = "gpt4-bap"
-    mode: int = 0
+    mode: int = 2
