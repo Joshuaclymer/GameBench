@@ -284,7 +284,8 @@ class Santorini(Game):
     ):
         # If the agent chose an invalid action, replace it with a random action instead.
         if action.action_id not in available_actions.predefined.keys():
-            action = random.choice(list(available_actions.predefined.keys()))
+            action_id = random.choice(list(available_actions.predefined.keys()))
+            action = Action(action_id)
 
         play = action_name_mapping[action.action_id]
         move, build = play
