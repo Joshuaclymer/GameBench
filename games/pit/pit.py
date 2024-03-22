@@ -109,21 +109,32 @@ class PitGame(Game):
         self.setup_virtual_players()
 
     def propose_trade(self, proposer_id, offered_commodity, quantity):
-        print(
-            f"Proposer (Agent {proposer_id}) Hand before trade:",
-            self.virtual_player_hands[self.agent_virtual_players[proposer_id][0]],
-        )
-        self.pending_trades = [
-            proposal
-            for proposal in self.pending_trades
-            if proposal.proposer_id != proposer_id
+        proposer_hand = self.virtual_player_hands[
+            self.agent_virtual_players[proposer_id][0]
         ]
-        proposal = TradeProposal(proposer_id, offered_commodity, quantity)
-        self.pending_trades.append(proposal)
-        if self.show_state:
-            print(
-                f"Agent {proposer_id} proposed a trade offering {quantity} {offered_commodity}."
-            )
+
+        if proposer_hand[offered_commodity] >= quantity:
+            if self.show_state:
+                print(
+                    f"Proposer (Agent {proposer_id}) Hand before trade:",
+                    proposer_hand,
+                )
+            self.pending_trades = [
+                proposal
+                for proposal in self.pending_trades
+                if proposal.proposer_id != proposer_id
+            ]
+            proposal = TradeProposal(proposer_id, offered_commodity, quantity)
+            self.pending_trades.append(proposal)
+            if self.show_state:
+                print(
+                    f"Agent {proposer_id} proposed a trade offering {quantity} {offered_commodity}."
+                )
+        else:
+            if self.show_state:
+                print(
+                    f"Agent {proposer_id} does not have enough {offered_commodity} to trade."
+                )
 
     def respond_to_trade(self, responder_id, trade_id, accept, offered_commodity=None):
         proposal = next(
