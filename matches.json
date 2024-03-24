@@ -368,5 +368,155 @@
         "game": "air_land_sea",
         "gpt4": 1.0,
         "random": 0.0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 0,
+        "random": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "santorini",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "hive",
+        "gpt3-cot": 0.5,
+        "random": 0.5
+    },
+    {
+        "game": "air_land_sea",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 0,
+        "random": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "santorini",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "hive",
+        "gpt3-cot": 0.5,
+        "random": 0.5
+    },
+    {
+        "game": "air_land_sea",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "santorini",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "hive",
+        "gpt3-cot": 0.5,
+        "random": 0.5
+    },
+    {
+        "game": "air_land_sea",
+        "gpt3-cot": 0.42857142857142855,
+        "random": 0.5714285714285714
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 0,
+        "random": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "santorini",
+        "gpt3-cot": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "hive",
+        "gpt3-cot": 0.5,
+        "random": 0.5
+    },
+    {
+        "game": "air_land_sea",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "santorini",
+        "gpt3-cot": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "hive",
+        "gpt3-cot": 0.5,
+        "random": 0.5
+    },
+    {
+        "game": "air_land_sea",
+        "gpt3-cot": 1.0,
+        "random": 0.0
     }
 ]
