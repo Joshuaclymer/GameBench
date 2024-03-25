@@ -229,30 +229,31 @@ class OpenAITextAgent(Agent):
                 messages.append({"role": "user", "content": error_message})
                 continue
 
+            explain = re.findall(r"Explain\((H\d+)\)", action["action"])
+            if len(explain):
+                self.print("GPT is asking for explanation.")
+                rule = details_dict[explain[0]]
+                desc = rules.additional_details[rule]
+                messages.append({"role": "user", "content": desc})
+                continue
+
+            explain = re.findall(r"Explain\((\d+)\)", action["action"])
+            if len(explain):
+                self.print("GPT is asking for explanation.")
+                rule = details_dict["H" + explain[0]]
+                desc = rules.additional_details[rule]
+                messages.append({"role": "user", "content": desc})
+                continue
+
+            explain = re.findall(r"Explain\((.+)\)", action["action"])
+            if len(explain):
+                self.print("GPT is asking for explanation.")
+                desc = rules.additional_details[explain[0]]
+                messages.append({"role": "user", "content": desc})
+                continue
+
             if action["action"] in valid_actions:
                 self.print("GPT chose valid action", action)
-                explain = re.findall(r"Explain\((H\d+)\)", action["action"])
-                if len(explain):
-                    self.print("GPT is asking for explanation.")
-                    rule = details_dict[explain[0]]
-                    desc = rules.additional_details[rule]
-                    messages.append({"role": "user", "content": desc})
-                    continue
-
-                explain = re.findall(r"Explain\((\d+)\)", action["action"])
-                if len(explain):
-                    self.print("GPT is asking for explanation.")
-                    rule = details_dict["H" + explain[0]]
-                    desc = rules.additional_details[rule]
-                    messages.append({"role": "user", "content": desc})
-                    continue
-
-                explain = re.findall(r"Explain\((.+)\)", action["action"])
-                if len(explain):
-                    self.print("GPT is asking for explanation.")
-                    desc = rules.additional_details[explain[0]]
-                    messages.append({"role": "user", "content": desc})
-                    continue
                 result = action
                 break
 
