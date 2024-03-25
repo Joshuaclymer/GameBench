@@ -238,6 +238,21 @@ class OpenAITextAgent(Agent):
                     desc = rules.additional_details[rule]
                     messages.append({"role": "user", "content": desc})
                     continue
+
+                explain = re.findall(r"Explain\((\d+)\)", action["action"])
+                if len(explain):
+                    self.print("GPT is asking for explanation.")
+                    rule = details_dict["H" + explain[0]]
+                    desc = rules.additional_details[rule]
+                    messages.append({"role": "user", "content": desc})
+                    continue
+
+                explain = re.findall(r"Explain\((.+)\)", action["action"])
+                if len(explain):
+                    self.print("GPT is asking for explanation.")
+                    desc = rules.additional_details[explain[0]]
+                    messages.append({"role": "user", "content": desc})
+                    continue
                 result = action
                 break
 
