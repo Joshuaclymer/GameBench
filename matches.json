@@ -608,5 +608,10 @@
         "game": "are_you_the_traitor",
         "gpt4-cot": 1,
         "random": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt4-cot": 0,
+        "random": 1
     }
 ]
