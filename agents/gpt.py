@@ -71,7 +71,7 @@ class OpenAITextAgent(Agent):
                 f"H{i+1}": topic for i, topic in enumerate(rules.additional_details)
             }
             prompt += json.dumps(details_dict, indent=4)
-            valid_actions.extend(f"Explain({h})" for h in list(details_dict.keys()))
+            #valid_actions.extend(f"Explain({h})" for h in list(details_dict.keys()))
 
         prompt += f"\n# Observation\nThe following describes the current state of the game:\n{observation.text}\n"
         if observation.image is not None:
@@ -229,27 +229,25 @@ class OpenAITextAgent(Agent):
                 messages.append({"role": "user", "content": error_message})
                 continue
 
-            explain = re.findall(r"Explain\((H\d+)\)", action["action"])
-            if len(explain):
-                self.print("GPT is asking for explanation.")
-                rule = details_dict[explain[0]]
-                desc = rules.additional_details[rule]
-                messages.append({"role": "user", "content": desc})
-                continue
+            try:
+                explain = re.findall(r"Explain\((H\d+)\)", action["action"])
+                if len(explain):
+                    self.print("GPT is asking for rules explanation.")
+                    rule = details_dict[explain[0]]
+                    desc = rules.additional_details[rule]
+                    messages.append({"role": "user", "content": desc})
+                    continue
 
-            explain = re.findall(r"Explain\((\d+)\)", action["action"])
-            if len(explain):
-                self.print("GPT is asking for explanation.")
-                rule = details_dict["H" + explain[0]]
-                desc = rules.additional_details[rule]
-                messages.append({"role": "user", "content": desc})
-                continue
-
-            explain = re.findall(r"Explain\((.+)\)", action["action"])
-            if len(explain):
-                self.print("GPT is asking for explanation.")
-                desc = rules.additional_details[explain[0]]
-                messages.append({"role": "user", "content": desc})
+                explain = re.findall(r"Explain\((.+)\)", action["action"])
+                if len(explain):
+                    self.print("GPT is asking for action explanation.")
+                    desc = available_actions.predefined.get(explain[0], "") + available_actions.openended.get(explain[0], "")
+                    messages.append({"role": "user", "content": desc})
+                    continue
+            except:
+                self.print("GPT tried asking for an expalanation but failed.")
+                error_message = "This is an invalid Explain action."
+                messages.append({"role": "user", "content": error_message})
                 continue
 
             if action["action"] in valid_actions:
@@ -265,7 +263,7 @@ class OpenAITextAgent(Agent):
             messages.append({"role": "user", "content": error_message})
         if result == None:
             self.print(
-                f"WARNING: GPT returned an a random action after {self.max_retries} tries"
+                f"WARNING: GPT returned too many invalid actions after {self.max_retries} tries"
             )
             return Action(action_id=None)
 
