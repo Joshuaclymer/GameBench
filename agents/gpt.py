@@ -87,9 +87,9 @@ class OpenAITextAgent(Agent):
         if observation.image is not None:
             if self.openai_model == "gpt-4-1106-preview":
                 self.print("Image observation recieved.")
-                buffered = BytesIO()
-                observation.image.save(buffered, format="JPEG")
-                base64_image = base64.b64encode(buffered.getvalue())
+                # buffered = BytesIO()
+                # observation.image.save(buffered, format="JPEG")
+                # base64_image = base64.b64encode(buffered.getvalue())
                 messages.append(
                     {
                         "role": "user",
@@ -98,7 +98,7 @@ class OpenAITextAgent(Agent):
                             {
                                 "type": "image",
                                 "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                    "url": f"data:image/png;base64,{util.base64_encode_image(observation.image)}"
                                 },
                             },
                         ],
@@ -107,9 +107,9 @@ class OpenAITextAgent(Agent):
                 prompt = ""
             else:
                 self.print("Image observation recieved. Using GPT4 to generate text description.")
-                buffered = BytesIO()
-                image.save(buffered, format="JPEG")
-                base64_image = base64.b64encode(buffered.getvalue())
+                # buffered = BytesIO()
+                # observation.image.save(buffered, format="JPEG")
+                # base64_image = base64.b64encode(buffered.getvalue())
 
                 imagedesc = completions(
                     model="gpt-4-vision-preview",
@@ -123,7 +123,7 @@ class OpenAITextAgent(Agent):
                                 },
                                 {
                                     "type": "image",
-                                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                                    "image_url": {"url": f"data:image/png;base64,{util.base64_encode_image(observation.image)}"},
                                 },
                             ],
                         }

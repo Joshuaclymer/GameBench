@@ -107,7 +107,7 @@ def parse_action(act: str) -> int:
             return 0
     except ValueError:
         # If the action can't be converted to an integer, treat it as an action description
-        return int(actions.get(act, "0"))
+        return int(actions.get(act.lower(), "0"))
 
 # %%
 def switch_player_enemy_keys(dictionary: Dict[str, int])-> Dict[str, int]:

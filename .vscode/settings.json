@@ -1,0 +1,10 @@
+{
+    "code.autocomplete.enabled": true,
+"code.inlineChat.enabled": true,
+"code.codeActions.enabled": true,
+"code.experimentalchatPredictions": true,
+"github.copilot.advanced": {
+    // "debug.overrideEngine": "gpt-4",
+    "debug.overrideChatEngine": "gpt-4",
+},
+}

@@ -643,5 +643,30 @@
         "game": "air_land_sea",
         "gpt4-cot": 1.0,
         "random": 0.0
+    },
+    {
+        "game": "atari_boxing",
+        "gpt3": 0.0,
+        "random": 16.0
+    },
+    {
+        "game": "atari_boxing",
+        "gpt3": 0.0,
+        "random": 5.0
+    },
+    {
+        "game": "atari_boxing",
+        "gpt3": 0.0,
+        "random": 9.0
+    },
+    {
+        "game": "atari_boxing",
+        "gpt3": 0.0,
+        "random": 18.0
+    },
+    {
+        "game": "atari_boxing",
+        "gpt3": 0.0,
+        "random": 0.0
     }
 ]
