@@ -22,4 +22,3 @@ agents = [OpenAITextAgent(openai_model="gpt-4-1106-preview",agent_id=1, team_id=
 for i in range(1):
     game = Game(config=config, agents=agents)
     print(game.play())
-

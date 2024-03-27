@@ -8,7 +8,7 @@ class CardType(Enum):
 
     def __str__(self):
         return self.name
-    
+
 
 class Card:
     def __init__(self, word: str, card_type: Enum):

@@ -5,12 +5,14 @@ from .config import GameConfig as Config
 from dataclasses import dataclass, field
 from typing import List, Tuple
 import random
+from api.classes import Game
 
 default_config = Config()
 
 @dataclass
-class CodenamesGame:
-    rules : Rules = None
+class CodenamesGame(Game):
+    config : Config = default_config
+    rules : Rules = default_config.codenames_rules
     id : str = "codenames" # Unique identifier in snake_case
 
     spymaster_1 : Agent = None
@@ -25,21 +27,22 @@ class CodenamesGame:
     show_state : bool = True
     game_is_over : bool = False
     game_board : Board = None
-    config : Config = None
 
-    def init_game(self, agent_1_class: Agent, agent_2_class : Agent, config: Config = default_config):
-        self.config = config
+    def init_game(self, agent_1_class: Agent, agent_2_class: Agent):
         agents = [
-            agent_1_class(team_id=1, agent_id=0),
-            agent_1_class(team_id=1, agent_id=1),
-            agent_2_class(team_id=2, agent_id=2),
-            agent_2_class(team_id=2, agent_id=3)
+            agent_1_class(team_id=1, agent_id=0, **self.agent_1_kwargs),
+            agent_1_class(team_id=1, agent_id=1, **self.agent_1_kwargs),
+            agent_2_class(team_id=2, agent_id=2, **self.agent_2_kwargs),
+            agent_2_class(team_id=2, agent_id=3, **self.agent_2_kwargs)
         ]
 
         self._validate_agents(agents)
-        self.rules = config.codenames_rules
         self._assign_teams(agents)
         self.setup_board()
+
+    def set_config(self, config: Config):
+        self.config = config
+        self.rules = config.codenames_rules
 
     def _validate_agents(self, agents):
         if len(agents) != 4:
@@ -94,7 +97,10 @@ class CodenamesGame:
         last_hint_info = self._get_last_hint_info(agent)
         text += "\n\n" + last_hint_info
 
-        actions = {"submit_clue": Action("submit_clue")}
+        if self.show_state:
+            print(text)
+
+        actions = {"submit_clue": "Submit a clue to help your team guess the cards. In the following format: word,number_of_cards"}
         return Observation(text), AvailableActions("Enter a one-word clue and the number of cards from your team that the clue relates to. In the following format: word,3", {}, actions)
 
     def get_operative_observation(self, agent: Agent) -> Tuple[Observation, AvailableActions]:
@@ -109,8 +115,11 @@ class CodenamesGame:
         last_hint_info = self._get_last_hint_info(agent)
         text += "\n\n" + last_hint_info
 
+        if self.show_state:
+            print(text)
+
         actions = self._get_operative_actions(current_num_guesses)
-        return Observation(text), AvailableActions("", actions, {})
+        return Observation(text), AvailableActions("Please guess a card based on the given clue.", actions, {})
 
     def _get_last_hint_info(self, agent: Agent) -> str:
         text = ""
@@ -129,8 +138,8 @@ class CodenamesGame:
         if self.game_board.guesses_made_during_turn <= current_num_guesses or current_num_guesses == 0:
             for index, card in enumerate(self.game_board.cards):
                 if not self.game_board.revealed[index]:
-                    actions[card.word] = Action(f"guess_{index}")
-        actions["end_turn"] = Action("end_turn")
+                    actions["guess_" + str(index)] = "Guess the word: " + card.word
+        actions["end_turn"] = "End your current turn."
         return actions
 
 
@@ -239,7 +248,7 @@ class CodenamesGame:
             self.reset_last_turn_guesses()
             observation, actions = self.get_spymaster_observation(spymaster)
             action = spymaster.take_action(self.rules, observation, actions, show_state=self.show_state)
-            if action is None:
+            if action.action_id not in actions.predefined and action.action_id not in actions.openended:
                 clue = "None"
                 num_guesses = 1
                 action = Action(f"submit_clue", openended_response=f"{clue},{num_guesses}")
@@ -252,8 +261,8 @@ class CodenamesGame:
     def _process_operative_turn(self, operative: Agent):
         observation, actions = self.get_operative_observation(operative)
         action = operative.take_action(self.rules, observation, actions, show_state=self.show_state)
-        if action is None:
-            action = random.choice(list(actions.values()))
+        if action.action_id not in actions.predefined and action.action_id not in actions.openended:
+            action = Action(action_id=random.choice(list(actions.predefined.keys())))
         self.update(action, actions, operative)
 
         if self._check_turn_end():
@@ -278,7 +287,13 @@ class CodenamesGame:
             red_points += 3
         elif winner == CardType.BLUE:
             blue_points += 3
-        return red_points, blue_points
+
+        total_points = red_points + blue_points
+
+        if total_points == 0:
+            return 0.5, 0.5
+
+        return red_points / total_points, blue_points / total_points
 
     def _get_current_team(self) -> Tuple[Agent, Agent]:
         if self.game_board.current_turn == CardType.RED:
