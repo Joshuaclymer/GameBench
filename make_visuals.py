@@ -1,5 +1,6 @@
 from api.util import load_json
 from collections import defaultdict
+import random
 
 import choix
 import matplotlib.pyplot as plt
@@ -44,33 +45,47 @@ plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor
 
 for i in range(n_players):
     for j in range(n_players):
-         text = ax[0].text(j, i, matrix[i, j].round(1), ha="center", va="center", color="w")
+        text = ax[0].text(
+            j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
+        )
 
 ax[0].set_title("Scores")
 
-wins = []
-for match in matches:
-    agents = list(match.keys())[1:]
-    if match[agents[0]] == match[agents[1]]:
-        continue
 
-    i = players.index(agents[0])
-    j = players.index(agents[1])
+def get_params(matches):
+    wins = []
+    for match in matches:
+        agents = list(match.keys())[1:]
+        if match[agents[0]] == match[agents[1]]:
+            continue
 
-    if match[agents[0]] > match[agents[1]]:
-        wins.append((i, j))
-    else:
-        wins.append((j, i))
+        i = players.index(agents[0])
+        j = players.index(agents[1])
 
-params = choix.ilsr_pairwise(len(players), wins, alpha=0.01)
+        if match[agents[0]] > match[agents[1]]:
+            wins.append((i, j))
+        else:
+            wins.append((j, i))
 
-ax[2].scatter(players, params)
+    params = choix.rank_centrality(len(players), wins, alpha=0.01)
+    return params
+
+
+bootstrapped_params = np.array(
+    [get_params(random.choices(matches, k=len(matches))) for _ in range(100)]
+).transpose((1, 0))
+ratings = bootstrapped_params.mean(1)
+ci90s = np.percentile(bootstrapped_params, [5, 95], axis=1)
+ci90s = np.absolute(ratings - ci90s)
+
+#ax[2].scatter(players, params)
+ax[2].errorbar(players, ratings, yerr=ci90s, fmt="o")
 ax[2].set_title("Rating")
 
 matrix = np.zeros((n_players, n_players))
 for i in range(n_players):
     for j in range(n_players):
-        matrix[i, j] = choix.probabilities([i, j], params)[0]
+        matrix[i, j] = choix.probabilities([i, j], ratings)[0]
 
 im = ax[1].imshow(matrix)
 
@@ -80,7 +95,9 @@ plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor
 
 for i in range(n_players):
     for j in range(n_players):
-         text = ax[1].text(j, i, matrix[i, j].round(1), ha="center", va="center", color="w")
+        text = ax[1].text(
+            j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
+        )
 
 ax[1].set_title("Win probabilities")
 
