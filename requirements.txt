@@ -4,3 +4,4 @@ openai
 matplotlib
 santorinai
 colorama
+choix
