@@ -4,16 +4,16 @@ from typing import List, Dict, Optional, Tuple
 from games.arctic_scavengers.cards.game_cards import *
 import random
 import ast
- 
+
 @dataclass
 class ArcticScavengers(Game):
     class Player:
         def __init__(self, agent):
             self.agent = agent
             self.cards = {"deck":[], "draw":[]}
-            self.actions = {"DIG": 0, "DRAW": 0, "HUNT": 0, "HIRE": 0, "TRASH":0, "SNIPER":0, "SABOTEUR":0} 
+            self.actions = {"DIG": 0, "DRAW": 0, "HUNT": 0, "HIRE": 0, "TRASH":0, "SNIPER":0, "SABOTEUR":0}
             self.food = 0
-        
+
         def create_deck(self, deck):
             self.cards["deck"] = [Refugee()] * 4 + [Scavenger()] * 3 + [Brawler()] + [Spear()] + [Shovel()]
             random.shuffle(self.cards["deck"])
@@ -39,7 +39,7 @@ class ArcticScavengers(Game):
                         if action == "FIGHT":
                             score += card.actions[action].value
             return score
-        
+
         def calculate_people(self):
             score = 0
             for card in self.cards["draw"]:
@@ -78,7 +78,7 @@ class ArcticScavengers(Game):
         for player in self.players:
             player.create_deck(self.deck)
         self.game_winner = None
-    
+
     def observation_resource_gather(self, player : Player) -> Tuple[Observation, AvailableActions]:
         context = "This is your draw hand, and the information on your cards."
         for card in player.cards["draw"]:
@@ -95,7 +95,7 @@ class ArcticScavengers(Game):
                 context += "\n" + str(pile[0])
         context += "\nThe HUNT action allows you to generate food during a single round, that can be used as currency for hiring a single mercenary card."
         context += "\nAny card you play of type MODIFIER must be combined with a STANDARD card. The MODIFIER card will add to the score of the STANDARD card."
-        observation = Observation(text=context) 
+        observation = Observation(text=context)
         s = "Choose cards to use and discard in an action, otherwise say STOP and your current hand will remain for the skirmish. Remember that each of the actions DIG, DRAW, HIRE, HUNT, TRASH can only be used once."
         # s += "\nThe DIG action allows you to draw one or more cards from the top of the junkyard pile, determined by the sum of DIG values you play. You may choose a maximum of one card to place in your reserve deck, and return any other cards to the bottom of the junkyard pile."
         # s += "\nThe DRAW action allows you to draw one or more cards from your reserve deck, adding them to your playing hand. The number is determined by the sum of the DRAW values you play."
@@ -108,7 +108,7 @@ class ArcticScavengers(Game):
         s += "\nFor example, [\"HIRE\", [\"Pills\"], \"Saboteur\"]."
         s += "\nFor STOP, return [\"STOP\", []]"
         available_actions = AvailableActions(
-             instructions = s,            
+             instructions = s,
              openended = {
                     "DIG": "Draw one or more cards from the top of the junkyard pile, determined by the sum of DIG values you play. You may choose a maximum of one card to place in your reserve deck, and return any other cards to the bottom of the junkyard pile.",
                     "DRAW": "Draw one or more cards from your reserve deck, adding them to your playing hand. The number is determined by the sum of the DRAW values you play.",
@@ -124,7 +124,7 @@ class ArcticScavengers(Game):
     def observation_skirmish(self, player : Player, other : int) -> Tuple[Observation, AvailableActions]:
         context = "This is the hand you have brought to the skirmish. Your opponent can see your hand."
         for card in player.cards["draw"]:
-            context += "\n" + str(card) 
+            context += "\n" + str(card)
         context += "\n This is the hand your opponent has brought to the skirmish. You can see their hand."
         for card in self.players[other].cards["draw"]:
             context += "\n" + str(card)
@@ -136,7 +136,7 @@ class ArcticScavengers(Game):
         s += "\nFor the actions SNIPER or SABOTEUR, return as an openended response a list of the action name and the card title of your opponent that you are performing this action on. Both list values must be strings."
         s += "\nFor the action STOP, return [\"STOP\", ""]"
         available_actions = AvailableActions(
-             instructions = s,            
+             instructions = s,
              openended = {
                     "SNIPER": "Snipe one tribe member, forcing it to be discarded.",
                     "SABOTEUR": "Disarm one tool card, forcing it to be discarded.",
@@ -145,7 +145,7 @@ class ArcticScavengers(Game):
              predefined = {}
         )
         return observation, available_actions
-    
+
     def observation_respond_to_action(self, player : Player, action : Action) -> Tuple[Observation, AvailableActions]:
         context = "Your opponent has announced that they are taking the following action."
         context += "\n" + str(action.action_id) + " " + str(action.openended_response)
@@ -157,7 +157,7 @@ class ArcticScavengers(Game):
         s += "\nOtherwise, for the actions SNIPER or SABOTEUR, return as an openended response a list of the action name and the card title of your opponent that you are performing this action on. You must ensure that the list value is a string."
         s += "\nFor example, [\"Brawler\"]."
         available_actions = AvailableActions(
-             instructions = s,            
+             instructions = s,
              openended = {
                     "SNIPER": "Snipe one tribe member, forcing it to be discarded.",
                     "SABOTEUR": "Disarm one tool card, forcing it to be discarded.",
@@ -166,7 +166,7 @@ class ArcticScavengers(Game):
              predefined = {}
         )
         return observation, available_actions
-    
+
     def observation_dig_cards(self, dig_cards : List[Card], player : Player) -> Tuple[Observation, AvailableActions]:
         context = "These are the cards you have drawn from the junkyard pile after taking the DIG action."
         for card in dig_cards:
@@ -174,7 +174,7 @@ class ArcticScavengers(Game):
         observation = Observation(text=context)
         s = "Choose a card to place in your reserve deck, and return the rest to the bottom of the junkyard pile."
         available_actions = AvailableActions(
-             instructions = s,            
+             instructions = s,
              predefined = {
                   f"{card.title}" : None for card in dig_cards
              },
@@ -186,7 +186,7 @@ class ArcticScavengers(Game):
         if self.show_state:
             print(action.action_id)
             print(action.openended_response)
-            if action2: 
+            if action2:
                 print(action2.action_id)
                 print(repr(action2.openended_response))
             print("Player 1 cards: " + str(player.cards))
@@ -241,11 +241,12 @@ class ArcticScavengers(Game):
             try:
                 action_items = list(ast.literal_eval(str(action.openended_response)))
             except:
-                action_items = [[random.choice(player.cards["draw"])]]
-                types = [a for a in action_items[0][0].actions.keys()]
+                choice = random.choice(player.cards["draw"])
+                action_items = [[choice]]
+                types = [a for a in choice.actions.keys()] if choice.actions else []
                 action_items.insert(0, random.choice(types + ["TRASH"])) # No random hiring or stopping
 
-        
+
         valid = True
         player_cards = [c.title for c in player.cards["draw"]]
         if id in ["DIG", "DRAW", "HUNT"]:
@@ -332,7 +333,7 @@ class ArcticScavengers(Game):
                     if mercenary and mercenary[0].title == action_items[2]:
                         action_items[-1] = mercenary[0]
                         break
-    
+
         if id == "DRAW":
             draw_value = 0
             for card in action_items[-1]:
@@ -482,7 +483,7 @@ class ArcticScavengers(Game):
             if self.show_state:
                 print("Size of contested resources deck: " + str(len(self.deck.contested_resources)))
             initiator = count % 2
-            #### DRAWING PHASE #### 
+            #### DRAWING PHASE ####
             for player in self.players:
                 player.reset_actions()
                 player.draw_hand()
@@ -492,7 +493,7 @@ class ArcticScavengers(Game):
             self.play_resource_gather(player, 1-initiator)
             player = self.players[1 - initiator]
             self.play_resource_gather(player, initiator)
-            
+
             #### SKIRMISH PHASE ####
             player = self.players[initiator]
             self.play_skirmish(player, 1-initiator)
@@ -511,6 +512,6 @@ class ArcticScavengers(Game):
                     self.players[1].cards["deck"].append(self.deck.contested_resources.pop(0))
                 else:
                     self.deck.junkyard.append(self.deck.contested_resources.pop(0))
-            
+
             count += 1
         return (1, 0) if self.players[0].calculate_people() > self.players[1].calculate_people() else (0, 1)
