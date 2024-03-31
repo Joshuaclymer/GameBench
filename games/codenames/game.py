@@ -163,10 +163,10 @@ class CodenamesGame(Game):
         if action.action_id == "submit_clue":
             try:
                 clue, num_guesses = action.openended_response.split(",")
+                num_guesses = int(num_guesses)
             except ValueError:
                 clue = "None"
                 num_guesses = 1
-            num_guesses = int(num_guesses)
             if num_guesses < 0:
                 raise ValueError("Number of guesses must be non-negative.")
             self.game_board.last_hint = (clue, num_guesses)
