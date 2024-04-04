@@ -294,7 +294,7 @@ class ArcticScavengers(Game):
                         break
                     for card in player.cards["draw"]:
                         if card.title == card_name:
-                            if "MEDICINE" in card.actions:
+                            if card.actions != None and "MEDICINE" in card.actions:
                                 med_currency += card.actions["MEDICINE"].value
                 if food_cost > player.food or med_cost > med_currency:
                     valid = False
