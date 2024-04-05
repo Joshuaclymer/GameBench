@@ -50,8 +50,8 @@ class Santorini(Game):
 
     def init_game(self, agent_1: Agent, agent_2: Agent):
         self.agents = [
-            agent_1(team_id=0, agent_id=0, **self.agent_1_kwargs),
-            agent_2(team_id=1, agent_id=1, **self.agent_2_kwargs),
+            agent_1(team_id=1, agent_id=0, **self.agent_1_kwargs),
+            agent_2(team_id=2, agent_id=1, **self.agent_2_kwargs),
         ]
         self.board = Board(2)
 
@@ -284,7 +284,8 @@ class Santorini(Game):
     ):
         # If the agent chose an invalid action, replace it with a random action instead.
         if action.action_id not in available_actions.predefined.keys():
-            action = random.choice(list(available_actions.predefined.keys()))
+            action_id = random.choice(list(available_actions.predefined.keys()))
+            action = Action(action_id)
 
         play = action_name_mapping[action.action_id]
         move, build = play

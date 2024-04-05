@@ -1,5 +1,6 @@
 fire
 Pillow
 openai
+matplotlib
 santorinai
 colorama
