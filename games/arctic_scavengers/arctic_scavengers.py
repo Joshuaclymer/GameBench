@@ -240,6 +240,8 @@ class ArcticScavengers(Game):
         else:
             try:
                 action_items = list(ast.literal_eval(str(action.openended_response)))
+                if len(action_items) == 0:
+                    raise ValueError
             except:
                 choice = random.choice(player.cards["draw"])
                 action_items = [[choice]]
