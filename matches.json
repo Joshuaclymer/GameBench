@@ -643,5 +643,155 @@
         "game": "air_land_sea",
         "gpt4-cot": 1.0,
         "random": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt4-cot": 0.631578947368421,
+        "random": 0.3684210526315789
+    },
+    {
+        "game": "codenames",
+        "gpt3": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt4-cot": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt4-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt4-cot": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 0.3888888888888889,
+        "random": 0.6111111111111112
+    },
+    {
+        "game": "codenames",
+        "gpt4-cot": 0.6111111111111112,
+        "random": 0.3888888888888889
+    },
+    {
+        "game": "codenames",
+        "gpt4": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt4": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt4": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt4": 0.6470588235294118,
+        "random": 0.35294117647058826
+    },
+    {
+        "game": "codenames",
+        "gpt4": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3-cot": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3-cot": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4-cot": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 0,
+        "random": 1
     }
 ]
