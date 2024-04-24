@@ -793,5 +793,465 @@
         "game": "arctic_scavengers",
         "gpt3": 0,
         "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3-cot": 0,
+        "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt4-cot": 1,
+        "random": 0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 1.0,
+        "gpt3-cot": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 1.0,
+        "gpt3-cot": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 1.0,
+        "gpt3-cot": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.0,
+        "gpt3-cot": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.3125,
+        "gpt3-cot": 0.6875
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.42105263157894735,
+        "gpt3-cot": 0.5789473684210527
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 1,
+        "gpt3-cot": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 1,
+        "gpt3-cot": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 1,
+        "gpt3-cot": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 0,
+        "gpt3-cot": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 0,
+        "gpt3-cot": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 0,
+        "gpt3-cot": 1
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 0.0,
+        "gpt3-bap": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 0.0,
+        "gpt3-bap": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 0.0,
+        "gpt3-bap": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.0,
+        "gpt3-bap": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.0,
+        "gpt3-bap": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 1.0,
+        "gpt3-bap": 0.0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 1,
+        "gpt3-bap": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 1,
+        "gpt3-bap": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 0,
+        "gpt3-bap": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 0,
+        "gpt3-bap": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 1,
+        "gpt3-bap": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 0,
+        "gpt3-bap": 1
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.0,
+        "gpt4": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.0,
+        "gpt4": 1.0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 1,
+        "gpt4": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 0,
+        "gpt4": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 0,
+        "gpt4": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 0,
+        "gpt4": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 1,
+        "gpt4": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 0,
+        "gpt4": 1
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 1.0,
+        "gpt4-cot": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 0.0,
+        "gpt4-cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3": 1.0,
+        "gpt4-cot": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 1.0,
+        "gpt4-cot": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 1.0,
+        "gpt4-cot": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3": 0.7857142857142857,
+        "gpt4-cot": 0.21428571428571427
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 0,
+        "gpt4-cot": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 0,
+        "gpt4-cot": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3": 0,
+        "gpt4-cot": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 0,
+        "gpt4-cot": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 1,
+        "gpt4-cot": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3": 0,
+        "gpt4-cot": 1
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 0.0,
+        "gpt4": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 1,
+        "gpt4": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 1,
+        "gpt4": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 0,
+        "gpt4": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "gpt4": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "gpt4": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "gpt4": 0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 0.0,
+        "gpt4-cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 0.0,
+        "gpt4-cot": 1.0
+    },
+    {
+        "game": "sea_battle",
+        "gpt3-cot": 0.0,
+        "gpt4-cot": 1.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 1.0,
+        "gpt4-cot": 0.0
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 0.631578947368421,
+        "gpt4-cot": 0.3684210526315789
+    },
+    {
+        "game": "codenames",
+        "gpt3-cot": 0.3125,
+        "gpt4-cot": 0.6875
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 1,
+        "gpt4-cot": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 1,
+        "gpt4-cot": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "gpt3-cot": 1,
+        "gpt4-cot": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 0,
+        "gpt4-cot": 1
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "gpt4-cot": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "gpt3-cot": 1,
+        "gpt4-cot": 0
+    },
+    {
+        "game": "sea_battle",
+        "gpt4": 0.0,
+        "gpt4-cot": 1.0
+    },
+    {
+        "game": "codenames",
+        "rap": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "codenames",
+        "rap": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "codenames",
+        "rap": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "santorini",
+        "rap": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "santorini",
+        "rap": 1.0,
+        "random": 0.0
     }
 ]
