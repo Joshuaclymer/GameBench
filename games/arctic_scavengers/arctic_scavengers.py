@@ -304,7 +304,7 @@ class ArcticScavengers(Game):
                         mercenary_names.append(m[0].title)
                 if action_items[2] not in mercenary_names:
                     valid = False
-        if player.actions[id] > 0: # If action has already been taken
+        if id not in player.actions or player.actions[id] > 0: # If action has already been taken
             valid = False
             if self.show_state: print("Action already taken")
         if self.show_state: print(valid)
