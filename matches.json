@@ -1283,5 +1283,15 @@
         "game": "are_you_the_traitor",
         "rap": 0,
         "random": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 0,
+        "gpt3-cot": 1
+    },
+    {
+        "game": "arctic_scavengers",
+        "gpt3": 1,
+        "gpt3-cot": 0
     }
 ]
