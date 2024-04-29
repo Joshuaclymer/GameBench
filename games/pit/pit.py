@@ -51,7 +51,7 @@ class PitGame(Game):
         self.scores = []
         self.round_number = 0
         self.pending_trades = []
-        self.max_possible = 9  # actual value: 9
+        self.max_possible = 6  # actual value: 9
         self.winning_score = 500  # actual value: 500
 
     def setup_virtual_players(self):
