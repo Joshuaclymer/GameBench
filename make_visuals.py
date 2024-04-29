@@ -8,16 +8,17 @@ import numpy as np
 
 """
 Todo:
-- Add confidence interval to rating plot
 - Maybe use different algorithm that accepts ratio of wins/losses instead
 - Why is .text do (j, i)?
 - Add indiciator when win probabilities are inferred from no match data
+- Maybe make a average score plot? First plot is heavily influenced by
+how much data was collected.
 """
 
 wins = defaultdict(int)
 players = set()
 
-matches = load_json("matches.json")
+matches = [m for m in load_json("matches.json") if "gpt3-bap" not in m and "gpt4-bap" not in m]
 for match in matches:
     agents = list(match.keys())[1:]
     players.update(agents)
@@ -49,8 +50,20 @@ for i in range(n_players):
             j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
         )
 
-ax[0].set_title("Scores")
+ax[0].set_title("Total score")
+ax[0].set_ylabel("How many points this agent earned...")
+ax[0].set_xlabel("... playing against this agent")
 
+def rank_centrality(n_items, data, alpha=0.0):
+    # https://choix.lum.li/en/latest/_modules/choix/lsr.html#rank_centrality
+    _, chain = choix.lsr._init_lsr(n_items, alpha, None)
+    for p1, p2, p1score, p2score in data:
+        chain[p1, p2] += float(p2score)
+        chain[p2, p1] += float(p1score)
+    idx = chain > 0
+    chain[idx] = chain[idx] / (chain + chain.T)[idx]
+    chain -= np.diag(chain.sum(axis=-1))
+    return choix.utils.log_transform(choix.utils.statdist(chain))
 
 def get_params(matches):
     wins = []
@@ -62,12 +75,9 @@ def get_params(matches):
         i = players.index(agents[0])
         j = players.index(agents[1])
 
-        if match[agents[0]] > match[agents[1]]:
-            wins.append((i, j))
-        else:
-            wins.append((j, i))
+        wins.append((i, j, match[agents[0]], match[agents[1]]))
 
-    params = choix.rank_centrality(len(players), wins, alpha=0.01)
+    params = rank_centrality(len(players), wins, alpha=0.001)
     return params
 
 
@@ -96,9 +106,11 @@ plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor
 for i in range(n_players):
     for j in range(n_players):
         text = ax[1].text(
-            j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
+            j, i, matrix[i, j].round(2), ha="center", va="center", color="w"
         )
 
 ax[1].set_title("Win probabilities")
+ax[1].set_ylabel("Winning Agent")
+ax[1].set_xlabel("Opponent")
 
 plt.show()
