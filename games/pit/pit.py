@@ -302,8 +302,14 @@ class PitGame(Game):
         return Observation(text=observation_text), available_actions
 
     def update(self, action: Action, available_actions: AvailableActions, agent: Agent):
-        action_parts = action.action_id.split("_")
+        if not action or not action.action_id:
+            if self.show_state:
+                print(
+                    f"Received an invalid action from Agent {agent.agent_id}. Skipping turn."
+                )
+            return
 
+        action_parts = action.action_id.split("_")
         if "Accept" in action.action_id or "Reject" in action.action_id:
             trade_index = int(action_parts[1]) - 1
             proposal = self.pending_trades[trade_index]
