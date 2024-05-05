@@ -302,12 +302,9 @@ class PitGame(Game):
         return Observation(text=observation_text), available_actions
 
     def update(self, action: Action, available_actions: AvailableActions, agent: Agent):
-        if not action or not action.action_id:
-            if self.show_state:
-                print(
-                    f"Received an invalid action from Agent {agent.agent_id}. Skipping turn."
-                )
-            return
+        if action.action_id not in available_actions.predefined.keys():
+            action_id = random.choice(list(available_actions.predefined.keys()))
+            action = Action(action_id)
 
         action_parts = action.action_id.split("_")
         if "Accept" in action.action_id or "Reject" in action.action_id:
