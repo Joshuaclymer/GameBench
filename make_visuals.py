@@ -22,12 +22,14 @@ def make_figures(game):
         agents = list(match.keys())[1:]
         players.update(agents)
 
-    players = list(players)
+    players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]#list(players)
     n_players = len(players)
     players.sort()
 
+    fig, axs = plt.subplots(1, 4)
+
     ################################################################################
-    fig, ax = plt.subplots()
+    #fig, ax = plt.subplots()
 
     n_matches = defaultdict(int)
 
@@ -44,27 +46,27 @@ def make_figures(game):
 
             matrix[i][j] = n_matches[player1, player2]
 
-    im = ax.imshow(matrix)
+    im = axs[0].imshow(matrix)
 
-    ax.set_xticks(np.arange(n_players), labels=players)
-    ax.set_yticks(np.arange(n_players), labels=players)
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    axs[0].set_xticks(np.arange(n_players), labels=players)
+    axs[0].set_yticks(np.arange(n_players), labels=players)
+    plt.setp(axs[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
     for i in range(n_players):
         for j in range(n_players):
-            text = ax.text(
+            text = axs[0].text(
                 j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
             )
 
-    ax.set_title("Number of matches")
+    axs[0].set_title("Number of matches")
 
     #plt.show()
-    plt.savefig(f"images/{game}_nummatches.jpg")
-    plt.close()
+    #plt.savefig(f"images/{game}_nummatches.jpg")
+    #plt.close()
 
     ################################################################################
 
-    fig, ax = plt.subplots()
+    #fig, ax = plt.subplots()
 
     wins = defaultdict(int)
     for match in matches:
@@ -84,28 +86,28 @@ def make_figures(game):
 
             matrix[i, j] = wins[player1, player2]
 
-    im = ax.imshow(matrix)
+    im = axs[1].imshow(matrix)
 
-    ax.set_xticks(np.arange(n_players), labels=players)
-    ax.set_yticks(np.arange(n_players), labels=players)
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    axs[1].set_xticks(np.arange(n_players), labels=players)
+    axs[1].set_yticks(np.arange(n_players), labels=players)
+    plt.setp(axs[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
     for i in range(n_players):
         for j in range(n_players):
-            text = ax.text(
+            text = axs[1].text(
                 j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
             )
 
-    ax.set_title("Average score")
-    ax.set_ylabel("How many points this agent earned...")
-    ax.set_xlabel("... playing against this agent")
+    axs[1].set_title("Average score")
+    axs[1].set_ylabel("How many points this agent earned...")
+    axs[1].set_xlabel("... playing against this agent")
 
     #plt.show()
-    plt.savefig(f"images/{game}_averagescore.jpg")
-    plt.close()
+    #plt.savefig(f"images/{game}_averagescore.jpg")
+    #plt.close()
 
     ################################################################################
-    fig, ax = plt.subplots()
+    #fig, ax = plt.subplots()
 
     def rank_centrality(n_items, data, alpha=0.0):
         # https://choix.lum.li/en/latest/_modules/choix/lsr.html#rank_centrality
@@ -142,42 +144,46 @@ def make_figures(game):
     ci90s = np.absolute(ratings - ci90s)
 
     #ax.scatter(players, params)
-    ax.errorbar(players, ratings, yerr=ci90s, fmt="o")
-    ax.set_title("Rating")
+    axs[3].errorbar(players, ratings, yerr=ci90s, fmt="o")
+    axs[3].set_title("Rating")
 
     #plt.show()
-    plt.savefig(f"images/{game}_rating.jpg")
-    plt.close()
+    #plt.savefig(f"images/{game}_rating.jpg")
+    #plt.close()
 
     ################################################################################
-    fig, ax = plt.subplots()
+    #fig, ax = plt.subplots()
 
     matrix = np.zeros((n_players, n_players))
     for i in range(n_players):
         for j in range(n_players):
             matrix[i, j] = choix.probabilities([i, j], ratings)[0]
 
-    im = ax.imshow(matrix)
+    im = axs[2].imshow(matrix)
 
-    ax.set_xticks(np.arange(n_players), labels=players)
-    ax.set_yticks(np.arange(n_players), labels=players)
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    axs[2].set_xticks(np.arange(n_players), labels=players)
+    axs[2].set_yticks(np.arange(n_players), labels=players)
+    plt.setp(axs[2].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
     for i in range(n_players):
         for j in range(n_players):
-            text = ax.text(
+            text = axs[2].text(
                 j, i, matrix[i, j].round(2), ha="center", va="center", color="w"
             )
 
-    ax.set_title("Win probabilities")
-    ax.set_ylabel("Probability that this agent...")
-    ax.set_xlabel("... beats this agent")
+    axs[2].set_title("Win probabilities")
+    axs[2].set_ylabel("Probability that this agent...")
+    axs[2].set_xlabel("... beats this agent")
 
     #plt.show()
-    plt.savefig(f"images/{game}_probabilities.jpg")
-    plt.close()
+    #plt.savefig(f"images/{game}_probabilities.jpg")
+    #plt.close()
 
     ################################################################################
+
+    plt.savefig(f"images/{game}.jpg")
+    plt.show()
+    plt.close()
 
 for game in ["sea_battle", "two_rooms_and_a_boom", "are_you_the_traitor", "air_land_sea", "santorini", "hive", "pit", "arctic_scavengers", "codenames", "atari_boxing"]:
     make_figures(game)
