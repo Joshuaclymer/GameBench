@@ -26,7 +26,11 @@ def make_figures(game):
     n_players = len(players)
     players.sort()
 
-    fig, axs = plt.subplots(1, 4)
+    fig, axs = plt.subplots(2, 2)
+    pos_nmatches = 0, 0
+    pos_score = 0, 1
+    pos_prob = 1, 0
+    pos_rating = 1, 1
 
     ################################################################################
     #fig, ax = plt.subplots()
@@ -46,19 +50,19 @@ def make_figures(game):
 
             matrix[i][j] = n_matches[player1, player2]
 
-    im = axs[0].imshow(matrix)
+    im = axs[pos_nmatches].imshow(matrix)
 
-    axs[0].set_xticks(np.arange(n_players), labels=players)
-    axs[0].set_yticks(np.arange(n_players), labels=players)
-    plt.setp(axs[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    axs[pos_nmatches].set_xticks(np.arange(n_players), labels=players)
+    axs[pos_nmatches].set_yticks(np.arange(n_players), labels=players)
+    plt.setp(axs[pos_nmatches].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
     for i in range(n_players):
         for j in range(n_players):
-            text = axs[0].text(
+            text = axs[pos_nmatches].text(
                 j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
             )
 
-    axs[0].set_title("Number of matches")
+    axs[pos_nmatches].set_title("Number of matches")
 
     #plt.show()
     #plt.savefig(f"images/{game}_nummatches.jpg")
@@ -86,21 +90,21 @@ def make_figures(game):
 
             matrix[i, j] = wins[player1, player2]
 
-    im = axs[1].imshow(matrix)
+    im = axs[pos_score].imshow(matrix)
 
-    axs[1].set_xticks(np.arange(n_players), labels=players)
-    axs[1].set_yticks(np.arange(n_players), labels=players)
-    plt.setp(axs[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    axs[pos_score].set_xticks(np.arange(n_players), labels=players)
+    axs[pos_score].set_yticks(np.arange(n_players), labels=players)
+    plt.setp(axs[pos_score].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
     for i in range(n_players):
         for j in range(n_players):
-            text = axs[1].text(
+            text = axs[pos_score].text(
                 j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
             )
 
-    axs[1].set_title("Average score")
-    axs[1].set_ylabel("How many points this agent earned...")
-    axs[1].set_xlabel("... playing against this agent")
+    axs[pos_score].set_title("Average score")
+    axs[pos_score].set_ylabel("How many points this agent earned...")
+    axs[pos_score].set_xlabel("... playing against this agent")
 
     #plt.show()
     #plt.savefig(f"images/{game}_averagescore.jpg")
@@ -144,8 +148,8 @@ def make_figures(game):
     ci90s = np.absolute(ratings - ci90s)
 
     #ax.scatter(players, params)
-    axs[3].errorbar(players, ratings, yerr=ci90s, fmt="o")
-    axs[3].set_title("Rating")
+    axs[pos_rating].errorbar(players, ratings, yerr=ci90s, fmt="o")
+    axs[pos_rating].set_title("Rating")
 
     #plt.show()
     #plt.savefig(f"images/{game}_rating.jpg")
@@ -159,21 +163,21 @@ def make_figures(game):
         for j in range(n_players):
             matrix[i, j] = choix.probabilities([i, j], ratings)[0]
 
-    im = axs[2].imshow(matrix)
+    im = axs[pos_prob].imshow(matrix)
 
-    axs[2].set_xticks(np.arange(n_players), labels=players)
-    axs[2].set_yticks(np.arange(n_players), labels=players)
-    plt.setp(axs[2].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    axs[pos_prob].set_xticks(np.arange(n_players), labels=players)
+    axs[pos_prob].set_yticks(np.arange(n_players), labels=players)
+    plt.setp(axs[pos_prob].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
     for i in range(n_players):
         for j in range(n_players):
-            text = axs[2].text(
+            text = axs[pos_prob].text(
                 j, i, matrix[i, j].round(2), ha="center", va="center", color="w"
             )
 
-    axs[2].set_title("Win probabilities")
-    axs[2].set_ylabel("Probability that this agent...")
-    axs[2].set_xlabel("... beats this agent")
+    axs[pos_prob].set_title("Win probabilities")
+    axs[pos_prob].set_ylabel("Probability that this agent...")
+    axs[pos_prob].set_xlabel("... beats this agent")
 
     #plt.show()
     #plt.savefig(f"images/{game}_probabilities.jpg")
@@ -181,6 +185,7 @@ def make_figures(game):
 
     ################################################################################
 
+    #fig.set_size_inches(25, 5)
     plt.savefig(f"images/{game}.jpg")
     plt.show()
     plt.close()
