@@ -72,9 +72,47 @@ ratings = bootstrapped_params.mean(1)
 ci90s = np.percentile(bootstrapped_params, [5, 95], axis=1)
 ci90s = np.absolute(ratings - ci90s)
 
-fig, ax = plt.subplots()
+fig, axs = plt.subplots(1, 3)
 players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]
-ax.errorbar(players, ratings, yerr=ci90s, fmt="o")
-ax.set_title("Rating")
+n_players = len(players)
+axs[0].errorbar(players, ratings, yerr=ci90s, fmt="o")
+axs[0].set_title("Rating")
+
+################################################################################
+
+matrix = np.zeros((n_players, n_players))
+for i in range(n_players):
+    for j in range(n_players):
+        matrix[i, j] = choix.probabilities([i, j], ratings)[0]
+
+im = axs[1].imshow(matrix)
+
+axs[1].set_xticks(np.arange(n_players), labels=players)
+axs[1].set_yticks(np.arange(n_players), labels=players)
+plt.setp(axs[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+for i in range(n_players):
+    for j in range(n_players):
+        text = axs[1].text(
+            j, i, matrix[i, j].round(2), ha="center", va="center", color="w"
+        )
+
+axs[1].set_title("Win probabilities")
+axs[1].set_ylabel("Probability that this agent...")
+axs[1].set_xlabel("... beats this agent")
+
+################################################################################
+
+matches = [m for m in load_json("matches.json") if "gpt3-bap" not in m and "gpt4-bap" not in m]
+
+games = defaultdict(int)
+for match in matches:
+    game = match["game"]
+    games[game] += 1
+
+games, counts = zip(*list(games.items()))
+axs[2].barh(games, counts)
+axs[2].set_ylabel("Game")
+axs[2].set_xlabel("Number of matches collected")
 
 plt.show()
