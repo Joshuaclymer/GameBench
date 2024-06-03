@@ -1235,31 +1235,6 @@
         "gpt3-cot": 0
     },
     {
-        "game": "atari_boxing",
-        "gpt3": 0.0,
-        "random": 1.0
-    },
-    {
-        "game": "atari_boxing",
-        "gpt3": 0.0,
-        "random": 1.0
-    },
-    {
-        "game": "atari_boxing",
-        "gpt3": 0.0,
-        "random": 1.0
-    },
-    {
-        "game": "atari_boxing",
-        "gpt3": 0.0,
-        "random": 1.0
-    },
-    {
-        "game": "atari_boxing",
-        "gpt3": 0.5,
-        "random": 0.5
-    },
-    {
         "game": "pit",
         "gpt3": 0.45595854922279794,
         "random": 0.5440414507772021
