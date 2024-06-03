@@ -1,4 +1,10 @@
-# Setup
+# [GameBench: GameBench: Evaluating Strategic Reasoning Abilities of LLM Agents](https://andyisok00.wixsite.com/gamebench)
+
+This repository contains both the code for the benchmark and the data we collected so far.
+
+The code is available under the MIT license, and the data are available under the CC-BY license.
+
+### Setup
 In the repo root:
 
 ```
