@@ -6,6 +6,9 @@ import choix
 import matplotlib.pyplot as plt
 import numpy as np
 import functools
+import seaborn as sns
+
+sns.set(style='white')
 
 def make_figures(game, matches):
 
@@ -16,17 +19,15 @@ def make_figures(game, matches):
 
     players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]#list(players)
     n_players = len(players)
-    players.sort()
+    #players.sort()
 
-    fig, axs = plt.subplots(2, 2)
-    fig.tight_layout()
+    fig, axs = plt.subplots(2, 2, figsize=(9.5, 7.8), constrained_layout=True)
     pos_nmatches = 0, 0
     pos_score = 0, 1
     pos_prob = 1, 0
     pos_rating = 1, 1
 
     ################################################################################
-    #fig, ax = plt.subplots()
 
     n_matches = defaultdict(int)
 
@@ -35,7 +36,7 @@ def make_figures(game, matches):
         n_matches[agents[0], agents[1]] += 1
         n_matches[agents[1], agents[0]] += 1
 
-    matrix = np.zeros((n_players, n_players))
+    matrix = np.zeros((n_players, n_players), dtype="int")
     for i, player1 in enumerate(players):
         for j, player2 in enumerate(players):
             if player1 == player2:
@@ -43,27 +44,16 @@ def make_figures(game, matches):
 
             matrix[i][j] = n_matches[player1, player2]
 
-    im = axs[pos_nmatches].imshow(matrix)
-
-    axs[pos_nmatches].set_xticks(np.arange(n_players), labels=players)
-    axs[pos_nmatches].set_yticks(np.arange(n_players), labels=players)
-    plt.setp(axs[pos_nmatches].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
-    for i in range(n_players):
-        for j in range(n_players):
-            text = axs[pos_nmatches].text(
-                j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
-            )
+    sns.heatmap(matrix, ax=axs[pos_nmatches], annot=True, xticklabels=players, yticklabels=players)
+    axs[pos_nmatches].tick_params(axis='x', rotation=30)
+    axs[pos_nmatches].tick_params(axis='y', rotation=0)
+    axs[pos_nmatches].invert_yaxis()
+    #plt.xticks(rotation=30)
 
     axs[pos_nmatches].set_title("Number of matches")
 
-    #plt.show()
-    #plt.savefig(f"images/{game}_nummatches.jpg")
-    #plt.close()
-
     ################################################################################
 
-    #fig, ax = plt.subplots()
 
     wins = defaultdict(int)
     for match in matches:
@@ -83,28 +73,16 @@ def make_figures(game, matches):
 
             matrix[i, j] = wins[player1, player2]
 
-    im = axs[pos_score].imshow(matrix)
-
-    axs[pos_score].set_xticks(np.arange(n_players), labels=players)
-    axs[pos_score].set_yticks(np.arange(n_players), labels=players)
-    plt.setp(axs[pos_score].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
-    for i in range(n_players):
-        for j in range(n_players):
-            text = axs[pos_score].text(
-                j, i, matrix[i, j].round(1), ha="center", va="center", color="w"
-            )
+    sns.heatmap(matrix, ax=axs[pos_score], annot=True, xticklabels=players, yticklabels=players)
 
     axs[pos_score].set_title("Average score")
-    axs[pos_score].set_ylabel("How many points this agent earned...")
-    axs[pos_score].set_xlabel("... playing against this agent")
-
-    #plt.show()
-    #plt.savefig(f"images/{game}_averagescore.jpg")
-    #plt.close()
+    axs[pos_score].set_ylabel("Average points this agent scored...")
+    axs[pos_score].set_xlabel("... against this agent")
+    axs[pos_score].tick_params(axis='x', rotation=30)
+    axs[pos_score].tick_params(axis='y', rotation=0)
+    axs[pos_score].invert_yaxis()
 
     ################################################################################
-    #fig, ax = plt.subplots()
 
     def lsr_pairwise(n_items, data, alpha=0.0, initial_params=None):
         weights, chain = choix.lsr._init_lsr(n_items, alpha, initial_params)
@@ -142,7 +120,6 @@ def make_figures(game, matches):
         for match in matches:
             weights[match["game"]] += 1
         weights = [1 / weights[m["game"]] for m in matches]
-        print(len(weights))
         bootstrapped_params = np.array(
             [
                 get_params(
@@ -168,50 +145,34 @@ def make_figures(game, matches):
     ci90s = np.percentile(bootstrapped_params, [5, 95], axis=1)
     ci90s = np.absolute(ratings - ci90s)
 
-    #ax.scatter(players, params)
     axs[pos_rating].errorbar(players, ratings, yerr=ci90s, fmt="o")
     axs[pos_rating].set_title("Rating")
-
-    #plt.show()
-    #plt.savefig(f"images/{game}_rating.jpg")
-    #plt.close()
+    axs[pos_rating].set_xlabel("Agent")
+    axs[pos_rating].set_ylabel("Exponential Score")
+    axs[pos_rating].tick_params(axis='x', rotation=30)
 
     ################################################################################
-    #fig, ax = plt.subplots()
 
     matrix = np.zeros((n_players, n_players))
     for i in range(n_players):
         for j in range(n_players):
             matrix[i, j] = choix.probabilities([i, j], ratings)[0]
 
-    im = axs[pos_prob].imshow(matrix)
-
-    axs[pos_prob].set_xticks(np.arange(n_players), labels=players)
-    axs[pos_prob].set_yticks(np.arange(n_players), labels=players)
-    plt.setp(axs[pos_prob].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
-    for i in range(n_players):
-        for j in range(n_players):
-            text = axs[pos_prob].text(
-                j, i, matrix[i, j].round(2), ha="center", va="center", color="w"
-            )
-
+    sns.heatmap(matrix, ax=axs[pos_prob], annot=True, xticklabels=players, yticklabels=players, fmt=".2f")
     axs[pos_prob].set_title("Win probabilities")
-    axs[pos_prob].set_ylabel("Probability that this agent...")
+    axs[pos_prob].set_ylabel("Probability this agent...")
     axs[pos_prob].set_xlabel("... beats this agent")
+    axs[pos_prob].tick_params(axis='x', rotation=30)
+    axs[pos_prob].tick_params(axis='y', rotation=0)
+    axs[pos_prob].invert_yaxis()
 
-    #plt.show()
-    #plt.savefig(f"images/{game}_probabilities.jpg")
-    #plt.close()
 
     ################################################################################
 
-    #fig.set_size_inches(25, 5)
     plt.savefig(f"figures/{game}.jpg")
-    #plt.show()
     plt.close()
 
-for game in ["sea_battle", "two_rooms_and_a_boom", "are_you_the_traitor", "air_land_sea", "santorini", "hive", "pit", "arctic_scavengers", "codenames", "atari_boxing"]:
+for game in ["sea_battle", "two_rooms_and_a_boom", "are_you_the_traitor", "air_land_sea", "santorini", "hive", "pit", "arctic_scavengers", "codenames"]:
     matches = [m for m in load_json("matches.json") if m["game"] == game]
     make_figures(game, matches)
 
