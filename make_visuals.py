@@ -5,17 +5,9 @@ import random
 import choix
 import matplotlib.pyplot as plt
 import numpy as np
+import functools
 
-"""
-Todo:
-- Why is .text do (j, i)?
-- Add indiciator when win probabilities are inferred from no match data
-- Maybe make a average score plot? First plot is heavily influenced by
-how much data was collected.
-"""
-
-def make_figures(game):
-    matches = [m for m in load_json("matches.json") if "gpt3-bap" not in m and "gpt4-bap" not in m and m["game"] == game]
+def make_figures(game, matches):
 
     players = set()
     for match in matches:
@@ -27,6 +19,7 @@ def make_figures(game):
     players.sort()
 
     fig, axs = plt.subplots(2, 2)
+    fig.tight_layout()
     pos_nmatches = 0, 0
     pos_score = 0, 1
     pos_prob = 1, 0
@@ -113,16 +106,20 @@ def make_figures(game):
     ################################################################################
     #fig, ax = plt.subplots()
 
-    def rank_centrality(n_items, data, alpha=0.0):
-        # https://choix.lum.li/en/latest/_modules/choix/lsr.html#rank_centrality
-        _, chain = choix.lsr._init_lsr(n_items, alpha, None)
+    def lsr_pairwise(n_items, data, alpha=0.0, initial_params=None):
+        weights, chain = choix.lsr._init_lsr(n_items, alpha, initial_params)
         for p1, p2, p1score, p2score in data:
-            chain[p1, p2] += float(p2score)
-            chain[p2, p1] += float(p1score)
-        idx = chain > 0
-        chain[idx] = chain[idx] / (chain + chain.T)[idx]
-        chain -= np.diag(chain.sum(axis=-1))
+            chain[p1, p2] += float(p2score) / (weights[p1] + weights[p2])
+            chain[p2, p1] += float(p1score) / (weights[p1] + weights[p2])
+        chain -= np.diag(chain.sum(axis=1))
         return choix.utils.log_transform(choix.utils.statdist(chain))
+
+
+    def ilsr_pairwise(
+        n_items, data, alpha=0.0, initial_params=None, max_iter=100, tol=1e-8
+    ):
+        fun = functools.partial(lsr_pairwise, n_items=n_items, data=data, alpha=alpha)
+        return choix.lsr._ilsr(fun, initial_params, max_iter, tol)
 
     def get_params(matches):
         wins = []
@@ -136,13 +133,37 @@ def make_figures(game):
 
             wins.append((i, j, match[agents[0]], match[agents[1]]))
 
-        params = rank_centrality(len(players), wins, alpha=0.001)
+        params = ilsr_pairwise(len(players), wins, alpha=0.001)
         return params
 
 
-    bootstrapped_params = np.array(
-        [get_params(random.choices(matches, k=len(matches))) for _ in range(100)]
-    ).transpose((1, 0))
+    if game == "overall":
+        weights = defaultdict(int)
+        for match in matches:
+            weights[match["game"]] += 1
+        weights = [1 / weights[m["game"]] for m in matches]
+        print(len(weights))
+        bootstrapped_params = np.array(
+            [
+                get_params(
+                    random.choices(
+                        matches, k=len(matches), weights=weights
+                    )
+                )
+                for _ in range(100)
+            ]
+        ).transpose((1, 0))
+    else:
+        bootstrapped_params = np.array(
+            [
+                get_params(
+                    random.choices(
+                        matches, k=len(matches)
+                    )
+                )
+                for _ in range(100)
+            ]
+        ).transpose((1, 0))
     ratings = bootstrapped_params.mean(1)
     ci90s = np.percentile(bootstrapped_params, [5, 95], axis=1)
     ci90s = np.absolute(ratings - ci90s)
@@ -186,9 +207,12 @@ def make_figures(game):
     ################################################################################
 
     #fig.set_size_inches(25, 5)
-    plt.savefig(f"images/{game}.jpg")
-    plt.show()
+    plt.savefig(f"figures/{game}.jpg")
+    #plt.show()
     plt.close()
 
 for game in ["sea_battle", "two_rooms_and_a_boom", "are_you_the_traitor", "air_land_sea", "santorini", "hive", "pit", "arctic_scavengers", "codenames", "atari_boxing"]:
-    make_figures(game)
+    matches = [m for m in load_json("matches.json") if m["game"] == game]
+    make_figures(game, matches)
+
+make_figures("overall", load_json("matches.json"))
