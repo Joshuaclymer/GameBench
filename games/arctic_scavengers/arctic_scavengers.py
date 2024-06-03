@@ -294,7 +294,7 @@ class ArcticScavengers(Game):
                         break
                     for card in player.cards["draw"]:
                         if card.title == card_name:
-                            if "MEDICINE" in card.actions:
+                            if card.actions != None and "MEDICINE" in card.actions:
                                 med_currency += card.actions["MEDICINE"].value
                 if food_cost > player.food or med_cost > med_currency:
                     valid = False
@@ -304,7 +304,7 @@ class ArcticScavengers(Game):
                         mercenary_names.append(m[0].title)
                 if action_items[2] not in mercenary_names:
                     valid = False
-        if player.actions[id] > 0: # If action has already been taken
+        if id not in player.actions or player.actions[id] > 0: # If action has already been taken
             valid = False
             if self.show_state: print("Action already taken")
         if self.show_state: print(valid)
