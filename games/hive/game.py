@@ -16,10 +16,10 @@ class HiveGame(Game):
     id : str = "hive"
     config : Config = default_config
     board : HiveBoard = None
-    rules : Rules = None
+    rules : Rules = default_config.rules#None
     image_mode : bool = True
     interactive_mode : bool = False
-    
+
     def export_state(self):
         """
         Export the current game state.
@@ -32,7 +32,7 @@ class HiveGame(Game):
             "pieces_remaining": self.pieces_remaining,
             "queen_bee_placed": self.board.queen_bee_placed
         }
-    
+
     def init_game(self, agent_1_class: Agent, agent_2_class : Agent):
         """
         Initialize the game.
@@ -50,7 +50,7 @@ class HiveGame(Game):
 
     def add_starting_pieces(self, team_id):
         """
-        Add the starting pieces to the board. 
+        Add the starting pieces to the board.
         Per the official rules without expansions this includes the following for each team:
         - 1 Queen Bee
         - 2 Spiders
@@ -65,7 +65,7 @@ class HiveGame(Game):
 
         for _ in range(self.config.NUM_GRASSHOPPER_CARDS):
             self.pieces_remaining.append(Grasshopper(team_id))
-        
+
         for _ in range(self.config.NUM_SOLDIERANT_CARDS):
             self.pieces_remaining.append(SoldierAnt(team_id))
 
@@ -81,10 +81,10 @@ class HiveGame(Game):
 
         # Define available actions (place a piece or move a piece)
         actions = self.get_available_actions(agent)
-        
+
         if not actions:
             actions = {"pass": "Pass the turn."}
-        
+
         return Observation(observation), AvailableActions(instructions="Choose a move:", predefined=actions, openended={})
 
     def generate_observation(self, agent):
@@ -127,7 +127,7 @@ class HiveGame(Game):
         if self.turn_count[player_index] == 3 and not self.board.queen_bee_placed[player_index]:
             if piece.type != "Queen":
                 return []
-            
+
         current_hexes = [hex for hex in self.board.board if self.board.board[hex]]
         possible_places = []
         for hex in current_hexes:
@@ -137,20 +137,20 @@ class HiveGame(Game):
                     possible_places.append(neighbor_hex)
         if not self.board.board:
             possible_places.append(Hex(0, 0))
-        
+
         actions = {}
         for hex in possible_places:
             if self.board.can_place_piece(piece, hex):
                 actions["place_" + str(hex) + "_" + str(piece.type)] = ""
         return actions
-    
 
-    
+
+
     def list_actionable_pieces(self, player_index):
         """
         List all pieces that can be moved or placed by the player.
         """
-        
+
         possible_actions = {}
 
         possible_pieces_to_place = [piece for piece in self.pieces_remaining if piece.owner == player_index]
@@ -163,10 +163,10 @@ class HiveGame(Game):
             possible_moves = self.list_possible_moves_for_unplaced_piece(possible_piece, player_index)
             if len(possible_moves) > 0:
                 possible_actions["list_place_" + str(possible_piece.type)] = "Place the " + str(possible_piece.type) + " piece."
-    
+
         if not self.board.queen_bee_placed[player_index]:
             return possible_actions
-        
+
         for hex in list(self.board.board.keys()):
             if self.board.board[hex].owner == player_index:
                 possible_moves = self.list_possible_moves_for_placed_piece(self.board.board[hex], hex)
@@ -183,7 +183,7 @@ class HiveGame(Game):
         hex_coords = action.split("_")[1].split(",")
         hex_x = int(hex_coords[0][1:])
         hex_y = int(hex_coords[1][0: -1])
-        hex = Hex(hex_x, hex_y)            
+        hex = Hex(hex_x, hex_y)
         piece_type = action.split("_")[2]
         for piece in self.pieces_remaining:
             if piece.type == piece_type and piece.owner == agent.team_id:
@@ -223,7 +223,7 @@ class HiveGame(Game):
         for piece in self.pieces_remaining:
             if piece.type == piece_type and piece.owner == agent.team_id:
                 return self.list_possible_moves_for_unplaced_piece(piece, agent.team_id)
-        
+
 
     def process_list_moves_action(self, action, agent):
         """
@@ -237,7 +237,7 @@ class HiveGame(Game):
             raise ValueError("Invalid action")
         piece = self.board.board[hex]
         return self.list_possible_moves_for_placed_piece(piece, hex)
-    
+
     def update(self, action, agent):
         """
         Update the game state based on the agent's action.
@@ -267,10 +267,10 @@ class HiveGame(Game):
         if not actions or not actions.predefined:
             self.next_player()
             return
-        
+
         piece_actions = actions.predefined
         action_id = agent.take_action(self.rules, observation, actions, show_state=self.show_state).action_id
-        
+
         if self.show_state:
             print("Action ID: ", action_id)
 
@@ -281,12 +281,12 @@ class HiveGame(Game):
         if action_id == "pass":
             self.next_player()
             return
-        
+
         specific_move_actions = self.update(Action(action_id=action_id), agent)
         new_actions = AvailableActions(instructions="Choose a move:", predefined=specific_move_actions, openended={})
         if specific_move_actions:
             action_id = agent.take_action(self.rules, observation, new_actions, show_state=self.interactive_mode).action_id
-            
+
             if self.show_state:
                 print("Action ID: ", action_id)
 
@@ -308,7 +308,7 @@ class HiveGame(Game):
         """
         self.turn_count[self.current_player_index] += 1
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
-    
+
     def get_intermediate_score(self):
         """
         Intermediate scoring function based on how surrounded each Queen Bee is. The less surrounded Queen Bee wins. This is a heuristic if we run out of turns.
@@ -321,12 +321,12 @@ class HiveGame(Game):
             return [0, 1]
         else:
             return [0, 0]
-        
+
 
     def is_game_over(self):
         """
         Check if the game is over by checking if either player's Queen Bee is surrounded.
-        
+
         """
         if max(self.turn_count) >= self.config.MAX_TURNS:
             return True
@@ -345,7 +345,7 @@ class HiveGame(Game):
             image = self.board.display_board(interactive=self.interactive_mode)
         queen_1_surrounded = self.board.is_queen_surrounded(self.players[0].team_id)
         queen_2_surrounded = self.board.is_queen_surrounded(self.players[1].team_id)
-        
+
         if queen_1_surrounded and queen_2_surrounded:
             return [0, 0]
         elif queen_1_surrounded:
@@ -355,8 +355,8 @@ class HiveGame(Game):
         else:
             return [0.5, 0.5]
             #return self.get_intermediate_score()
-        
-            
-        
+
+
+
 
 # Agent class and other relevant classes/methods not shown for brevity
