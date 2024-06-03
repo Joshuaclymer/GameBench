@@ -8,7 +8,14 @@ import choix
 import matplotlib.pyplot as plt
 import numpy as np
 
-players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]  # list(players)
+all_matches = [
+    m
+    for m in load_json("matches.json")
+    if "gpt3-bap" not in m and "gpt4-bap" not in m
+    and m["game"] != "atari_boxing"
+]
+
+players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]
 n_players = len(players)
 players.sort()
 
@@ -45,118 +52,111 @@ def get_params(matches):
     return params
 
 
-def get_weighted_rating():
-    matches = [
-        m
-        for m in load_json("matches.json")
-        if "gpt3-bap" not in m and "gpt4-bap" not in m
-    ]
+def boostrap_params():
     weights = defaultdict(int)
-    for match in matches:
+    for match in all_matches:
         weights[match["game"]] += 1
-
-    ################################################################################
 
     bootstrapped_params = np.array(
         [
             get_params(
                 random.choices(
-                    matches, k=len(matches), weights=[1 / weights[m["game"]] for m in matches]
+                    all_matches, k=len(all_matches), weights=[1 / weights[m["game"]] for m in all_matches]
                 )
             )
             for _ in range(100)
         ]
     ).transpose((1, 0))
-    # ratings = bootstrapped_params.mean(1)
-
-    bootstrapped_params = bootstrapped_params  # / np.max(np.absolute(bootstrapped_params))# * (1 / len(matches))
 
     return bootstrapped_params
 
 
-bootstrapped_params = get_weighted_rating()
+bootstrapped_params = boostrap_params()
 ratings = bootstrapped_params.mean(1)
 ci90s = np.percentile(bootstrapped_params, [5, 95], axis=1)
 ci90s = np.absolute(ratings - ci90s)
 
-fig, axs = plt.subplots(1, 4)
+fig, ax = plt.subplots()
 players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]
 n_players = len(players)
-axs[0].errorbar(players, ratings, yerr=ci90s, fmt="o")
-axs[0].set_title("Rating")
+ax.errorbar(players, ratings, yerr=ci90s, fmt="o")
+ax.set_title("Rating")
 
-"""
-from itertools import combinations
-matches = [m for m in load_json("matches.json") if "gpt3-bap" not in m and "gpt4-bap" not in m]
-
-
-probs = defaultdict(float)
-for game in ["sea_battle", "two_rooms_and_a_boom", "are_you_the_traitor", "air_land_sea", "santorini", "pit", "arctic_scavengers", "codenames", "atari_boxing"]:
-    ratings = get_params([m for m in matches if m["game"] == game])
-    for i, j in combinations(range(n_players), 2):
-        weight = len(ratings)
-        p_i, p_j = choix.probabilities([i, j], ratings)
-        probs[i, j] += p_i * weight
-        probs[j, i] += p_j * weight
-
-_, chain = choix.lsr._init_lsr(n_players, 0, None)
-for (i, j), p in probs.items():
-    chain[j, i] = p
-chain -= np.diag(chain.sum(axis=1))
-ratings = choix.utils.log_transform(choix.utils.statdist(chain))
-plt.plot(players, ratings, "o")
-plt.show()"""
+plt.savefig("figures/overall_rating.png")
 
 ################################################################################
+
+fig, ax = plt.subplots()
 
 matrix = np.zeros((n_players, n_players))
 for i in range(n_players):
     for j in range(n_players):
         matrix[i, j] = choix.probabilities([i, j], ratings)[0]
 
-im = axs[1].imshow(matrix)
+im = ax.imshow(matrix)
 
-axs[1].set_xticks(np.arange(n_players), labels=players)
-axs[1].set_yticks(np.arange(n_players), labels=players)
-plt.setp(axs[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+ax.set_xticks(np.arange(n_players), labels=players)
+ax.set_yticks(np.arange(n_players), labels=players)
+plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
 for i in range(n_players):
     for j in range(n_players):
-        text = axs[1].text(
+        text = ax.text(
             j, i, matrix[i, j].round(2), ha="center", va="center", color="w"
         )
 
-axs[1].set_title("Win probabilities")
-axs[1].set_ylabel("Probability that this agent...")
-axs[1].set_xlabel("... beats this agent")
+ax.set_title("Win probabilities")
+ax.set_ylabel("Probability that this agent...")
+ax.set_xlabel("... beats this agent")
+
+plt.savefig("figures/overall_probabilities.png")
 
 ################################################################################
 
-matches = [
-    m for m in load_json("matches.json") if "gpt3-bap" not in m and "gpt4-bap" not in m
-]
+fig, ax = plt.subplots()
 
 n_games = defaultdict(int)
-for match in matches:
+for match in all_matches:
+    agents = list(match.keys())[1:]
+    n_games[agents[0]] += 1
+    n_games[agents[1]] += 1
+
+agents, counts = zip(*list(n_games.items()))
+ax.barh(agents, counts)
+ax.set_ylabel("Agent")
+ax.set_xlabel("Number of matches collected")
+
+plt.savefig("figures/num_matches_per_agent.png")
+
+################################################################################
+
+fig, ax = plt.subplots()
+
+n_games = defaultdict(int)
+for match in all_matches:
     game = match["game"]
     n_games[game] += 1
 
 games, counts = zip(*list(n_games.items()))
-axs[2].barh(games, counts)
-axs[2].set_ylabel("Game")
-axs[2].set_xlabel("Number of matches collected")
+ax.barh(games, counts)
+ax.set_ylabel("Game")
+ax.set_xlabel("Number of matches collected")
+
+plt.savefig("figures/num_matches_per_game.png")
 
 ################################################################################
 
+fig, ax = plt.subplots()
+
 n_matches = defaultdict(int)
 
-for match in matches:
+for match in all_matches:
     agents = list(match.keys())[1:]
     n_matches[agents[0], agents[1]] += 1
     n_matches[agents[1], agents[0]] += 1
 
 wins = defaultdict(int)
-for match in matches:
+for match in all_matches:
     agents = list(match.keys())[1:]
     game = match["game"]
     wins[agents[0], agents[1]] += match[agents[0]] / n_games[game]
@@ -174,20 +174,20 @@ for i, player1 in enumerate(players):
 
         matrix[i, j] = wins[player1, player2]
 
-im = axs[3].imshow(matrix)
+im = ax.imshow(matrix)
 
-axs[3].set_xticks(np.arange(n_players), labels=players)
-axs[3].set_yticks(np.arange(n_players), labels=players)
-plt.setp(axs[3].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+ax.set_xticks(np.arange(n_players), labels=players)
+ax.set_yticks(np.arange(n_players), labels=players)
+plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
 for i in range(n_players):
     for j in range(n_players):
-        text = axs[3].text(
+        text = ax.text(
             j, i, (matrix[i, j] * 100).round(1), ha="center", va="center", color="w"
         )
 
-axs[3].set_title("Average score")
-axs[3].set_ylabel("How many points this agent earned...")
-axs[3].set_xlabel("... playing against this agent")
+ax.set_title("Average score")
+ax.set_ylabel("How many points this agent earned...")
+ax.set_xlabel("... playing against this agent")
 
-plt.show()
+plt.savefig("figures/average_score.png")
