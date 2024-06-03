@@ -926,66 +926,6 @@
     },
     {
         "game": "sea_battle",
-        "gpt3": 0.0,
-        "gpt3-bap": 1.0
-    },
-    {
-        "game": "sea_battle",
-        "gpt3": 0.0,
-        "gpt3-bap": 1.0
-    },
-    {
-        "game": "sea_battle",
-        "gpt3": 0.0,
-        "gpt3-bap": 1.0
-    },
-    {
-        "game": "codenames",
-        "gpt3": 0.0,
-        "gpt3-bap": 1.0
-    },
-    {
-        "game": "codenames",
-        "gpt3": 0.0,
-        "gpt3-bap": 1.0
-    },
-    {
-        "game": "codenames",
-        "gpt3": 1.0,
-        "gpt3-bap": 0.0
-    },
-    {
-        "game": "two_rooms_and_a_boom",
-        "gpt3": 1,
-        "gpt3-bap": 0
-    },
-    {
-        "game": "two_rooms_and_a_boom",
-        "gpt3": 1,
-        "gpt3-bap": 0
-    },
-    {
-        "game": "two_rooms_and_a_boom",
-        "gpt3": 0,
-        "gpt3-bap": 1
-    },
-    {
-        "game": "are_you_the_traitor",
-        "gpt3": 0,
-        "gpt3-bap": 1
-    },
-    {
-        "game": "are_you_the_traitor",
-        "gpt3": 1,
-        "gpt3-bap": 0
-    },
-    {
-        "game": "are_you_the_traitor",
-        "gpt3": 0,
-        "gpt3-bap": 1
-    },
-    {
-        "game": "sea_battle",
         "gpt3": 1.0,
         "gpt4": 0.0
     },
