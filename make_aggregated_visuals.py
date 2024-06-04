@@ -65,24 +65,21 @@ def boostrap_params():
                     all_matches, k=len(all_matches), weights=[1 / weights[m["game"]] for m in all_matches]
                 )
             )
-            for _ in range(100)
+            for _ in range(10000)
         ]
-    ).transpose((1, 0))
+    )#.transpose((1, 0))
 
     return bootstrapped_params
 
-
 bootstrapped_params = boostrap_params()
-ratings = bootstrapped_params.mean(1)
-ci90s = np.percentile(bootstrapped_params, [5, 95], axis=1)
-ci90s = np.absolute(ratings - ci90s)
+ratings = bootstrapped_params.mean(0)
 
 fig, ax = plt.subplots()
-sns.barplot(x=players, y=ratings, ax=ax)
-ax.errorbar(players, ratings, yerr=ci90s, fmt="none", color="k", capsize=5)
-ax.set_title("Rating")
+sns.boxplot(data=bootstrapped_params, whis=(0, 100), ax=ax)
+ax.set_title("Bradley-Terry Model Rating")
 ax.set_xlabel("Agent")
-ax.set_ylabel("Exponential Score")
+ax.set_ylabel("Exponential rating")
+ax.set_xticks(ticks=range(len(players)), labels=players)
 ax.tick_params(axis='x', rotation=30)
 
 plt.savefig("figures/overall_rating.png")
