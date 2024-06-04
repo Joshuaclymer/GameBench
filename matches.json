@@ -1195,61 +1195,6 @@
         "gpt4-cot": 1.0
     },
     {
-        "game": "codenames",
-        "rap": 1.0,
-        "random": 0.0
-    },
-    {
-        "game": "codenames",
-        "rap": 1.0,
-        "random": 0.0
-    },
-    {
-        "game": "codenames",
-        "rap": 0.0,
-        "random": 1.0
-    },
-    {
-        "game": "santorini",
-        "rap": 1.0,
-        "random": 0.0
-    },
-    {
-        "game": "santorini",
-        "rap": 1.0,
-        "random": 0.0
-    },
-    {
-        "game": "two_rooms_and_a_boom",
-        "rap": 1,
-        "random": 0
-    },
-    {
-        "game": "two_rooms_and_a_boom",
-        "rap": 1,
-        "random": 0
-    },
-    {
-        "game": "two_rooms_and_a_boom",
-        "rap": 1,
-        "random": 0
-    },
-    {
-        "game": "are_you_the_traitor",
-        "rap": 0,
-        "random": 1
-    },
-    {
-        "game": "are_you_the_traitor",
-        "rap": 1,
-        "random": 0
-    },
-    {
-        "game": "are_you_the_traitor",
-        "rap": 0,
-        "random": 1
-    },
-    {
         "game": "arctic_scavengers",
         "gpt3": 0,
         "gpt3-cot": 1
