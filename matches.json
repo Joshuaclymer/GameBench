@@ -1393,5 +1393,10 @@
         "game": "santorini",
         "rap": 1.0,
         "random": 0.0
+    },
+    {
+        "game": "pit",
+        "rap": 0.2625,
+        "random": 0.7375
     }
 ]
