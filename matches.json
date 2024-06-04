@@ -1,5 +1,30 @@
 [
     {
+        "game": "atari_boxing",
+        "gpt3": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "atari_boxing",
+        "gpt3": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "atari_boxing",
+        "gpt3": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "atari_boxing",
+        "gpt3": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "atari_boxing",
+        "gpt3": 0.5,
+        "random": 0.5
+    },
+    {
         "game": "sea_battle",
         "gpt4": 0.0,
         "gpt4-cot": 1.0
@@ -1308,5 +1333,40 @@
         "game": "pit",
         "gpt3-cot": 0.4627659574468085,
         "random": 0.5372340425531915
+    },
+    {
+        "game": "arctic_scavengers",
+        "rap": 1,
+        "random": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "rap": 1,
+        "random": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "rap": 1,
+        "random": 0
+    },
+    {
+        "game": "are_you_the_traitor",
+        "rap": 1,
+        "random": 0
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "rap": 0,
+        "random": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "rap": 0,
+        "random": 1
+    },
+    {
+        "game": "two_rooms_and_a_boom",
+        "rap": 1,
+        "random": 0
     }
 ]
