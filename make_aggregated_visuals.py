@@ -1,6 +1,8 @@
 from api.util import load_json
 from collections import defaultdict
 import random
+import seaborn as sns
+
 
 import functools
 
@@ -8,16 +10,15 @@ import choix
 import matplotlib.pyplot as plt
 import numpy as np
 
+sns.set(style='whitegrid')
+
 all_matches = [
     m
     for m in load_json("matches.json")
-    if "gpt3-bap" not in m and "gpt4-bap" not in m
-    and m["game"] != "atari_boxing"
 ]
 
 players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]
 n_players = len(players)
-players.sort()
 
 
 def lsr_pairwise(n_items, data, alpha=0.0, initial_params=None):
@@ -77,37 +78,31 @@ ci90s = np.percentile(bootstrapped_params, [5, 95], axis=1)
 ci90s = np.absolute(ratings - ci90s)
 
 fig, ax = plt.subplots()
-players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]
-n_players = len(players)
-ax.errorbar(players, ratings, yerr=ci90s, fmt="o")
+sns.barplot(x=players, y=ratings, ax=ax)
+ax.errorbar(players, ratings, yerr=ci90s, fmt="none", color="k", capsize=5)
 ax.set_title("Rating")
+ax.set_xlabel("Agent")
+ax.set_ylabel("Exponential Score")
+ax.tick_params(axis='x', rotation=30)
 
 plt.savefig("figures/overall_rating.png")
 
 ################################################################################
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(constrained_layout=True, dpi=300)
 
 matrix = np.zeros((n_players, n_players))
 for i in range(n_players):
     for j in range(n_players):
         matrix[i, j] = choix.probabilities([i, j], ratings)[0]
 
-im = ax.imshow(matrix)
-
-ax.set_xticks(np.arange(n_players), labels=players)
-ax.set_yticks(np.arange(n_players), labels=players)
-plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
-for i in range(n_players):
-    for j in range(n_players):
-        text = ax.text(
-            j, i, matrix[i, j].round(2), ha="center", va="center", color="w"
-        )
-
+sns.heatmap(matrix, ax=ax, annot=True, xticklabels=players, yticklabels=players, fmt=".2f")
 ax.set_title("Win probabilities")
-ax.set_ylabel("Probability that this agent...")
+ax.set_ylabel("Probability this agent...")
 ax.set_xlabel("... beats this agent")
+ax.tick_params(axis='x', rotation=30)
+ax.tick_params(axis='y', rotation=0)
+ax.invert_yaxis()
 
 plt.savefig("figures/overall_probabilities.png")
 
@@ -165,8 +160,8 @@ for match in all_matches:
 for (agent1, agent2), score in wins.items():
     wins[agent1, agent2] = score / n_matches[agent1, agent2]
 
-matrix = np.empty((len(players), len(players)))
-matrix.fill(np.nan)
+matrix = np.zeros((len(players), len(players)))
+#matrix.fill(np.nan)
 for i, player1 in enumerate(players):
     for j, player2 in enumerate(players):
         if player1 == player2:
@@ -174,20 +169,13 @@ for i, player1 in enumerate(players):
 
         matrix[i, j] = wins[player1, player2]
 
-im = ax.imshow(matrix)
-
-ax.set_xticks(np.arange(n_players), labels=players)
-ax.set_yticks(np.arange(n_players), labels=players)
-plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
-for i in range(n_players):
-    for j in range(n_players):
-        text = ax.text(
-            j, i, (matrix[i, j] * 100).round(1), ha="center", va="center", color="w"
-        )
+sns.heatmap(matrix, ax=ax, annot=True, xticklabels=players, yticklabels=players)
 
 ax.set_title("Average score")
-ax.set_ylabel("How many points this agent earned...")
-ax.set_xlabel("... playing against this agent")
+ax.set_ylabel("Average points this agent scored...")
+ax.set_xlabel("... against this agent")
+ax.tick_params(axis='x', rotation=30)
+ax.tick_params(axis='y', rotation=0)
+ax.invert_yaxis()
 
 plt.savefig("figures/average_score.png")

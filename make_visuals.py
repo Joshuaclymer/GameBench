@@ -8,7 +8,7 @@ import numpy as np
 import functools
 import seaborn as sns
 
-sns.set(style='white')
+sns.set(style='whitegrid')
 
 def make_figures(game, matches):
 
@@ -21,11 +21,11 @@ def make_figures(game, matches):
     n_players = len(players)
     #players.sort()
 
-    fig, axs = plt.subplots(2, 2, figsize=(9.5, 7.8), constrained_layout=True)
-    pos_nmatches = 0, 0
-    pos_score = 0, 1
-    pos_prob = 1, 0
-    pos_rating = 1, 1
+    fig, axs = plt.subplots(2, 2, figsize=(9.5, 7.8), constrained_layout=True, dpi=300)
+    ax_nmatches = axs[0, 0]
+    ax_score = axs[0, 1]
+    ax_prob = axs[1, 0]
+    ax_rating = axs[1, 1]
 
     ################################################################################
 
@@ -44,13 +44,13 @@ def make_figures(game, matches):
 
             matrix[i][j] = n_matches[player1, player2]
 
-    sns.heatmap(matrix, ax=axs[pos_nmatches], annot=True, xticklabels=players, yticklabels=players)
-    axs[pos_nmatches].tick_params(axis='x', rotation=30)
-    axs[pos_nmatches].tick_params(axis='y', rotation=0)
-    axs[pos_nmatches].invert_yaxis()
+    sns.heatmap(matrix, ax=ax_nmatches, annot=True, xticklabels=players, yticklabels=players)
+    ax_nmatches.tick_params(axis='x', rotation=30)
+    ax_nmatches.tick_params(axis='y', rotation=0)
+    ax_nmatches.invert_yaxis()
     #plt.xticks(rotation=30)
 
-    axs[pos_nmatches].set_title("Number of matches")
+    ax_nmatches.set_title("Number of matches")
 
     ################################################################################
 
@@ -73,14 +73,14 @@ def make_figures(game, matches):
 
             matrix[i, j] = wins[player1, player2]
 
-    sns.heatmap(matrix, ax=axs[pos_score], annot=True, xticklabels=players, yticklabels=players)
+    sns.heatmap(matrix, ax=ax_score, annot=True, xticklabels=players, yticklabels=players)
 
-    axs[pos_score].set_title("Average score")
-    axs[pos_score].set_ylabel("Average points this agent scored...")
-    axs[pos_score].set_xlabel("... against this agent")
-    axs[pos_score].tick_params(axis='x', rotation=30)
-    axs[pos_score].tick_params(axis='y', rotation=0)
-    axs[pos_score].invert_yaxis()
+    ax_score.set_title("Average score")
+    ax_score.set_ylabel("Average points this agent scored...")
+    ax_score.set_xlabel("... against this agent")
+    ax_score.tick_params(axis='x', rotation=30)
+    ax_score.tick_params(axis='y', rotation=0)
+    ax_score.invert_yaxis()
 
     ################################################################################
 
@@ -145,11 +145,12 @@ def make_figures(game, matches):
     ci90s = np.percentile(bootstrapped_params, [5, 95], axis=1)
     ci90s = np.absolute(ratings - ci90s)
 
-    axs[pos_rating].errorbar(players, ratings, yerr=ci90s, fmt="o")
-    axs[pos_rating].set_title("Rating")
-    axs[pos_rating].set_xlabel("Agent")
-    axs[pos_rating].set_ylabel("Exponential Score")
-    axs[pos_rating].tick_params(axis='x', rotation=30)
+    sns.barplot(x=players, y=ratings, ax=ax_rating)
+    ax_rating.errorbar(players, ratings, yerr=ci90s, fmt="none", color="k", capsize=5)
+    ax_rating.set_title("Rating")
+    ax_rating.set_xlabel("Agent")
+    ax_rating.set_ylabel("Exponential Score")
+    ax_rating.tick_params(axis='x', rotation=30)
 
     ################################################################################
 
@@ -158,13 +159,13 @@ def make_figures(game, matches):
         for j in range(n_players):
             matrix[i, j] = choix.probabilities([i, j], ratings)[0]
 
-    sns.heatmap(matrix, ax=axs[pos_prob], annot=True, xticklabels=players, yticklabels=players, fmt=".2f")
-    axs[pos_prob].set_title("Win probabilities")
-    axs[pos_prob].set_ylabel("Probability this agent...")
-    axs[pos_prob].set_xlabel("... beats this agent")
-    axs[pos_prob].tick_params(axis='x', rotation=30)
-    axs[pos_prob].tick_params(axis='y', rotation=0)
-    axs[pos_prob].invert_yaxis()
+    sns.heatmap(matrix, ax=ax_prob, annot=True, xticklabels=players, yticklabels=players, fmt=".2f")
+    ax_prob.set_title("Win probabilities")
+    ax_prob.set_ylabel("Probability this agent...")
+    ax_prob.set_xlabel("... beats this agent")
+    ax_prob.tick_params(axis='x', rotation=30)
+    ax_prob.tick_params(axis='y', rotation=0)
+    ax_prob.invert_yaxis()
 
 
     ################################################################################
