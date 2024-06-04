@@ -16,7 +16,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
 
     agent_type_id: str = "rap"
     transparent_reasoning: bool = False
-    agent_type: int = 0  # 0 = random replies, 1 = human interaction, 2 = openai
+    agent_type: int = 2  # 0 = random replies, 1 = human interaction, 2 = openai
 
     context_builder: Callable[[str, str], ContextType] = None
     completions: CompletionsFunction = None

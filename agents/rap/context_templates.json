@@ -42,7 +42,7 @@
         "This is an open-ended action. Write a description of what you're going to do."
     ],
     "goal": [
-        "Will you eventually win from this position? yes/no"
+        "{prefix}Will you eventually win from this position? yes/no"
     ],
     "prefix": "You are now playing a game called {title}.\nThe rules are as follows {summary}. {topics}\nYour observation of the game is between <state> and </state>:\n<state>\n{observation}\n</state>\n",
     "example": "You are playing a game called monty hall.\nThe rules of the game are as follows: there are three doors, behind one of which there is a prize. Select the door with the prize.\nYour observation of the state is between <state> and </state>:\n<state>\nAll three doors are closed.\n</state>\n",
