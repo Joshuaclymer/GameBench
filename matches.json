@@ -1368,5 +1368,30 @@
         "game": "two_rooms_and_a_boom",
         "rap": 1,
         "random": 0
+    },
+    {
+        "game": "codenames",
+        "rap": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "codenames",
+        "rap": 0.75,
+        "random": 0.25
+    },
+    {
+        "game": "codenames",
+        "rap": 1.0,
+        "random": 0.0
+    },
+    {
+        "game": "santorini",
+        "rap": 0.0,
+        "random": 1.0
+    },
+    {
+        "game": "santorini",
+        "rap": 1.0,
+        "random": 0.0
     }
 ]
