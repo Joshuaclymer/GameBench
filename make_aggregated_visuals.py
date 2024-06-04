@@ -20,7 +20,6 @@ all_matches = [
 players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]
 n_players = len(players)
 
-
 def lsr_pairwise(n_items, data, alpha=0.0, initial_params=None):
     weights, chain = choix.lsr._init_lsr(n_items, alpha, initial_params)
     for p1, p2, p1score, p2score in data:
@@ -65,7 +64,7 @@ def boostrap_params():
                     all_matches, k=len(all_matches), weights=[1 / weights[m["game"]] for m in all_matches]
                 )
             )
-            for _ in range(10000)
+            for _ in range(100)
         ]
     )#.transpose((1, 0))
 
@@ -176,3 +175,12 @@ ax.tick_params(axis='y', rotation=0)
 ax.invert_yaxis()
 
 plt.savefig("figures/average_score.png")
+
+################################################################################
+
+
+
+for game in games:
+    matches = []
+    df[:, (game, "P(win)")] = choix.probabilities(range(len(players)), ratings)
+    df[:, (game, "rating")] = ratings

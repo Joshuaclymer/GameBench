@@ -10,22 +10,27 @@ import seaborn as sns
 
 sns.set(style='whitegrid')
 
+import pandas as pd
+
+columns = pd.MultiIndex.from_product(
+    [
+        ["sea_battle", "pit"],
+        ["# matches", "avg. score", "P(win)", "rating"]
+    ],
+    names=["game", "metric"]
+)
+df = pd.DataFrame(index=players, columns=columns)
+
 def make_figures(game, matches):
-
-    players = set()
-    for match in matches:
-        agents = list(match.keys())[1:]
-        players.update(agents)
-
-    players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]#list(players)
+    players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]
     n_players = len(players)
-    #players.sort()
 
     fig, axs = plt.subplots(2, 2, figsize=(9.5, 7.8), constrained_layout=True, dpi=300)
     ax_nmatches = axs[0, 0]
     ax_score = axs[0, 1]
     ax_prob = axs[1, 0]
     ax_rating = axs[1, 1]
+    fig.suptitle(game)
 
     ################################################################################
 
@@ -127,9 +132,9 @@ def make_figures(game, matches):
                         matches, k=len(matches), weights=weights
                     )
                 )
-                for _ in range(100)
+                for _ in range(1000)
             ]
-        ).transpose((1, 0))
+        )
     else:
         bootstrapped_params = np.array(
             [
@@ -138,18 +143,18 @@ def make_figures(game, matches):
                         matches, k=len(matches)
                     )
                 )
-                for _ in range(100)
+                for _ in range(1000)
             ]
         ).transpose((1, 0))
     ratings = bootstrapped_params.mean(1)
     ci90s = np.percentile(bootstrapped_params, [5, 95], axis=1)
     ci90s = np.absolute(ratings - ci90s)
 
-    sns.barplot(x=players, y=ratings, ax=ax_rating)
-    ax_rating.errorbar(players, ratings, yerr=ci90s, fmt="none", color="k", capsize=5)
-    ax_rating.set_title("Rating")
+    sns.boxplot(data=bootstrapped_params, whis=(0, 100), ax=ax_rating)
+    ax_rating.set_title("Bradley-Terry Model Rating")
     ax_rating.set_xlabel("Agent")
-    ax_rating.set_ylabel("Exponential Score")
+    ax_rating.set_ylabel("Exponential rating")
+    ax_rating.set_xticks(ticks=range(len(players)), labels=players)
     ax_rating.tick_params(axis='x', rotation=30)
 
     ################################################################################
