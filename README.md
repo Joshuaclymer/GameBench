@@ -4,6 +4,8 @@ This repository contains both the code for the benchmark and the data we collect
 
 The code is available under the MIT license, and the data are available under the CC-BY license.
 
+The data are located in [`matches.py`](https://github.com/Joshuaclymer/GameBench/tree/main/matches.json).
+
 ### Setup
 In the repo root:
 
@@ -12,7 +14,15 @@ conda create -n gameenv python=3.10
 conda activate gameenv
 pip install -e .
 ```
-Ask Josh for the credentials file.
+You must provide your own OpenAI API key in a file `credentials.json` at the top-level directory.
+
+### Replicating figures
+
+The two Python files [`make_aggregated_visuals.py`](https://github.com/Joshuaclymer/GameBench/tree/main/make_aggregated_visuals.py) and [`make_visuals.py`](https://github.com/Joshuaclymer/GameBench/tree/main/make_visuals.py) generate all the figures from the paper into [`figures/`](https://github.com/Joshuaclymer/GameBench/tree/main/figures/).
+
+### Collecting data
+
+The scripts provided in [`scripts/`](https://github.com/Joshuaclymer/GameBench/tree/main/scripts/) run some individual games with preconfigured settings. You can run/modify these scripts or create another.
 
 ### `llm-reasoners` dependency
 
