@@ -7,23 +7,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import functools
 import seaborn as sns
+from rating import bootstrap_params, players, n_players
 
 sns.set(style='whitegrid')
 
-import pandas as pd
-
-columns = pd.MultiIndex.from_product(
-    [
-        ["sea_battle", "pit"],
-        ["# matches", "avg. score", "P(win)", "rating"]
-    ],
-    names=["game", "metric"]
-)
-df = pd.DataFrame(index=players, columns=columns)
-
 def make_figures(game, matches):
-    players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]
-    n_players = len(players)
 
     fig, axs = plt.subplots(2, 2, figsize=(9.5, 7.8), constrained_layout=True, dpi=300)
     ax_nmatches = axs[0, 0]
@@ -88,37 +76,6 @@ def make_figures(game, matches):
     ax_score.invert_yaxis()
 
     ################################################################################
-
-    def lsr_pairwise(n_items, data, alpha=0.0, initial_params=None):
-        weights, chain = choix.lsr._init_lsr(n_items, alpha, initial_params)
-        for p1, p2, p1score, p2score in data:
-            chain[p1, p2] += float(p2score) / (weights[p1] + weights[p2])
-            chain[p2, p1] += float(p1score) / (weights[p1] + weights[p2])
-        chain -= np.diag(chain.sum(axis=1))
-        return choix.utils.log_transform(choix.utils.statdist(chain))
-
-
-    def ilsr_pairwise(
-        n_items, data, alpha=0.0, initial_params=None, max_iter=100, tol=1e-8
-    ):
-        fun = functools.partial(lsr_pairwise, n_items=n_items, data=data, alpha=alpha)
-        return choix.lsr._ilsr(fun, initial_params, max_iter, tol)
-
-    def get_params(matches):
-        wins = []
-        for match in matches:
-            agents = list(match.keys())[1:]
-            if match[agents[0]] == match[agents[1]]:
-                continue
-
-            i = players.index(agents[0])
-            j = players.index(agents[1])
-
-            wins.append((i, j, match[agents[0]], match[agents[1]]))
-
-        params = ilsr_pairwise(len(players), wins, alpha=0.001)
-        return params
-
 
     if game == "overall":
         weights = defaultdict(int)
