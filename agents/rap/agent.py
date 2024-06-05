@@ -14,7 +14,7 @@ class ReasoningViaPlanning(Agent, WorldModel, SearchConfig):
     """Inherents Agent from api.classes, and WorldModel and SearchConfig
     from the llm-agents library."""
 
-    agent_type_id: str = "rap"
+    agent_type_id: str = "gpt4-rap"
     transparent_reasoning: bool = False
     agent_type: int = 2  # 0 = random replies, 1 = human interaction, 2 = openai
 
