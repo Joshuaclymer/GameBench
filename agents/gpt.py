@@ -276,35 +276,35 @@ class OpenAITextAgent(Agent):
 @dataclass
 class GPT3(OpenAITextAgent):
     openai_model: str = "gpt-3.5-turbo-1106"
-    agent_type_id: str = "gpt3"
+    agent_type_id: str = "gpt-3"
     mode: int = 0
 
 @dataclass
 class GPT3CoT(OpenAITextAgent):
     openai_model: str = "gpt-3.5-turbo-1106"
-    agent_type_id: str = "gpt3-cot"
+    agent_type_id: str = "gpt-3-cot"
     mode: int = 1
 
 @dataclass
 class GPT3BaP(OpenAITextAgent):
     openai_model: str = "gpt-3.5-turbo-1106"
-    agent_type_id: str = "gpt3-bap"
+    agent_type_id: str = "gpt-3-bap"
     mode: int = 2
 
 @dataclass
 class GPT4(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "gpt4"
+    agent_type_id: str = "gpt-4"
     mode: int = 0
 
 @dataclass
 class GPT4CoT(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "gpt4-cot"
+    agent_type_id: str = "gpt-4-cot"
     mode: int = 1
 
 @dataclass
 class GPT4BaP(OpenAITextAgent):
     openai_model: str = "gpt-4-1106-preview"
-    agent_type_id: str = "gpt4-bap"
+    agent_type_id: str = "gpt-4-bap"
     mode: int = 2
