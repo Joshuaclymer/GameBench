@@ -50,10 +50,10 @@ def ilsr_pairwise(
 ################################################################################
 ################################################################################
 
-players = ["random", "gpt3", "gpt3-cot", "gpt4", "gpt4-cot", "rap"]
+players = ["random", "human", "gpt-3", "gpt-3-cot", "gpt-4", "gpt-4-cot", "gpt-4-rap"]
 n_players = len(players)
 
-def get_matches(game):
+def get_matches(game=None):
     if game:
         return [m for m in load_json("matches.json") if m["game"] == game]
     return load_json("matches.json")
@@ -74,7 +74,7 @@ def get_params(matches):
     return params
 
 
-def boostrap_params(matches):
+def bootstrap_params(matches):
     weights = defaultdict(int)
     for match in matches:
         weights[match["game"]] += 1
@@ -83,18 +83,27 @@ def boostrap_params(matches):
         [
             get_params(
                 random.choices(
-                    matches, k=len(all_matches), weights=[1 / weights[m["game"]] for m in matches]
+                    matches, k=len(matches), weights=[1 / weights[m["game"]] for m in matches]
                 )
             )
-            for _ in range(100)
+            for _ in range(1000)
         ]
     )
 
     return bootstrapped_params
+
+games = ["sea_battle", "two_rooms_and_a_boom", "are_you_the_traitor", "air_land_sea", "santorini", "hive", "pit", "arctic_scavengers", "codenames"]
+games.sort()
 
 better_names = {
     "sea_battle": "Sea Battle", "two_rooms_and_a_boom": "Two Rooms and a Boom",
     "are_you_the_traitor": "Are You the Traitor?", "air_land_sea": "Air, Land, and Sea",
     "santorini": "Santorini", "hive": "Hive", "pit": "Pit", "arctic_scavengers": "Arctic Scavengers",
     "codenames": "Codenames"
+}
+
+shorter_names = {
+    "sea_battle": "SB", "two_rooms_and_a_boom": "TRB", "are_you_the_traitor": "AYT",
+    "air_land_sea": "ALS", "santorini": "SN", "hive": "HV", "pit": "PT",
+    "arctic_scavengers": "AS", "codenames": "CN"
 }
