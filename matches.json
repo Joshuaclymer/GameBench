@@ -1318,5 +1318,72 @@
         "game": "pit",
         "gpt4-rap": 0.2625,
         "random": 0.7375
+    },
+
+
+    {
+        "game": "codenames",
+        "human": 1.0,
+        "gpt4-cot": 0.0
+    },
+    {
+        "game": "codenames",
+        "human": 0.29411764705882354,
+        "gpt4-cot": 0.7058823529411765
+    },
+    {
+        "game": "codenames",
+        "human": 0.0,
+        "gpt4-cot": 1.0
+    },
+    {
+        "game": "hive",
+        "human": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "hive",
+        "human": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "hive",
+        "human": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "pit",
+        "human": 0.7832167832167832,
+        "gpt4-cot": 0.21678321678321677
+    },
+    {
+        "game": "santorini",
+        "human": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "santorini",
+        "human": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "santorini",
+        "human": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "human": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "human": 1.0,
+        "gpt4": 0.0
+    },
+    {
+        "game": "sea_battle",
+        "human": 1.0,
+        "gpt4": 0.0
     }
 ]
