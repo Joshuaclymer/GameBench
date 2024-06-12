@@ -6,3 +6,4 @@ santorinai
 colorama
 choix
 seaborn
+jinja2
