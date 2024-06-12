@@ -36,7 +36,7 @@ The scripts provided in [`scripts/`](https://github.com/Joshuaclymer/GameBench/t
 sh ./scripts/<script_name>.sh
 ```
 
-Alternatively, you can run `api.play_game.play_game` directly from a Python script in the top-level directory.
+Alternatively, you can run `api.play_game.play_game` directly from a Python script created in the top-level directory.
 
 ### `llm-reasoners` dependency
 
