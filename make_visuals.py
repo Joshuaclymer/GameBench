@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import functools
 import seaborn as sns
-from rating import bootstrap_params, players, n_players
+from rating import bootstrap_params, get_params, players, n_players
 
 sns.set(style='whitegrid')
 
