@@ -7,7 +7,7 @@ The code is available under the MIT license, and the data are available under th
 The match data is located in [`matches.json`](https://github.com/Joshuaclymer/GameBench/tree/main/matches.json).
 
 ### Setup
-In the repo root:
+In the repository root:
 
 ```
 conda create -n gameenv python=3.10
