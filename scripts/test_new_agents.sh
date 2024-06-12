@@ -1,6 +1,6 @@
 python api/play_game.py \
-    --agent_1_path agents.gpt.ChainOfThought \
-    --agent_2_path agents.gpt.GPT4Text \
+    --agent_1_path agents.gpt.GPT3CoT \
+    --agent_2_path agents.gpt.GPT4 \
     --game_path games.tic_tac_toe.TicTacToe \
     --show_state \
     --num_matches 50 \
