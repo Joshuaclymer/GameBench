@@ -1,4 +1,4 @@
-# [GameBench: GameBench: Evaluating Strategic Reasoning Abilities of LLM Agents](https://andyisok00.wixsite.com/gamebench)
+# [GameBench: Evaluating Strategic Reasoning Abilities of LLM Agents](https://andyisok00.wixsite.com/gamebench)
 
 This repository contains both the code for the benchmark and the data we collected so far.
 
