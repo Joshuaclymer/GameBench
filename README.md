@@ -23,11 +23,10 @@ You must provide your own OpenAI API key in a file `credentials.json` at the top
 
 ### Replicating figures
 
-The two Python files [`make_aggregated_visuals.py`](https://github.com/Joshuaclymer/GameBench/tree/main/make_aggregated_visuals.py) and [`make_visuals.py`](https://github.com/Joshuaclymer/GameBench/tree/main/make_visuals.py) generate all the figures from the paper into [`figures/`](https://github.com/Joshuaclymer/GameBench/tree/main/figures/). Use the commands:
+The Python script [`generate_all_results.py`](https://github.com/Joshuaclymer/GameBench/tree/main/generate_all_results.py) generates all the figures from the paper into [`figures/`](https://github.com/Joshuaclymer/GameBench/tree/main/figures/). Use the commands:
 
 ```py
-python3 make_visuals.py
-python3 make_aggregated_visuals.py
+python3 generate_all_results.py
 ```
 
 ### Collecting data
@@ -36,6 +35,8 @@ The scripts provided in [`scripts/`](https://github.com/Joshuaclymer/GameBench/t
 ```sh
 sh ./scripts/<script_name>.sh
 ```
+
+Alternatively, you can run `api.play_game.play_game` directly from a Python script in the top-level directory.
 
 ### `llm-reasoners` dependency
 
