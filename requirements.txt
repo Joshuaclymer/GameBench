@@ -5,3 +5,4 @@ matplotlib
 santorinai
 colorama
 choix
+seaborn
