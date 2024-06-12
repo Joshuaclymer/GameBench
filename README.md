@@ -4,7 +4,7 @@ This repository contains both the code for the benchmark and the data we collect
 
 The code is available under the MIT license, and the data are available under the CC-BY license.
 
-The data are located in [`matches.py`](https://github.com/Joshuaclymer/GameBench/tree/main/matches.json).
+The match data is located in [`matches.json`](https://github.com/Joshuaclymer/GameBench/tree/main/matches.json).
 
 ### Setup
 In the repo root:
