@@ -23,7 +23,7 @@ You must provide your own OpenAI API key in a file `credentials.json` at the top
 
 ### Replicating figures
 
-The Python script [`generate_all_results.py`](https://github.com/Joshuaclymer/GameBench/tree/main/generate_all_results.py) generates all the figures from the paper into [`figures/`](https://github.com/Joshuaclymer/GameBench/tree/main/figures/). Use the commands:
+The Python script [`generate_all_results.py`](https://github.com/Joshuaclymer/GameBench/tree/main/generate_all_results.py) generates all the figures from the paper into [`figures/`](https://github.com/Joshuaclymer/GameBench/tree/main/figures/). Use the command:
 
 ```py
 python3 generate_all_results.py
