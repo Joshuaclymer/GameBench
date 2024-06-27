@@ -1,4 +1,4 @@
-# GameBench: Evaluating Strategic Reasoning Abilities of LLM Agents
+# [GameBench: Evaluating Strategic Reasoning Abilities of LLM Agents](https://gamebench-website.vercel.app/)
 
 This repository contains both the code for the benchmark and the data we collected so far.
 
